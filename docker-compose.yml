@@ -1,0 +1,38 @@
+# =============================================================
+# docker-compose.yml — บริการที่ต้องใช้ตอนพัฒนาในเครื่อง
+# ใช้คำสั่ง:  docker compose up -d   (เปิด)  /  docker compose down   (ปิด)
+# ค่าชื่อผู้ใช้/รหัสผ่าน/ชื่อฐานข้อมูล อ่านจากไฟล์ .env ที่ root ของ repo
+# =============================================================
+
+services:
+  # ฐานข้อมูล PostgreSQL สำหรับ backend (Django)
+  db:
+    # ใช้ PostgreSQL 18 รุ่น alpine (ขนาดเล็ก) — เวอร์ชันเดียวกับที่ใช้ใน CI
+    image: postgres:18-alpine
+    container_name: mangosteen-db
+    restart: unless-stopped
+    environment:
+      # ค่าเหล่านี้ดึงจาก .env (ดูตัวอย่างใน .env.example)
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    ports:
+      # เปิดพอร์ตให้ Django ในเครื่องเชื่อมต่อได้
+      # ฝั่งซ้าย = พอร์ตบนเครื่องเรา อ่านจาก POSTGRES_PORT ใน .env (ไม่ตั้ง = 5432)
+      # ฝั่งขวา = พอร์ตภายใน container (คงที่ 5432)
+      # ตั้งค่าพอร์ตอื่นได้ถ้าเครื่องมี PostgreSQL ตัวอื่นใช้ 5432 อยู่แล้ว
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      # เก็บข้อมูลไว้ใน volume ชื่อ db-data → ปิด/เปิด container ใหม่ข้อมูลไม่หาย
+      # (PostgreSQL 18 เก็บข้อมูลไว้ใต้ /var/lib/postgresql)
+      - db-data:/var/lib/postgresql
+    healthcheck:
+      # ตรวจทุก 5 วินาทีว่าฐานข้อมูลพร้อมรับการเชื่อมต่อหรือยัง
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  # พื้นที่เก็บข้อมูลถาวรของฐานข้อมูล (ลบได้ด้วย docker compose down -v — ข้อมูลจะหายทั้งหมด)
+  db-data:
