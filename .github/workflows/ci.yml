@@ -1,5 +1,5 @@
 # =============================================================
-# CI — ตรวจโค้ดอัตโนมัติบน GitHub Actions
+# CI — ตรวจโค้ดอัตโนมัติบน GitHub Actions (2 job: backend และ frontend รันพร้อมกัน)
 # รันเมื่อ: เปิด/อัปเดต Pull Request และเมื่อมีการ merge (push) เข้า main
 # ต้องผ่านทุก job ก่อน merge (ตั้งเป็นกฎป้องกัน main ในขั้น 0.3)
 # =============================================================
@@ -84,3 +84,50 @@ jobs:
       # รัน test ทั้งหมด
       - name: Run tests (pytest)
         run: uv run pytest
+
+  # -----------------------------------------------------------
+  # Frontend: ตรวจชนิดข้อมูล (tsc), ตรวจคุณภาพโค้ด (eslint) และรัน test (vitest)
+  # -----------------------------------------------------------
+  frontend:
+    name: Frontend (tsc + eslint + vitest)
+    runs-on: ubuntu-latest
+
+    # ทุกคำสั่งใน job นี้รันในโฟลเดอร์ frontend/
+    defaults:
+      run:
+        working-directory: frontend
+
+    steps:
+      # ดึงโค้ดของ commit นี้ลงเครื่อง CI
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # ติดตั้ง pnpm — เวอร์ชันอ่านจากช่อง packageManager ใน frontend/package.json
+      - name: Install pnpm
+        uses: pnpm/action-setup@v6
+        with:
+          package_json_file: frontend/package.json
+
+      # ติดตั้ง Node.js 24 พร้อม cache แพ็กเกจของ pnpm เพื่อให้รอบถัดไปเร็วขึ้น
+      - name: Install Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: frontend/pnpm-lock.yaml
+
+      # ติดตั้งแพ็กเกจตามไฟล์ pnpm-lock.yaml (--frozen-lockfile = ห้ามเปลี่ยนเวอร์ชันจากที่ล็อกไว้)
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # ตรวจชนิดข้อมูล TypeScript ทั้งโค้ดแอปและไฟล์ตั้งค่า (tsc -b — ตรวจอย่างเดียว ไม่สร้างไฟล์)
+      - name: Type check (tsc)
+        run: pnpm typecheck
+
+      # ตรวจคุณภาพและข้อผิดพลาดของโค้ด
+      - name: Lint (eslint)
+        run: pnpm lint
+
+      # รัน test ทั้งหมด
+      - name: Run tests (vitest)
+        run: pnpm test
