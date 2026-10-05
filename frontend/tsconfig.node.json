@@ -1,0 +1,28 @@
+// ตั้งค่า TypeScript สำหรับไฟล์ตั้งค่าที่รันบน Node.js (vite.config.ts) — ไม่ใช่โค้ดของแอป
+{
+  "compilerOptions": {
+    // ไฟล์ cache ของการตรวจชนิดข้อมูล
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "target": "es2023",
+    "lib": ["ES2023"],
+    // ชนิดข้อมูลของ Node.js (เช่น process.env)
+    "types": ["node"],
+    "skipLibCheck": true,
+
+    /* โหมดโมดูลของ Node.js */
+    "module": "nodenext",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    // ตรวจชนิดข้อมูลอย่างเดียว ไม่สร้างไฟล์ผลลัพธ์
+    "noEmit": true,
+
+    /* ความเข้มงวดในการตรวจ */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "erasableSyntaxOnly": true,
+    "noFallthroughCasesInSwitch": true
+  },
+  "include": ["vite.config.ts"]
+}

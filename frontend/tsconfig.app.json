@@ -1,0 +1,39 @@
+// ตั้งค่า TypeScript สำหรับโค้ดของแอป (ทุกไฟล์ใน src/)
+{
+  "compilerOptions": {
+    // ไฟล์ cache ของการตรวจชนิดข้อมูล (ทำให้ตรวจรอบถัดไปเร็วขึ้น)
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo",
+    // รุ่นของ JavaScript ที่ใช้ และไลบรารีที่รู้จัก (มาตรฐาน ES2023 + หน้าเว็บ)
+    "target": "es2023",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
+    "module": "esnext",
+    // ชนิดข้อมูลของ Vite (เช่น import.meta.env)
+    "types": ["vite/client"],
+    "allowArbitraryExtensions": true,
+    "skipLibCheck": true,
+
+    /* โหมดสำหรับ bundler (Vite เป็นคน build ไม่ใช่ tsc) */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    // tsc ใช้ตรวจชนิดข้อมูลอย่างเดียว ไม่สร้างไฟล์ผลลัพธ์
+    "noEmit": true,
+    // รูปแบบ JSX ของ React 17+ (ไม่ต้อง import React ทุกไฟล์)
+    "jsx": "react-jsx",
+
+    /* ความเข้มงวดในการตรวจ */
+    // เปิดการตรวจแบบเข้มงวดทั้งหมด (เช่น ห้ามค่า null/undefined โดยไม่ตรวจก่อน)
+    "strict": true,
+    // ห้ามมีตัวแปร / พารามิเตอร์ที่ประกาศแล้วไม่ได้ใช้
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    // ใช้เฉพาะไวยากรณ์ TypeScript ที่ลบออกได้ตรง ๆ (เข้ากับเครื่องมือรุ่นใหม่)
+    "erasableSyntaxOnly": true,
+    // ห้าม switch-case ไหลไปเคสถัดไปโดยไม่ตั้งใจ
+    "noFallthroughCasesInSwitch": true,
+    // การเข้าถึงสมาชิกของ array/object ด้วย index ต้องเผื่อกรณีไม่มีค่า
+    "noUncheckedIndexedAccess": true
+  },
+  "include": ["src"]
+}
