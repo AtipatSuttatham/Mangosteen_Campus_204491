@@ -118,7 +118,7 @@
 | 0.0 | เตรียม repo: `.gitignore`, `README.md`, `PROJECT_STRUCTURE.md`, `PROJECT_SCOPE.md`, `WORKFLOW_GUIDE.md` | ✅ | push ตรงเข้า `main` (commit แรก) |
 | 0.1 | Backend (Django + DRF) + PostgreSQL ผ่าน Docker + `GET /api/health/` + CI ฝั่ง backend (ruff + pytest) + `.gitattributes` | ✅ | [#2](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/2) |
 | 0.2 | Frontend (React + TS + Vite + Tailwind v4) + CI ฝั่ง frontend (tsc + eslint + vitest) | ✅ | [#3](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/3) |
-| 0.3 | ตั้งกฎป้องกัน `main` บน GitHub | ⬜ | (ตั้งค่า ไม่มี PR) |
+| 0.3 | ตั้งกฎป้องกัน `main` บน GitHub + ปรับข้อตกลงเรื่องรายงาน (ส่งแล้ว ไม่แก้ .docx) | ✅ | [#4](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/4) |
 | 0.4 | ระบบ 2 ภาษา: ไฟล์แปล th/en, ตัวสลับภาษา, จำค่าใน localStorage, วันที่แบบ พ.ศ. | ⬜ | |
 | 0.5 | มาตรฐาน API: `/api/v1/`, รูปแบบ error แบบรหัส, CORS | ⬜ | |
 | 0.6 | ธีมสี/ฟอนต์จาก wireframe + คอมโพเนนต์พื้นฐาน | ⬜ | |
@@ -169,6 +169,7 @@
 | เรื่อง | ตัดสินเมื่อ |
 |---|---|
 | ผู้ให้บริการเก็บไฟล์ (cloud) และข้อจำกัดชนิด/ขนาดไฟล์ | ก่อนช่วง deploy — โค้ดรองรับการเปลี่ยนแล้ว (เก็บตำแหน่งไฟล์ผ่าน storage abstraction) |
-| เซิร์ฟเวอร์สำหรับนำเสนอ (deploy) | ก่อนช่วงทดสอบระบบ |
+| เซิร์ฟเวอร์สำหรับนำเสนอ (deploy) | ก่อนช่วงทดสอบระบบ — แนะนำให้ frontend และ backend อยู่โดเมนเดียวกัน |
 | เกณฑ์การทดสอบจากอาจารย์ที่ปรึกษา | เมื่อได้ข้อมูล |
-| แก้รายงาน `.docx` ให้ตรงกับ docs v2.1 | เมื่อผู้ใช้สั่ง — รายการที่ต้องแก้อยู่ใน [`docs/database.md`](docs/database.md) §11 v2.1 |
+
+> รายงานบทที่ 1–5 ส่งแล้ว **ไม่แก้ไฟล์ .docx อีก** — จุดที่ระบบจริงต่างจากรายงานบันทึกไว้ใน [`docs/database.md`](docs/database.md) §11 (ใช้ตอนเขียนรายงานฉบับสมบูรณ์)

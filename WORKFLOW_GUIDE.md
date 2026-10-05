@@ -51,6 +51,21 @@
 
 **สิ่งที่คุณต้องทำ:** สั่งงาน → อ่านคำอธิบาย → กด accept ที่เหลือ Claude ดำเนินการให้ (คุณเข้าไปดู PR บน GitHub ได้ทุกเมื่อ ดูหัวข้อ 4)
 
+### กฎป้องกัน `main` (ตั้งตั้งแต่ขั้น 0.3)
+
+GitHub บังคับกฎเหล่านี้กับทุกคน **รวมถึงบัญชี admin** — เหมือนล็อกประตูหลัง ทุกงานต้องเข้าทางประตูหน้าที่มีผู้ตรวจ (CI):
+
+| กฎ | ผลในการใช้งาน |
+|---|---|
+| ต้องเข้าทาง PR | `git push` เข้า `main` ตรง ๆ จะถูกปฏิเสธ — ต้องทำบน branch แล้วเปิด PR |
+| CI ต้องผ่านทั้ง 2 job (Backend + Frontend) | ปุ่ม merge ใช้ไม่ได้จนกว่า CI จะเป็นสีเขียวทั้งคู่ |
+| branch ต้องทันสมัยกับ `main` | ถ้ามีงานอื่นเข้า `main` หลังเปิด PR จะต้องดึงมารวมและให้ CI ตรวจใหม่ก่อน (GitHub แสดงปุ่ม **Update branch**) |
+| ไม่บังคับให้มีคนอนุมัติ | ทำงานคนเดียว — Claude merge ได้เองเมื่อ CI ผ่าน |
+| ห้าม force push / ห้ามลบ `main` | ประวัติบน `main` ลบหรือเขียนทับไม่ได้ |
+
+ดูค่าที่ตั้งไว้ได้ที่ GitHub → **Settings** → **Branches** (หรือ **Rules**) → `main`
+**ห้ามปิดกฎเหล่านี้** ยกเว้นกรณีจำเป็นจริง ๆ (เช่น GitHub Actions ล่มนาน) — Claude จะไม่ปิดเองโดยไม่ถาม
+
 ขอบเขตงานทั้งหมดและลำดับงานอยู่ที่ [`PROJECT_SCOPE.md`](PROJECT_SCOPE.md) ส่วนที่ 4
 
 ---
@@ -217,7 +232,9 @@ repo: https://github.com/AtipatSuttatham/Mangosteen_Campus_204491
 | อาการ | สาเหตุ | วิธีแก้ |
 |---|---|---|
 | `gh` บอกว่ายังไม่ได้ login | token หมดอายุหรือยังไม่ได้ login | เปิด PowerShell พิมพ์ `gh auth login --hostname github.com --git-protocol https --web --scopes workflow` แล้วทำตามหน้าจอ |
-| push แล้วขึ้นว่า branch `main` ถูกป้องกัน | ตั้งกฎให้ `main` รับงานผ่าน PR เท่านั้น (ตั้งในขั้น 0.3) | เป็นเรื่องปกติ — ทำงานบน branch แล้วเปิด PR |
+| push แล้วขึ้น `protected branch hook declined` / `Changes must be made through a pull request` | `main` ถูกป้องกัน — รับงานผ่าน PR เท่านั้น (ขั้น 0.3) | เป็นเรื่องปกติ — ทำงานบน branch แล้วเปิด PR |
+| PR ขึ้นว่า `Merging is blocked` / `Required statuses must pass` | CI ยังไม่ผ่าน หรือยังรันไม่เสร็จ | รอ CI หรือดูว่า job ไหนไม่ผ่าน (หัวข้อ 4) |
+| PR ขึ้นว่า `This branch is out-of-date with the base branch` | มีงานอื่นเข้า `main` หลังเปิด PR | กดปุ่ม **Update branch** แล้วรอ CI ตรวจใหม่ |
 | test / backend ขึ้น `password authentication failed` | Django ไปต่อฐานข้อมูลตัวอื่นที่ใช้พอร์ตเดียวกัน (เช่น PostgreSQL บน Windows ที่พอร์ต 5432) | ใช้พอร์ตอื่นใน `.env` ตามหัวข้อ 2.4 แล้วสั่ง `docker compose up -d` ใหม่ |
 | `/api/health/` ขึ้น `"database":"unavailable"` หรือ test ต่อฐานข้อมูลไม่ได้ | ยังไม่เปิด Docker Desktop / ยังไม่สั่ง `docker compose up -d` | ทำตามหัวข้อ 3.1 |
 | เปิด backend แล้วได้หน้าของระบบอื่น หรือ 404 แปลก ๆ | พอร์ตชนกับโปรแกรมอื่น (เช่น 8000 = DocuSynth) | ใช้พอร์ต 8008 ตามหัวข้อ 3.2 |
