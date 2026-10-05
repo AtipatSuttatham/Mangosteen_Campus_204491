@@ -57,8 +57,6 @@
 
 ## 2. เตรียมเครื่องครั้งแรก
 
-> ส่วน frontend จะเติมในขั้น 0.2
-
 ### 2.1 เครื่องมือที่ต้องมี (ตรวจแล้วว่าติดตั้งในเครื่องนี้ครบ)
 
 | เครื่องมือ | ใช้ทำอะไร | ตรวจด้วยคำสั่ง |
@@ -67,6 +65,7 @@
 | GitHub CLI (`gh`) | เปิด PR / ดู CI / merge จากเครื่อง | `gh auth status` (ต้องขึ้นว่า Logged in) |
 | Docker Desktop | รันฐานข้อมูล PostgreSQL | `docker --version` — **ต้องเปิดโปรแกรมไว้ก่อนรันระบบ** |
 | uv | ติดตั้งแพ็กเกจและรัน Python ฝั่ง backend | `uv --version` |
+| Node.js 24 | รันเครื่องมือฝั่ง frontend | `node --version` |
 | pnpm | ติดตั้งแพ็กเกจฝั่ง frontend | `pnpm --version` |
 
 ### 2.2 สร้างไฟล์ตั้งค่า `.env` (ทำครั้งเดียว)
@@ -82,13 +81,21 @@
    - `DJANGO_SECRET_KEY` → ข้อความสุ่มยาว ๆ (สร้างได้ด้วยคำสั่ง `python -c "import secrets; print(secrets.token_urlsafe(50))"`)
    - `POSTGRES_PORT` → ดูหัวข้อ 2.4 ว่าเครื่องนี้ต้องใช้พอร์ตไหน และแก้พอร์ตเดียวกันใน `DATABASE_URL`
 
-### 2.3 ติดตั้งแพ็กเกจ backend (ทำครั้งเดียว และทุกครั้งที่มีแพ็กเกจใหม่)
+### 2.3 ติดตั้งแพ็กเกจ (ทำครั้งเดียว และทุกครั้งที่มีแพ็กเกจใหม่)
 
+**backend:**
 ```
 cd backend
 uv sync
 ```
 uv จะติดตั้ง Python 3.13 และแพ็กเกจทุกตัวตามไฟล์ `uv.lock` ไว้ในโฟลเดอร์ `backend/.venv/`
+
+**frontend:**
+```
+cd frontend
+pnpm install
+```
+pnpm จะติดตั้งแพ็กเกจทุกตัวตามไฟล์ `pnpm-lock.yaml` ไว้ในโฟลเดอร์ `frontend/node_modules/`
 
 ### 2.4 พอร์ตที่โปรเจกต์นี้ใช้ในเครื่องนี้ ⚠️
 
@@ -98,16 +105,18 @@ uv จะติดตั้ง Python 3.13 และแพ็กเกจทุ�
 |---|---|---|---|
 | ฐานข้อมูล (PostgreSQL) | 5432 | **5434** | 5432 = PostgreSQL ที่ติดตั้งบน Windows, 5433 = โปรเจกต์อื่นใน Docker |
 | backend (Django) | 8000 | **8008** | 8000 = โปรเจกต์ DocuSynth ใน Docker |
+| frontend (Vite) | 5173 | **5180** | 5173 = โปรเจกต์ DocuSynth ใน Docker |
 
 - พอร์ตฐานข้อมูลตั้งที่ `POSTGRES_PORT` และ `DATABASE_URL` ในไฟล์ `.env`
 - พอร์ต backend ระบุตอนสั่งเปิดเซิร์ฟเวอร์ (หัวข้อ 3)
+- พอร์ต frontend ตั้งไว้ใน `frontend/vite.config.ts` แล้ว (ถ้า 5180 ไม่ว่างจะขึ้น error — ไม่ย้ายพอร์ตเอง)
 - ตรวจว่าพอร์ตไหนถูกใช้อยู่: `netstat -ano | findstr LISTENING`
 
 ---
 
 ## 3. รันระบบในเครื่อง
 
-> ส่วน frontend จะเติมในขั้น 0.2
+ต้องเปิด 3 ส่วนตามลำดับ: ฐานข้อมูล → backend → frontend (backend และ frontend ใช้หน้าต่าง PowerShell คนละหน้าต่าง)
 
 ### 3.1 เปิดฐานข้อมูล
 1. **เปิดโปรแกรม Docker Desktop** และรอจนขึ้น "Engine running"
@@ -130,13 +139,37 @@ uv run python manage.py runserver 8008
 
 > ⚠️ ตอนนี้**ยังไม่ต้องสั่ง `migrate`** — ตารางผู้ใช้แบบของโปรเจกต์จะสร้างในก้อน 1 ถ้า migrate ก่อนจะต้องล้างฐานข้อมูลในเครื่องทีหลัง
 
-### 3.3 ตรวจโค้ดก่อนส่งงาน (คำสั่งเดียวกับที่ CI รัน)
+### 3.3 เปิด frontend
+```
+cd frontend
+pnpm dev
+```
+- เปิดเบราว์เซอร์ไปที่ http://localhost:5180
+- ตอนนี้เป็น**หน้าทดสอบชั่วคราว** (ไม่มีข้อความ เพราะระบบแปลภาษามาในขั้น 0.4):
+  - 🟢 วงกลมสีเขียว + `{"status":"ok","database":"ok"}` = frontend ↔ backend ↔ ฐานข้อมูล ต่อกันครบ
+  - 🔴 วงกลมสีแดง (ไม่มีข้อมูลด้านล่าง) = ติดต่อ backend ไม่ได้ → เปิด backend ตามหัวข้อ 3.2
+  - 🔴 วงกลมสีแดง + `"database":"unavailable"` = backend ทำงาน แต่ฐานข้อมูลยังไม่เปิด → หัวข้อ 3.1
+- frontend เรียก `/api/...` แล้ว Vite ส่งต่อไปที่ backend พอร์ต 8008 ให้อัตโนมัติ (ตั้งไว้ใน `vite.config.ts`)
+- ปิดเซิร์ฟเวอร์: กด `Ctrl + C`
+
+### 3.4 ตรวจโค้ดก่อนส่งงาน (คำสั่งเดียวกับที่ CI รัน)
+
+**backend:**
 ```
 cd backend
 uv run ruff check .            ← ตรวจข้อผิดพลาด / กฎการเขียนโค้ด
 uv run ruff format --check .   ← ตรวจรูปแบบโค้ด (ใช้ uv run ruff format . เพื่อจัดให้อัตโนมัติ)
 uv run pytest                  ← รัน test ทั้งหมด (ต้องเปิดฐานข้อมูลไว้)
 ```
+
+**frontend:**
+```
+cd frontend
+pnpm typecheck                 ← ตรวจชนิดข้อมูล TypeScript
+pnpm lint                      ← ตรวจคุณภาพโค้ด (ESLint)
+pnpm test                      ← รัน test ทั้งหมด (ไม่ต้องเปิด backend — test จำลองคำตอบเอง)
+```
+คำอธิบายคำสั่งอื่นของ frontend: ดู [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) หัวข้อ "คำสั่งใน frontend/package.json"
 
 ---
 
@@ -190,5 +223,7 @@ repo: https://github.com/AtipatSuttatham/Mangosteen_Campus_204491
 | เปิด backend แล้วได้หน้าของระบบอื่น หรือ 404 แปลก ๆ | พอร์ตชนกับโปรแกรมอื่น (เช่น 8000 = DocuSynth) | ใช้พอร์ต 8008 ตามหัวข้อ 3.2 |
 | Docker Desktop ค้าง / ขึ้นว่าต่อ engine ไม่ได้ | engine ของ Docker หยุดทำงาน | คลิกขวาไอคอนปลาวาฬ → Quit Docker Desktop → เปิดใหม่ → รอ "Engine running" (ข้อมูลใน volume ไม่หาย) |
 | `uv` บอกว่าหา Python 3.13 ไม่เจอ | ยังไม่ได้ติดตั้ง | สั่ง `uv python install 3.13` |
+| `pnpm dev` ขึ้น `Port 5180 is already in use` | มีโปรแกรมอื่น (หรือ frontend ที่เปิดค้างไว้อีกหน้าต่าง) ใช้พอร์ต 5180 | ปิดหน้าต่างที่เปิดค้าง หรือตรวจด้วย `netstat -ano \| findstr :5180` |
+| หน้า frontend ขึ้นวงกลมสีแดงตลอด | backend ไม่ได้เปิด หรือเปิดคนละพอร์ต | เปิด backend ด้วย `runserver 8008` ตามหัวข้อ 3.2 |
 
 > ตารางนี้จะเพิ่มเมื่อเจอปัญหาจริงระหว่างพัฒนา

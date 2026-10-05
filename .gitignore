@@ -36,7 +36,10 @@ staticfiles/
 node_modules/
 # ผลลัพธ์จากการ build และรายงาน coverage
 dist/
+dist-ssr/
 coverage/
+# ไฟล์ตั้งค่าเฉพาะเครื่องของ Vite (เช่น .env.local)
+*.local
 *.tsbuildinfo
 
 # --- ไฟล์ log ---

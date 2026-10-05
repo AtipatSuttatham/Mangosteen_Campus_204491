@@ -1,0 +1,5 @@
+/*
+ * ไฟล์ CSS หลักของแอป
+ * โหลด Tailwind CSS v4 ทั้งชุด — ค่าสี/ฟอนต์ตาม wireframe จะเพิ่มในขั้น 0.6
+ */
+@import 'tailwindcss';

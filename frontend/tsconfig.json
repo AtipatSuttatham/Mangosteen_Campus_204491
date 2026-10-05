@@ -1,0 +1,5 @@
+// ไฟล์รวม: ชี้ไปที่ตั้งค่า TypeScript 2 ชุด (โค้ดแอป และไฟล์ตั้งค่าที่รันบน Node.js)
+{
+  "files": [],
+  "references": [{ "path": "./tsconfig.app.json" }, { "path": "./tsconfig.node.json" }]
+}

@@ -1,0 +1,19 @@
+<!doctype html>
+<!-- หน้า HTML หลักของแอป (Single Page Application) — React จะสร้างหน้าจอทั้งหมดลงใน <div id="root"> -->
+<!-- lang="th" = ภาษาเริ่มต้นของระบบคือภาษาไทย (สลับภาษาได้ในขั้น 0.4) -->
+<html lang="th">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- ไอคอนบนแท็บเบราว์เซอร์ (จะเปลี่ยนเป็นโลโก้กลีบเลี้ยงมังคุดในขั้น 0.6) -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- ให้หน้าจอปรับขนาดตามอุปกรณ์ (รองรับมือถือ) -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Mangosteen Campus</title>
+  </head>
+  <body>
+    <!-- จุดที่ React วาดหน้าจอลงไป -->
+    <div id="root"></div>
+    <!-- โหลดโค้ดเริ่มต้นของแอป -->
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

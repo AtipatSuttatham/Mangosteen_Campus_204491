@@ -117,7 +117,7 @@
 |---|---|---|---|
 | 0.0 | เตรียม repo: `.gitignore`, `README.md`, `PROJECT_STRUCTURE.md`, `PROJECT_SCOPE.md`, `WORKFLOW_GUIDE.md` | ✅ | push ตรงเข้า `main` (commit แรก) |
 | 0.1 | Backend (Django + DRF) + PostgreSQL ผ่าน Docker + `GET /api/health/` + CI ฝั่ง backend (ruff + pytest) + `.gitattributes` | ✅ | [#2](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/2) |
-| 0.2 | Frontend (React + TS + Vite + Tailwind v4) + CI ฝั่ง frontend (tsc + eslint + vitest) | ⬜ | |
+| 0.2 | Frontend (React + TS + Vite + Tailwind v4) + CI ฝั่ง frontend (tsc + eslint + vitest) | ✅ | [#3](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/3) |
 | 0.3 | ตั้งกฎป้องกัน `main` บน GitHub | ⬜ | (ตั้งค่า ไม่มี PR) |
 | 0.4 | ระบบ 2 ภาษา: ไฟล์แปล th/en, ตัวสลับภาษา, จำค่าใน localStorage, วันที่แบบ พ.ศ. | ⬜ | |
 | 0.5 | มาตรฐาน API: `/api/v1/`, รูปแบบ error แบบรหัส, CORS | ⬜ | |
