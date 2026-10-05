@@ -31,7 +31,24 @@
 
 ## วิธีติดตั้งและรันระบบ
 
-ยังไม่มีโค้ดให้รัน — วิธีติดตั้งจะเพิ่มเมื่อโครงโปรเจกต์ส่วนหลังบ้านและหน้าบ้านพร้อม (ดู [`WORKFLOW_GUIDE.md`](WORKFLOW_GUIDE.md))
+ต้องมี: Docker Desktop, [uv](https://docs.astral.sh/uv/) (ส่วนหน้าบ้านจะเพิ่มในขั้นถัดไป)
+
+```
+# 1) สร้างไฟล์ตั้งค่า แล้วแก้รหัสผ่าน / secret key / พอร์ต
+Copy-Item .env.example .env
+
+# 2) เปิดฐานข้อมูล PostgreSQL
+docker compose up -d
+
+# 3) ติดตั้งแพ็กเกจและเปิดส่วนหลังบ้าน
+cd backend
+uv sync
+uv run python manage.py runserver 8008
+```
+
+ตรวจว่าระบบทำงาน: เปิด http://localhost:8008/api/health/ → ต้องเห็น `{"status":"ok","database":"ok"}`
+
+รายละเอียดทีละขั้น เรื่องพอร์ต และวิธีแก้ปัญหา อยู่ใน [`WORKFLOW_GUIDE.md`](WORKFLOW_GUIDE.md)
 
 ## เอกสารในโปรเจกต์
 

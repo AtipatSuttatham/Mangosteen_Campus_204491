@@ -116,7 +116,7 @@
 | งานย่อย | รายละเอียด | สถานะ | PR |
 |---|---|---|---|
 | 0.0 | เตรียม repo: `.gitignore`, `README.md`, `PROJECT_STRUCTURE.md`, `PROJECT_SCOPE.md`, `WORKFLOW_GUIDE.md` | ✅ | push ตรงเข้า `main` (commit แรก) |
-| 0.1 | Backend (Django + DRF) + PostgreSQL ผ่าน Docker + `GET /api/health/` + CI ฝั่ง backend (ruff + pytest) | ⬜ | |
+| 0.1 | Backend (Django + DRF) + PostgreSQL ผ่าน Docker + `GET /api/health/` + CI ฝั่ง backend (ruff + pytest) + `.gitattributes` | 🔄 | |
 | 0.2 | Frontend (React + TS + Vite + Tailwind v4) + CI ฝั่ง frontend (tsc + eslint + vitest) | ⬜ | |
 | 0.3 | ตั้งกฎป้องกัน `main` บน GitHub | ⬜ | (ตั้งค่า ไม่มี PR) |
 | 0.4 | ระบบ 2 ภาษา: ไฟล์แปล th/en, ตัวสลับภาษา, จำค่าใน localStorage, วันที่แบบ พ.ศ. | ⬜ | |
