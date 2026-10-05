@@ -111,6 +111,7 @@
 | ป้องกัน `main` | ตั้งหลัง CI รันครั้งแรก (ขั้น 0.3): ต้องผ่าน PR, CI ทุก check ต้องผ่าน, ห้าม force push / ลบ `main` ; **ไม่บังคับ approval** (ทำงานคนเดียว) |
 | ผู้ commit | ชื่อ `Atipat Suttatham` (ตั้งเฉพาะ repo นี้) |
 | License / README | **ไม่ใส่ license** ; `README.md` **ภาษาไทยอย่างเดียว** (commit subject ยังเป็นภาษาอังกฤษตามกฎ commit) |
+| พอร์ตในเครื่องพัฒนา | **backend = 8008** (8000 ชนกับโปรเจกต์อื่นใน Docker) ; **ฐานข้อมูล = 5434** ตั้งใน `.env` (`POSTGRES_PORT`) — 5432 = PostgreSQL บน Windows, 5433 = โปรเจกต์อื่น ; CI ใช้ 5432 ตามปกติ ; **ห้ามปิด/แก้ process หรือ container ที่ไม่ได้เปิดเอง** — ตรวจเจ้าของก่อนเสมอ |
 | ค่าลับ | `.env` อยู่ใน `.gitignore` เสมอ — ขึ้น GitHub ได้แค่ `.env.example` (ไม่มีค่าจริง) ; seed ใช้ข้อมูลสมมติเท่านั้น |
 | รูปแบบ error ของ API | backend ส่ง **รหัส error** (เช่น `course_code_duplicate`) → **frontend แปล**เป็นข้อความตามภาษาที่เลือก |
 | รหัสผ่านตอนนำเข้า CSV | **ระบบสุ่มรหัสชั่วคราวให้แต่ละคน** → ผู้ดูแลระบบดาวน์โหลดไฟล์ผลลัพธ์ที่มีรหัสได้ **ครั้งเดียว** ; คอลัมน์ CSV: `email, student_or_staff_id, first_name, last_name, role` |

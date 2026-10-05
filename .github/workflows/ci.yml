@@ -1,0 +1,86 @@
+# =============================================================
+# CI — ตรวจโค้ดอัตโนมัติบน GitHub Actions
+# รันเมื่อ: เปิด/อัปเดต Pull Request และเมื่อมีการ merge (push) เข้า main
+# ต้องผ่านทุก job ก่อน merge (ตั้งเป็นกฎป้องกัน main ในขั้น 0.3)
+# =============================================================
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+# ถ้า push ใหม่เข้า PR เดิมระหว่างที่ CI ยังรันอยู่ → ยกเลิกรอบเก่า ประหยัดเวลา
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -----------------------------------------------------------
+  # Backend: ตรวจรูปแบบโค้ด (ruff) และรัน test (pytest) บน PostgreSQL จริง
+  # -----------------------------------------------------------
+  backend:
+    name: Backend (ruff + pytest)
+    runs-on: ubuntu-latest
+
+    # ทุกคำสั่งใน job นี้รันในโฟลเดอร์ backend/
+    defaults:
+      run:
+        working-directory: backend
+
+    # เปิดฐานข้อมูล PostgreSQL 18 ชั่วคราวให้ test ใช้ (เวอร์ชันเดียวกับในเครื่องพัฒนา)
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_DB: mangosteen
+          POSTGRES_USER: mangosteen
+          # รหัสผ่านสำหรับฐานข้อมูลชั่วคราวใน CI เท่านั้น (ถูกลบทิ้งเมื่อ job จบ) — ไม่ใช่ค่าลับ
+          POSTGRES_PASSWORD: ci-only-password
+        ports:
+          - 5432:5432
+        # รอจนฐานข้อมูลพร้อมก่อนเริ่มขั้นตอนต่อไป
+        options: >-
+          --health-cmd "pg_isready -U mangosteen -d mangosteen"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    # ค่าตั้งค่าที่ Django อ่าน (แทนไฟล์ .env ที่ไม่มีบน CI)
+    env:
+      DATABASE_URL: postgres://mangosteen:ci-only-password@localhost:5432/mangosteen
+      DJANGO_SECRET_KEY: ci-only-insecure-secret-key
+      DJANGO_DEBUG: "False"
+      DJANGO_ALLOWED_HOSTS: localhost,127.0.0.1
+
+    steps:
+      # ดึงโค้ดของ commit นี้ลงเครื่อง CI
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # ติดตั้ง uv (ตัวจัดการแพ็กเกจ Python) พร้อม cache เพื่อให้รอบถัดไปเร็วขึ้น
+      # (setup-uv ไม่มีป้ายเวอร์ชันแบบย่อ เช่น v10 จึงต้องระบุเวอร์ชันเต็ม)
+      - name: Install uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          enable-cache: true
+
+      # ติดตั้ง Python 3.13 และแพ็กเกจตามไฟล์ uv.lock (--locked = ห้ามเปลี่ยนเวอร์ชันจากที่ล็อกไว้)
+      - name: Install dependencies
+        run: uv sync --locked
+
+      # ตรวจข้อผิดพลาดและกฎการเขียนโค้ด
+      - name: Lint (ruff check)
+        run: uv run ruff check .
+
+      # ตรวจว่าโค้ดจัดรูปแบบตามมาตรฐานแล้ว (ไม่แก้ไฟล์ แค่ตรวจ)
+      - name: Format check (ruff format)
+        run: uv run ruff format --check .
+
+      # ตรวจการตั้งค่า Django ว่าไม่มีปัญหา
+      - name: Django system check
+        run: uv run python manage.py check
+
+      # รัน test ทั้งหมด
+      - name: Run tests (pytest)
+        run: uv run pytest

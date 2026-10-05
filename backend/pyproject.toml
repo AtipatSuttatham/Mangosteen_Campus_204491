@@ -1,0 +1,41 @@
+[project]
+name = "mangosteen-backend"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "django>=5.2,<5.3",
+    "django-environ>=0.14.0",
+    "djangorestframework>=3.18.1",
+    "psycopg[binary]>=3.3.6",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1.1",
+    "pytest-django>=4.14.0",
+    "ruff>=0.16.10",
+]
+
+# --- ตั้งค่า pytest (ตัวรัน test) ---
+[tool.pytest.ini_options]
+# ให้ pytest-django รู้ว่าไฟล์ settings ของ Django อยู่ที่ไหน
+DJANGO_SETTINGS_MODULE = "config.settings"
+# ไฟล์ที่นับเป็น test
+python_files = ["test_*.py"]
+# -ra = สรุปเหตุผลของ test ที่ข้าม/ล้มเหลวท้ายผลลัพธ์ ; --strict-markers = กันพิมพ์ชื่อ marker ผิด
+addopts = "-ra --strict-markers"
+
+# --- ตั้งค่า ruff (ตัวตรวจและจัดรูปแบบโค้ด Python) ---
+[tool.ruff]
+# ความยาวบรรทัดสูงสุด
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+# ชุดกฎที่ตรวจ: E/W = รูปแบบตามมาตรฐาน PEP 8, F = ข้อผิดพลาดเชิงตรรกะ (เช่น ตัวแปรไม่ได้ใช้),
+# I = เรียงลำดับ import, B = จุดที่มักเป็นบั๊ก, UP = ใช้ไวยากรณ์ Python รุ่นใหม่, DJ = กฎเฉพาะ Django
+select = ["E", "W", "F", "I", "B", "UP", "DJ"]
+
+[tool.ruff.lint.per-file-ignores]
+# ไฟล์ migration ที่ Django สร้างอัตโนมัติ — ไม่ต้องตรวจความยาวบรรทัด
+"*/migrations/*" = ["E501"]
