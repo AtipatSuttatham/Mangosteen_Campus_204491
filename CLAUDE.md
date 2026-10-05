@@ -111,7 +111,7 @@
 | ป้องกัน `main` | ตั้งหลัง CI รันครั้งแรก (ขั้น 0.3): ต้องผ่าน PR, CI ทุก check ต้องผ่าน, ห้าม force push / ลบ `main` ; **ไม่บังคับ approval** (ทำงานคนเดียว) |
 | ผู้ commit | ชื่อ `Atipat Suttatham` (ตั้งเฉพาะ repo นี้) |
 | License / README | **ไม่ใส่ license** ; `README.md` **ภาษาไทยอย่างเดียว** (commit subject ยังเป็นภาษาอังกฤษตามกฎ commit) |
-| พอร์ตในเครื่องพัฒนา | **backend = 8008** (8000 ชนกับโปรเจกต์อื่นใน Docker) ; **ฐานข้อมูล = 5434** ตั้งใน `.env` (`POSTGRES_PORT`) — 5432 = PostgreSQL บน Windows, 5433 = โปรเจกต์อื่น ; CI ใช้ 5432 ตามปกติ ; **ห้ามปิด/แก้ process หรือ container ที่ไม่ได้เปิดเอง** — ตรวจเจ้าของก่อนเสมอ |
+| พอร์ตในเครื่องพัฒนา | **frontend = 5180** (5173 ชนกับโปรเจกต์อื่น ; ตั้ง `strictPort` ไว้ — พอร์ตไม่ว่างจะแจ้ง error) ; frontend เรียก `/api` ผ่าน **proxy ของ Vite** ไปที่ backend ; **backend = 8008** (8000 ชนกับโปรเจกต์อื่นใน Docker) ; **ฐานข้อมูล = 5434** ตั้งใน `.env` (`POSTGRES_PORT`) — 5432 = PostgreSQL บน Windows, 5433 = โปรเจกต์อื่น ; CI ใช้ 5432 ตามปกติ ; **ห้ามปิด/แก้ process หรือ container ที่ไม่ได้เปิดเอง** — ตรวจเจ้าของก่อนเสมอ |
 | ค่าลับ | `.env` อยู่ใน `.gitignore` เสมอ — ขึ้น GitHub ได้แค่ `.env.example` (ไม่มีค่าจริง) ; seed ใช้ข้อมูลสมมติเท่านั้น |
 | รูปแบบ error ของ API | backend ส่ง **รหัส error** (เช่น `course_code_duplicate`) → **frontend แปล**เป็นข้อความตามภาษาที่เลือก |
 | รหัสผ่านตอนนำเข้า CSV | **ระบบสุ่มรหัสชั่วคราวให้แต่ละคน** → ผู้ดูแลระบบดาวน์โหลดไฟล์ผลลัพธ์ที่มีรหัสได้ **ครั้งเดียว** ; คอลัมน์ CSV: `email, student_or_staff_id, first_name, last_name, role` |
@@ -172,6 +172,8 @@
 ตั้งตั้งแต่ก้อนแรก — รันอัตโนมัติทุกครั้งที่ **push / PR**:
 - **backend**: `pytest` + `ruff`
 - **frontend**: `tsc --noEmit` + `eslint` + `vitest`
+  - การตรวจชนิดข้อมูลรันเป็น `tsc -b` (`pnpm typecheck`) — เพราะโปรเจกต์ Vite แบ่ง tsconfig เป็น 2 ชุด (`tsc --noEmit` ตรง ๆ จะไม่ตรวจไฟล์ใดเลย) ; ทั้ง 2 ชุดตั้ง `noEmit` ไว้ จึงตรวจอย่างเดียวเทียบเท่า `tsc --noEmit`
+  - ใช้ **ESLint** (template ของ Vite รุ่นใหม่ให้ oxlint มา — ถอดออกแล้ว ตามข้อกำหนดนี้)
 
 CI ต้องผ่านก่อนถือว่างานก้อนนั้นเสร็จ
 

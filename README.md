@@ -31,7 +31,7 @@
 
 ## วิธีติดตั้งและรันระบบ
 
-ต้องมี: Docker Desktop, [uv](https://docs.astral.sh/uv/) (ส่วนหน้าบ้านจะเพิ่มในขั้นถัดไป)
+ต้องมี: Docker Desktop, [uv](https://docs.astral.sh/uv/), Node.js 24 และ [pnpm](https://pnpm.io/)
 
 ```
 # 1) สร้างไฟล์ตั้งค่า แล้วแก้รหัสผ่าน / secret key / พอร์ต
@@ -44,9 +44,14 @@ docker compose up -d
 cd backend
 uv sync
 uv run python manage.py runserver 8008
+
+# 4) (อีกหน้าต่างหนึ่ง) ติดตั้งแพ็กเกจและเปิดส่วนหน้าบ้าน
+cd frontend
+pnpm install
+pnpm dev
 ```
 
-ตรวจว่าระบบทำงาน: เปิด http://localhost:8008/api/health/ → ต้องเห็น `{"status":"ok","database":"ok"}`
+ตรวจว่าระบบทำงาน: เปิด http://localhost:5180 → ต้องเห็นวงกลมสีเขียวและ `{"status":"ok","database":"ok"}`
 
 รายละเอียดทีละขั้น เรื่องพอร์ต และวิธีแก้ปัญหา อยู่ใน [`WORKFLOW_GUIDE.md`](WORKFLOW_GUIDE.md)
 
