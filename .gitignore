@@ -1,0 +1,58 @@
+# =============================================================
+# .gitignore — รายการไฟล์/โฟลเดอร์ที่ "ไม่" นำขึ้น GitHub
+# repo นี้เป็น public → ห้ามมีข้อมูลส่วนตัวหรือค่าลับหลุดขึ้นไป
+# =============================================================
+
+# --- เอกสารรายงาน (มีชื่อ/รหัสนักศึกษา/ชื่อกรรมการ) ---
+# ไม่ commit ไฟล์ Word ทุกไฟล์ใน repo รวมถึงไฟล์รายงานบทที่ 1–5
+*.docx
+# ไฟล์ล็อกชั่วคราวที่ Word สร้างตอนเปิดไฟล์ค้างไว้
+~$*
+
+# --- ค่าลับ / ตั้งค่าเฉพาะเครื่อง ---
+# ไฟล์ .env เก็บรหัสผ่านฐานข้อมูลและ secret key → ห้ามขึ้น GitHub
+.env
+.env.*
+# ยกเว้นไฟล์ตัวอย่าง (ไม่มีค่าจริง) ที่ให้คนอื่นคัดลอกไปใช้
+!.env.example
+
+# --- Python / Django (โฟลเดอร์ backend) ---
+# ไฟล์ที่ Python คอมไพล์อัตโนมัติ
+__pycache__/
+*.py[cod]
+# virtual environment ที่ uv สร้าง (ติดตั้งใหม่ได้จากไฟล์ lock)
+.venv/
+# cache ของเครื่องมือทดสอบและตรวจโค้ด
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+# ไฟล์ที่ผู้ใช้อัปโหลดช่วงพัฒนา (เก็บในเครื่อง) และไฟล์ static ที่รวบรวมอัตโนมัติ
+media/
+staticfiles/
+
+# --- Node / React (โฟลเดอร์ frontend) ---
+# แพ็กเกจที่ pnpm ติดตั้ง (ติดตั้งใหม่ได้จาก pnpm-lock.yaml)
+node_modules/
+# ผลลัพธ์จากการ build และรายงาน coverage
+dist/
+coverage/
+*.tsbuildinfo
+
+# --- ไฟล์ log ---
+*.log
+npm-debug.log*
+pnpm-debug.log*
+
+# --- ระบบปฏิบัติการ / โปรแกรมแก้ไขโค้ด ---
+# ไฟล์ที่ Windows / macOS สร้างเอง
+Thumbs.db
+Desktop.ini
+.DS_Store
+# ตั้งค่าส่วนตัวของ VS Code และ JetBrains
+.vscode/
+.idea/
+
+# --- Claude Code ---
+# ตั้งค่าส่วนตัวของ Claude Code ในเครื่องนี้ (ไม่ใช่ CLAUDE.md ซึ่งต้องขึ้น GitHub)
+.claude/settings.local.json
