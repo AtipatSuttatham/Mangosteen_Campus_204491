@@ -3,7 +3,7 @@
 > เอกสารนี้บอกว่าแต่ละไฟล์/โฟลเดอร์ในโปรเจกต์ใช้เก็บหรือทำหน้าที่อะไร
 > **ต้องอัปเดตใน PR เดียวกับที่เพิ่ม/ย้าย/ลบไฟล์หรือโฟลเดอร์สำคัญ** เพื่อให้ตรงกับโครงสร้างจริงเสมอ
 >
-> อัปเดตล่าสุด: ขั้น 0.4 (ระบบข้อความภาษาไทย + วันที่)
+> อัปเดตล่าสุด: ขั้น 0.5 (มาตรฐาน API: /api/v1/, รูปแบบ error กลาง, CORS)
 
 ## โครงสร้างปัจจุบัน
 
@@ -31,16 +31,20 @@ Mangosteen_Campus_204491/
 │   ├── uv.lock               ล็อกเวอร์ชันแพ็กเกจทุกตัว (ทุกเครื่อง/CI ได้เวอร์ชันเดียวกัน) — uv สร้างให้ ห้ามแก้มือ
 │   ├── config/               ตั้งค่าของโปรเจกต์ Django
 │   │   ├── settings.py       ตั้งค่าหลัก: อ่านค่าลับจาก .env, ฐานข้อมูล, เขตเวลา, DRF
-│   │   ├── urls.py           รวมเส้นทาง URL ทั้งหมด (/admin/, /api/health/)
+│   │   ├── urls.py           รวมเส้นทาง URL ทั้งหมด (/admin/, /api/health/, /api/v1/, 404 แบบ JSON ของ /api/)
 │   │   ├── wsgi.py           จุดเริ่มต้นเมื่อรันบนเซิร์ฟเวอร์แบบ WSGI
 │   │   └── asgi.py           จุดเริ่มต้นเมื่อรันบนเซิร์ฟเวอร์แบบ ASGI
 │   └── common/               app ของใช้ร่วมกันทุก app
 │       ├── models.py         TimeStampedModel — ต้นแบบที่เพิ่ม created_at / updated_at ให้ทุกตาราง
-│       ├── views.py          endpoint ตรวจสุขภาพระบบ GET /api/health/
+│       ├── views.py          GET /api/health/ (ตรวจสุขภาพระบบ) + 404 แบบ JSON ของที่อยู่ API ที่ไม่มีจริง
+│       ├── exceptions.py     รูปแบบ error กลาง {code, detail, fields} + ApiError (error เฉพาะเรื่อง) — ดู docs/api.md
 │       ├── apps.py           ข้อมูลประจำ app
 │       ├── migrations/       ไฟล์เปลี่ยนโครงสร้างฐานข้อมูลของ app นี้ (ยังว่าง)
 │       └── tests/
-│           └── test_health.py  test ของ /api/health/ (ปกติ / ฐานข้อมูลล่ม / ส่ง method ผิด)
+│           ├── test_health.py      test ของ /api/health/ (ปกติ / ฐานข้อมูลล่ม / ส่ง method ผิด)
+│           ├── test_exceptions.py  test รูปแบบ error ทุกชนิด (กรอกผิด / ไม่พบ / ไม่มีสิทธิ์ / ApiError / บั๊ก 500)
+│           ├── test_api_routing.py test 404 แบบ JSON ของ /api/ และการตั้งค่า CORS
+│           └── error_views.py      view ตัวอย่างที่ใช้ใน test เท่านั้น (ไม่อยู่ในระบบจริง)
 │
 ├── frontend/                 ส่วนหน้าบ้าน: React 19 + TypeScript + Vite 8 + Tailwind CSS v4 (จัดการแพ็กเกจด้วย pnpm)
 │   ├── index.html            หน้า HTML หลัก — React วาดหน้าจอทั้งหมดลงใน <div id="root">
@@ -58,7 +62,11 @@ Mangosteen_Campus_204491/
 │       ├── index.css         CSS หลัก: โหลด Tailwind (ค่าสี/ฟอนต์ของ wireframe เพิ่มในขั้น 0.6)
 │       ├── App.tsx           หน้าทดสอบชั่วคราว: วงกลมสถานะ + ข้อความสถานะภาษาไทย + JSON จาก /api/health/
 │       ├── App.test.tsx      test ของหน้าทดสอบ (กำลังตรวจ / ปกติ / ฐานข้อมูลไม่พร้อม / ติดต่อไม่ได้ / ไม่ใช่ JSON)
-│       ├── api/
+│       ├── api/              การเรียก backend
+│       │   ├── client.ts     apiFetch(): ตัวเรียก API กลาง (/api/v1/...) โยน ApiError รูปแบบเดียวกันทุกกรณี
+│       │   ├── client.test.ts  test ของ apiFetch (สำเร็จ / error ทุกแบบ / ติดต่อไม่ได้ / ไม่ใช่ JSON)
+│       │   ├── errors.ts     errorMessage() / fieldErrorMessage(): แปลงรหัส error เป็นข้อความไทยจาก th.ts
+│       │   ├── errors.test.ts  test ของการแปลงรหัส error (รู้จัก / ไม่รู้จัก → ข้อความสำรอง)
 │       │   └── health.ts     ฟังก์ชันเรียก GET /api/health/ (คืนผลเสมอ ไม่โยน error)
 │       ├── i18n/             ระบบข้อความบนหน้าจอ (i18next — ภาษาไทยภาษาเดียว)
 │       │   ├── index.ts      ตั้งค่าระบบข้อความ (import ครั้งเดียวใน main.tsx)
@@ -78,7 +86,8 @@ Mangosteen_Campus_204491/
     ├── database-guide.md     ใครเขียน/ใครอ่านแต่ละตาราง, state machine, workflow W1–W15,
     │                         การดึงข้อมูลตามหน้าจอ
     ├── database-fields.md    คำอธิบายสั้นราย field ของทุกตาราง (quick reference)
-    └── database-erd.md       แผนภาพความสัมพันธ์ระหว่างตาราง (ERD) แบบ Mermaid แยก 6 กลุ่ม
+    ├── database-erd.md       แผนภาพความสัมพันธ์ระหว่างตาราง (ERD) แบบ Mermaid แยก 6 กลุ่ม
+    └── api.md                มาตรฐาน API: ที่อยู่ /api/v1/, รูปแบบ error กลาง, ตารางรหัส error, CORS
 ```
 
 > ไฟล์รายงานบทที่ 1–5 (`.docx`) อยู่ในเครื่องผู้พัฒนาเท่านั้น — ไม่ขึ้น GitHub (ดู `.gitignore`)

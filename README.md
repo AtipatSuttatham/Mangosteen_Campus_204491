@@ -65,3 +65,4 @@ pnpm dev
 | [`docs/database-guide.md`](docs/database-guide.md) | การใช้งานฐานข้อมูลและ workflow ของระบบ |
 | [`docs/database-fields.md`](docs/database-fields.md) | คำอธิบายราย field |
 | [`docs/database-erd.md`](docs/database-erd.md) | แผนภาพความสัมพันธ์ระหว่างตาราง (ERD) |
+| [`docs/api.md`](docs/api.md) | มาตรฐาน API: ที่อยู่ รูปแบบ error และรหัส error |

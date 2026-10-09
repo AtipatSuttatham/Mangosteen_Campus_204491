@@ -216,6 +216,15 @@ t('dashboard.pendingTasks', { count: 3 })   // → "คุณมีงานค�
 
 **วันที่:** ใช้ `formatDateTime(วันที่)` จาก `frontend/src/lib/datetime.ts` เสมอ → `"25 ก.ค. 2569 23:59"` (เวลาไทย)
 
+### 3.6 เรียก API และแสดง error
+
+กติกาทั้งหมดอยู่ใน [`docs/api.md`](docs/api.md) — สรุปสั้น ๆ:
+
+- frontend เรียก backend ผ่าน `apiFetch('/ที่อยู่/')` เสมอ (ต่อ `/api/v1` ให้เอง)
+- ถ้าไม่สำเร็จจะได้ `ApiError` ที่มี `code` → แสดงข้อความไทยด้วย `errorMessage(error.code)`
+- **เพิ่มรหัส error ใหม่ ต้องทำ 3 ที่:** โยน `ApiError("รหัส")` ใน backend → เพิ่มข้อความใน `th.ts` กลุ่ม `errors` → เพิ่มแถวในตารางของ `docs/api.md`
+- ลองดูรูปแบบ error ได้เอง: เปิด backend แล้วเข้า http://localhost:8008/api/v1/ไม่มีจริง/ → ได้ `{"code":"not_found",...}`
+
 ---
 
 ## 4. ดูผลงานบน GitHub
