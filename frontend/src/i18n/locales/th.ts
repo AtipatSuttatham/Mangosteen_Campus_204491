@@ -48,6 +48,39 @@ export const th = {
     unknown: 'ข้อมูลช่องนี้ไม่ถูกต้อง',
   },
 
+  // หน้ารวมตัวอย่างคอมโพเนนต์ /dev/components (เฉพาะโหมดพัฒนา — ไม่อยู่ในระบบที่ deploy)
+  // ข้อความตัวอย่างใช้คำจริงจาก wireframe เพื่อให้เทียบหน้าตาได้ตรง
+  devGallery: {
+    title: 'ตัวอย่างคอมโพเนนต์',
+    description: 'ใช้เทียบหน้าตากับ wireframe ใน design canvas — หน้านี้มีเฉพาะตอนพัฒนา',
+    colors: 'สีของระบบ',
+    buttons: 'ปุ่ม',
+    fields: 'ช่องกรอกข้อมูล',
+    cards: 'การ์ด',
+    badges: 'ป้ายสถานะ',
+    logo: 'ตราสัญลักษณ์',
+    disabled: 'กดไม่ได้',
+    sampleLogin: 'เข้าสู่ระบบ',
+    sampleCancel: 'ยกเลิก',
+    sampleEdit: 'แก้ไข',
+    sampleSuspend: 'ระงับ',
+    sampleIdLabel: 'รหัสนักศึกษา/รหัสพนักงาน หรืออีเมล',
+    samplePasswordLabel: 'รหัสผ่าน',
+    sampleLoginError: 'รหัสหรืออีเมล หรือรหัสผ่านไม่ถูกต้อง ตรวจสอบแล้วลองอีกครั้ง',
+    sampleCardCode: '204111',
+    sampleCardTitle: 'Python พื้นฐาน',
+    sampleCardStudents: '{{count}} ผู้เรียน',
+    sampleCardModules: '{{count}} หน่วยการเรียน',
+    sampleCardJoinCode: 'รหัสเข้าร่วม {{code}}',
+    sampleManageCourse: 'จัดการรายวิชา',
+    sampleDueSoon: 'ใกล้ครบกำหนด',
+    sampleSubmitted: 'ส่งแล้ว',
+    sampleNotSubmitted: 'ยังไม่ส่ง',
+    sampleUnpublished: 'ยังไม่เผยแพร่',
+    logoOnDark: 'บนพื้นสีม่วง (แถบเมนู 34px)',
+    logoOnLight: 'บนพื้นสว่าง (48px)',
+  },
+
   // หน้าทดสอบสุขภาพระบบ (ชั่วคราว — ถูกแทนที่ในก้อน 1)
   health: {
     checking: 'กำลังตรวจสอบระบบ…',
