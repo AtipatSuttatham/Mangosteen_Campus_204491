@@ -1,15 +1,16 @@
 /**
- * หน้าทดสอบชั่วคราว (ขั้น 0.2–0.4) — พิสูจน์ว่า frontend เรียก backend ได้
+ * หน้าทดสอบชั่วคราว (ขั้น 0.2–0.6) — พิสูจน์ว่า frontend เรียก backend ได้
  * จะถูกแทนที่ด้วยหน้าจอจริงของระบบในก้อน 1
  *
- * แสดง:
- *   - วงกลมสถานะ: เขียว = ระบบปกติ, แดง = มีปัญหา, เทา = กำลังตรวจ
- *   - ข้อความสถานะภาษาไทย (ดึงจาก th.ts ผ่าน t(...) — ไม่ hard-code)
+ * แสดง (ใช้คอมโพเนนต์และสีของธีมจริง):
+ *   - ตราสัญลักษณ์ + ชื่อระบบ
+ *   - ป้ายสถานะ: เขียว = ระบบปกติ, แดง = มีปัญหา, เทา = กำลังตรวจ (ข้อความจาก th.ts)
  *   - ข้อมูล JSON ดิบที่ backend ส่งกลับมา (สำหรับนักพัฒนา)
  */
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { fetchHealth, type HealthResult } from './api/health'
+import { Card, Logo, StatusBadge, type StatusTone } from './components/ui'
 
 /** สถานะของหน้าจอ: ยังรอผล หรือได้ผลแล้ว */
 type ViewState = { kind: 'loading' } | ({ kind: 'done' } & HealthResult)
@@ -34,12 +35,12 @@ function toDisplayStatus(state: ViewState): DisplayStatus {
   return 'unreachable'
 }
 
-/** สีของวงกลมตามสถานะ */
-const DOT_COLOR: Record<DisplayStatus, string> = {
-  checking: 'bg-gray-300',
-  ok: 'bg-green-600',
-  databaseUnavailable: 'bg-red-600',
-  unreachable: 'bg-red-600',
+/** สีของป้ายสถานะตามสถานะ */
+const STATUS_TONE: Record<DisplayStatus, StatusTone> = {
+  checking: 'mute',
+  ok: 'ok',
+  databaseUnavailable: 'bad',
+  unreachable: 'bad',
 }
 
 function App() {
@@ -61,26 +62,20 @@ function App() {
   const status = toDisplayStatus(state)
 
   return (
-    <main className="grid min-h-screen place-items-center bg-white p-6">
-      <div className="flex flex-col items-center gap-4">
+    <main className="grid min-h-screen place-items-center p-4">
+      <Card className="flex w-full max-w-[440px] flex-col items-center gap-5 px-9 py-8">
+        <Logo withWordmark />
         {/* ข้อความสถานะ (role="status" = โปรแกรมอ่านหน้าจอจะอ่านให้เมื่อข้อความเปลี่ยน) */}
-        <div
-          role="status"
-          aria-busy={status === 'checking'}
-          data-state={status}
-          className="flex items-center gap-3 text-lg text-gray-800"
-        >
-          {/* วงกลมสถานะ (ตกแต่งอย่างเดียว ข้อความด้านข้างบอกความหมายแล้ว) */}
-          <span aria-hidden="true" className={`h-4 w-4 rounded-full ${DOT_COLOR[status]}`} />
-          {t(`health.${status}`)}
+        <div role="status" aria-busy={status === 'checking'} data-state={status}>
+          <StatusBadge tone={STATUS_TONE[status]}>{t(`health.${status}`)}</StatusBadge>
         </div>
         {/* ข้อมูล JSON ดิบจาก backend (แสดงเมื่อมีข้อมูลเท่านั้น) */}
         {state.kind === 'done' && state.body !== null && (
-          <pre className="rounded-lg bg-gray-100 px-4 py-2 font-mono text-sm text-gray-800">
+          <pre className="m-0 max-w-full overflow-x-auto rounded-control bg-track px-4 py-2 text-sm text-ink-muted">
             {JSON.stringify(state.body)}
           </pre>
         )}
-      </div>
+      </Card>
     </main>
   )
 }

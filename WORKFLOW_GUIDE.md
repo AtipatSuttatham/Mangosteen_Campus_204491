@@ -225,6 +225,13 @@ t('dashboard.pendingTasks', { count: 3 })   // → "คุณมีงานค�
 - **เพิ่มรหัส error ใหม่ ต้องทำ 3 ที่:** โยน `ApiError("รหัส")` ใน backend → เพิ่มข้อความใน `th.ts` กลุ่ม `errors` → เพิ่มแถวในตารางของ `docs/api.md`
 - ลองดูรูปแบบ error ได้เอง: เปิด backend แล้วเข้า http://localhost:8008/api/v1/ไม่มีจริง/ → ได้ `{"code":"not_found",...}`
 
+### 3.7 ดูตัวอย่างหน้าตา (ธีมและคอมโพเนนต์)
+
+- เปิด frontend (`pnpm dev`) แล้วเข้า **http://localhost:5180/dev/components**
+- หน้านี้รวมสีของระบบ, ปุ่ม, ช่องกรอก, การ์ด, ป้ายสถานะ และโลโก้ — ใช้เทียบกับ wireframe ใน design canvas
+- **มีเฉพาะตอนพัฒนา** — ไม่อยู่ในระบบที่ deploy
+- ถ้าอยากปรับสีของทั้งระบบ แก้ที่ `frontend/src/index.css` (ส่วน `@theme`) ที่เดียว ทุกหน้าเปลี่ยนตาม
+
 ---
 
 ## 4. ดูผลงานบน GitHub
