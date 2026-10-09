@@ -1,10 +1,8 @@
 /**
- * test ของระบบแปลภาษา: ไฟล์ข้อความครบตรงกัน, การจำภาษา, การอัปเดต <html lang>
+ * test ของระบบข้อความ: ใช้ภาษาไทย และไม่มีข้อความว่าง
  */
 import { describe, expect, it } from 'vitest'
 import i18n from './index'
-import { LANGUAGE_STORAGE_KEY, readStoredLanguage } from './languages'
-import { en } from './locales/en'
 import { th } from './locales/th'
 
 /**
@@ -19,45 +17,16 @@ function flattenEntries(value: object, prefix = ''): [string, unknown][] {
   )
 }
 
-/** รายการรหัสข้อความทั้งหมดของภาษาหนึ่ง (เรียงตามตัวอักษร) */
-function flattenKeys(value: object): string[] {
-  return flattenEntries(value)
-    .map(([key]) => key)
-    .sort()
-}
-
-describe('ไฟล์ข้อความ', () => {
-  it('ภาษาอังกฤษมีรหัสข้อความครบและตรงกับภาษาไทยทุกตัว', () => {
-    expect(flattenKeys(en)).toEqual(flattenKeys(th))
+describe('ระบบข้อความ', () => {
+  it('ใช้ภาษาไทย และดึงข้อความตามรหัสได้', () => {
+    expect(i18n.language).toBe('th')
+    expect(i18n.t('health.ok')).toBe('ระบบพร้อมใช้งาน')
   })
 
-  it.each([
-    ['th', th],
-    ['en', en],
-  ])('ภาษา %s: ทุกข้อความเป็นตัวอักษรที่ไม่ว่าง', (_language, messages) => {
-    for (const [key, text] of flattenEntries(messages)) {
+  it('ทุกข้อความใน th.ts เป็นตัวอักษรที่ไม่ว่าง', () => {
+    for (const [key, text] of flattenEntries(th)) {
       // ระบุรหัสไว้ในข้อความ error เพื่อให้รู้ว่าข้อความตัวไหนว่าง
       expect(typeof text === 'string' && text.trim().length > 0, key).toBe(true)
     }
-  })
-})
-
-describe('การจำภาษาที่เลือก', () => {
-  it('ค่าเริ่มต้นเป็นภาษาไทยเมื่อยังไม่เคยเลือก', () => {
-    expect(readStoredLanguage()).toBe('th')
-  })
-
-  it('ค่าที่เก็บไว้ไม่ใช่ภาษาที่รองรับ → กลับเป็นภาษาไทย', () => {
-    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, 'jp')
-    expect(readStoredLanguage()).toBe('th')
-  })
-
-  it('เปลี่ยนภาษาแล้วบันทึกลง localStorage และอัปเดต <html lang>', async () => {
-    await i18n.changeLanguage('en')
-
-    expect(window.localStorage.getItem(LANGUAGE_STORAGE_KEY)).toBe('en')
-    expect(readStoredLanguage()).toBe('en')
-    expect(document.documentElement.lang).toBe('en')
-    expect(i18n.t('health.ok')).toBe('System is ready')
   })
 })
