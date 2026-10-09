@@ -22,6 +22,7 @@ REPO_ROOT = BASE_DIR.parent
 env = environ.Env(
     DJANGO_DEBUG=(bool, False),
     DJANGO_ALLOWED_HOSTS=(list, []),
+    CORS_ALLOWED_ORIGINS=(list, []),
 )
 # ถ้ามีไฟล์ .env ที่ root ของ repo ให้โหลดค่าจากไฟล์นั้น
 # (บน CI ไม่มีไฟล์นี้ — ค่ามาจาก environment variable ที่ตั้งในไฟล์ workflow แทน)
@@ -48,6 +49,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # ไลบรารีภายนอก: Django REST Framework สำหรับสร้าง REST API
     "rest_framework",
+    # ไลบรารีภายนอก: อนุญาตให้ frontend ที่อยู่คนละโดเมนเรียก API ได้ (CORS)
+    "corsheaders",
     # app ของโปรเจกต์: ของใช้ร่วมกันทุก app (abstract model, endpoint ระบบ)
     "common",
 ]
@@ -55,6 +58,8 @@ INSTALLED_APPS = [
 # --- middleware: ตัวกลางที่ทุก request/response ต้องผ่าน (ค่ามาตรฐานของ Django) ---
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    # ตรวจ/ใส่ header ของ CORS — ต้องอยู่ก่อน CommonMiddleware (ตามคู่มือของ django-cors-headers)
+    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -120,4 +125,30 @@ STATIC_ROOT = BASE_DIR / "staticfiles"
 REST_FRAMEWORK = {
     # ส่งข้อมูลกลับเป็น JSON เท่านั้น (frontend เป็น React ไม่ใช้หน้า HTML ของ DRF)
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    # แปลง error ทุกชนิดให้เป็นรูปแบบกลาง {code, detail, fields?} (ดู common/exceptions.py, docs/api.md)
+    "EXCEPTION_HANDLER": "common.exceptions.api_exception_handler",
+}
+
+# --- CORS: frontend ที่อยู่คนละโดเมนกับ backend ---
+# ตอนพัฒนาในเครื่องไม่ได้ใช้ (frontend เรียก /api ผ่าน proxy ของ Vite จึงเหมือนอยู่ที่เดียวกัน)
+# ตั้งไว้เผื่อตอน deploy ต้องแยกโดเมน — รายชื่อโดเมนที่อนุญาตอ่านจาก .env (ค่าเริ่มต้น = ไม่อนุญาตใคร)
+# ตัวอย่างใน .env:  CORS_ALLOWED_ORIGINS=https://campus.example.com
+CORS_ALLOWED_ORIGINS = env("CORS_ALLOWED_ORIGINS")
+# อนุญาตให้ส่ง cookie ข้ามโดเมน (จำเป็นสำหรับ refresh token ใน httpOnly cookie — ก้อน 1)
+CORS_ALLOW_CREDENTIALS = True
+# ใช้กฎ CORS เฉพาะที่อยู่ใต้ /api/ เท่านั้น
+CORS_URLS_REGEX = r"^/api/.*$"
+
+# --- การบันทึก log ---
+# แสดง error ที่ไม่คาดคิดใน API (พร้อมรายละเอียดเต็ม) ทางหน้าจอ console ของเซิร์ฟเวอร์
+# (ผู้ใช้ไม่เห็นรายละเอียดนี้ — API ตอบกลับแค่ {"code": "server_error"})
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+    },
+    "loggers": {
+        "common": {"handlers": ["console"], "level": "ERROR"},
+    },
 }
