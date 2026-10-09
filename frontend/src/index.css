@@ -1,5 +1,85 @@
 /*
- * ไฟล์ CSS หลักของแอป
- * โหลด Tailwind CSS v4 ทั้งชุด — ค่าสี/ฟอนต์ตาม wireframe จะเพิ่มในขั้น 0.6
+ * ไฟล์ CSS หลักของแอป: โหลด Tailwind CSS v4 + กำหนดธีมของระบบ (design tokens)
+ *
+ * ค่าทุกค่าคัดลอกจาก wireframe ใน design canvas (ดู CLAUDE.md หัวข้อ UI / Design)
+ * ถ้า canvas เปลี่ยน ให้แก้ค่าที่นี่ที่เดียว — ทุกหน้าจอเปลี่ยนตาม
+ *
+ * วิธีใช้ในหน้าจอ: ใช้ชื่อ class ของ Tailwind ตามชื่อด้านล่าง เช่น
+ *   bg-brand, text-ink-muted, border-line, rounded-card, font-display
  */
 @import 'tailwindcss';
+
+@theme {
+  /* --- ฟอนต์ --- */
+  /* เนื้อความทั้งหมด (เป็นค่าเริ่มต้นของทั้งหน้า) */
+  --font-sans: 'IBM Plex Sans Thai', system-ui, sans-serif;
+  /* หัวข้อและตัวเลขเด่น (ใช้ class font-display) */
+  --font-display: 'Taviraj', serif;
+
+  /* --- สีหลักของแบรนด์ (ม่วงมังคุด) --- */
+  /* ปุ่มหลัก, ลิงก์, sidebar */
+  --color-brand: #5e2250;
+  /* สีตอนเอาเมาส์ชี้ / สีเข้มของวงกลมในโลโก้ */
+  --color-brand-hover: #3f1636;
+  /* สีเน้น (เขียวอ่อน): แถบเมนูที่เลือก, focus ring ของปุ่ม, กลีบเลี้ยงในโลโก้ */
+  --color-accent: #9dbb8f;
+
+  /* --- พื้นหลัง --- */
+  /* พื้นหลังของทั้งหน้า */
+  --color-canvas: #f5eff3;
+  /* พื้นการ์ด / ช่องกรอก */
+  --color-surface: #ffffff;
+
+  /* --- เส้นขอบ --- */
+  /* ขอบการ์ด */
+  --color-line: #e6dce2;
+  /* ขอบช่องกรอกและปุ่มรอง */
+  --color-line-strong: #cdbfc8;
+  /* พื้นของแถบความคืบหน้า / ป้าย mute */
+  --color-track: #efe7ec;
+
+  /* --- ตัวอักษร --- */
+  /* ตัวอักษรหลัก */
+  --color-ink: #2a1a2e;
+  /* ตัวอักษรรอง (คำอธิบาย, ข้อมูลประกอบ) */
+  --color-ink-muted: #5f4c59;
+  /* ตัวอักษรเมนูใน sidebar (บนพื้นม่วง) */
+  --color-on-brand-muted: #dcc4d3;
+
+  /* --- error ของช่องกรอก (ขอบแดง + ข้อความใต้ช่อง) --- */
+  --color-danger: #b42318;
+
+  /* --- ป้ายสถานะ 4 แบบ: *-soft = พื้นป้าย, ไม่มี -soft = ตัวอักษร --- */
+  --color-warn: #8a4b12;
+  --color-warn-soft: #fbebdd;
+  --color-ok: #335a28;
+  --color-ok-soft: #e4efdd;
+  --color-bad: #a2231a;
+  --color-bad-soft: #fbe4e2;
+  --color-mute: #5f4c59;
+  --color-mute-soft: #efe7ec;
+
+  /* --- มุมโค้ง --- */
+  /* ปุ่มและช่องกรอก */
+  --radius-control: 8px;
+  /* การ์ด */
+  --radius-card: 14px;
+}
+
+/* --- ค่าพื้นฐานของทั้งหน้า --- */
+@layer base {
+  body {
+    margin: 0;
+    background-color: var(--color-canvas);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+  }
+
+  /* ลิงก์: สีม่วง และเข้มขึ้นเมื่อชี้ (ตาม canvas) */
+  a {
+    color: var(--color-brand);
+  }
+  a:hover {
+    color: var(--color-brand-hover);
+  }
+}
