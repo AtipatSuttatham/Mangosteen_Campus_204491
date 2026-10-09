@@ -121,7 +121,7 @@
 | 0.3 | ตั้งกฎป้องกัน `main` บน GitHub + ปรับข้อตกลงเรื่องรายงาน (ส่งแล้ว ไม่แก้ .docx) | ✅ | [#4](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/4) |
 | 0.4 | ระบบข้อความภาษาไทย: ข้อความทุกตัวอยู่ใน `th.ts` + TypeScript ตรวจรหัส + วันที่แบบ พ.ศ. (ตัดสินใจใช้ภาษาไทยภาษาเดียว — เวอร์ชัน 2 ภาษาเก็บใน commit `53d6b9b`) | ✅ | [#5](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/5) |
 | 0.5 | มาตรฐาน API: `/api/v1/`, รูปแบบ error แบบรหัส, CORS (+ คู่มือ `docs/api.md`) | ✅ | [#6](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/6) |
-| 0.6 | ธีมสี/ฟอนต์จาก wireframe + คอมโพเนนต์พื้นฐาน (Button, TextField, Card, StatusBadge, Logo) + หน้ารวมตัวอย่าง `/dev/components` + favicon | 🔄 | |
+| 0.6 | ธีมสี/ฟอนต์จาก wireframe + คอมโพเนนต์พื้นฐาน (Button, TextField, Card, StatusBadge, Logo) + หน้ารวมตัวอย่าง `/dev/components` + favicon | ✅ | [#7](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/7) |
 
 ### ก้อน 1–10 — ฟีเจอร์ (แตกงานย่อยละเอียดเมื่อเริ่มแต่ละก้อน)
 
