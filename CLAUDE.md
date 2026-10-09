@@ -17,6 +17,7 @@
    - [`docs/database-guide.md`](docs/database-guide.md) — ใครเขียน/ใครอ่าน, state machine, workflow W1–W15, access pattern ตามหน้าจอ
    - [`docs/database-fields.md`](docs/database-fields.md) — quick reference ราย field
    - [`docs/database-erd.md`](docs/database-erd.md) — ERD (Mermaid)
+   - [`docs/api.md`](docs/api.md) — **มาตรฐาน API**: ที่อยู่ `/api/v1/`, รูปแบบ error กลาง `{code, detail, fields}`, ตารางรหัส error, CORS — **อ่านก่อนสร้าง/เรียก API ทุกครั้ง**
 
 > **ใช้ลำดับนี้เมื่อข้อมูลขัดกัน:** เรื่องที่มีการตัดสินใจบันทึกไว้ (ข้อ 1) → ทำตามการตัดสินใจนั้น **ห้ามแก้ docs กลับไปตามรายงาน** ; เรื่องที่ไม่เคยตัดสิน → ยึดรายงาน (ข้อ 2) แล้วแก้ docs ส่วนอื่นให้ตรง
 > คอลัมน์ "ต้องแก้รายงาน?" ใน `docs/database.md` §11 เก็บไว้เป็น**บันทึกว่าระบบจริงต่างจากรายงานตรงไหน** (ใช้ตอนเขียนรายงานฉบับสมบูรณ์) — ไม่ใช่งานที่ต้องแก้ไฟล์ .docx
@@ -115,7 +116,8 @@
 | License / README | **ไม่ใส่ license** ; `README.md` **ภาษาไทยอย่างเดียว** (commit subject ยังเป็นภาษาอังกฤษตามกฎ commit) |
 | พอร์ตในเครื่องพัฒนา | **frontend = 5180** (5173 ชนกับโปรเจกต์อื่น ; ตั้ง `strictPort` ไว้ — พอร์ตไม่ว่างจะแจ้ง error) ; frontend เรียก `/api` ผ่าน **proxy ของ Vite** ไปที่ backend ; **backend = 8008** (8000 ชนกับโปรเจกต์อื่นใน Docker) ; **ฐานข้อมูล = 5434** ตั้งใน `.env` (`POSTGRES_PORT`) — 5432 = PostgreSQL บน Windows, 5433 = โปรเจกต์อื่น ; CI ใช้ 5432 ตามปกติ ; **ห้ามปิด/แก้ process หรือ container ที่ไม่ได้เปิดเอง** — ตรวจเจ้าของก่อนเสมอ |
 | ค่าลับ | `.env` อยู่ใน `.gitignore` เสมอ — ขึ้น GitHub ได้แค่ `.env.example` (ไม่มีค่าจริง) ; seed ใช้ข้อมูลสมมติเท่านั้น |
-| รูปแบบ error ของ API | backend ส่ง **รหัส error** (เช่น `course_code_duplicate`) → **frontend แปล**เป็นข้อความภาษาไทยจาก `th.ts` |
+| ชื่อช่องข้อมูลใน JSON | **snake_case ทั้งระบบ** (ตรงกับชื่อ field ใน `docs/database.md`) ; **ไม่มีตัวแปลงชื่อ** — ชนิดข้อมูล TypeScript ฝั่ง frontend ใช้ชื่อ snake_case ตรงตาม JSON |
+| รูปแบบ error ของ API | backend ส่ง **รหัส error** (เช่น `course_code_duplicate`) → **frontend แปล**เป็นข้อความภาษาไทยจาก `th.ts` ; รูปแบบ `{code, detail, fields}` ทำแล้วในขั้น 0.5 — backend ใช้ `ApiError` (`common/exceptions.py`), frontend เรียกผ่าน `apiFetch()` + `errorMessage()` ; **รหัสใหม่ต้องเพิ่มทั้ง backend + `th.ts` + ตารางใน `docs/api.md`** ; ห้ามแสดง `detail` ให้ผู้ใช้ |
 | รหัสผ่านตอนนำเข้า CSV | **ระบบสุ่มรหัสชั่วคราวให้แต่ละคน** → ผู้ดูแลระบบดาวน์โหลดไฟล์ผลลัพธ์ที่มีรหัสได้ **ครั้งเดียว** ; คอลัมน์ CSV: `email, student_or_staff_id, first_name, last_name, role` |
 | เครื่องมือ | Python 3.13 + **uv** ; Node 24 + **pnpm** ; PostgreSQL ผ่าน **Docker Compose** ; CI รัน pytest บน **PostgreSQL จริง** (ไม่ใช้ SQLite) |
 | รหัสผ่าน | ผู้ดูแลระบบตั้งรหัสชั่วคราวตอนสร้างบัญชี + รีเซ็ตให้เมื่อผู้ใช้ลืม ; ผู้ใช้เปลี่ยนเองที่หน้าข้อมูลส่วนตัว (ไม่มีอีเมล) |

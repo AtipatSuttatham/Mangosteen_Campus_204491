@@ -35,3 +35,17 @@ def health_check(request: Request) -> Response:
 
     # ทุกอย่างปกติ
     return Response({"status": "ok", "database": "ok"})
+
+
+@api_view(["GET", "POST", "PUT", "PATCH", "DELETE"])
+@permission_classes([AllowAny])
+def api_not_found(request: Request, unknown_path: str = "") -> Response:
+    """
+    ตอบ 404 ในรูปแบบ error กลางเมื่อเรียกที่อยู่ API ที่ไม่มีอยู่จริง (เช่น /api/v1/ไม่มี/)
+
+    ถ้าไม่มีตัวนี้ Django จะตอบเป็นหน้า HTML ซึ่ง frontend อ่านรหัส error ไม่ได้
+    """
+    return Response(
+        {"code": "not_found", "detail": "API endpoint not found."},
+        status=status.HTTP_404_NOT_FOUND,
+    )
