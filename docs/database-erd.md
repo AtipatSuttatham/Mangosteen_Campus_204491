@@ -1,4 +1,4 @@
-# ERD — LMS (Mermaid) · v2.2
+# ERD — LMS (Mermaid) · v2.3
 
 > ประกอบกับ [`database.md`](./database.md) — แยก diagram ตามกลุ่มเดียวกับรายงานภาพที่ 4.1–4.6
 > GitHub render Mermaid ในไฟล์ `.md` ได้โดยตรง
