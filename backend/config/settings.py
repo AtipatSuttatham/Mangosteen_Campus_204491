@@ -53,7 +53,14 @@ INSTALLED_APPS = [
     "corsheaders",
     # app ของโปรเจกต์: ของใช้ร่วมกันทุก app (abstract model, endpoint ระบบ)
     "common",
+    # app ของโปรเจกต์: บัญชีผู้ใช้และการเข้าสู่ระบบ (ก้อน 1)
+    "accounts",
 ]
+
+# ใช้ตารางผู้ใช้ของเราเอง (accounts.User) แทนตารางผู้ใช้สำเร็จรูปของ Django
+# — login ด้วยอีเมล/รหัส ไม่มี username, มี role (docs/database.md §3)
+# ต้องตั้งก่อนสร้างตารางครั้งแรกเสมอ (เปลี่ยนทีหลังต้องรื้อฐานข้อมูล)
+AUTH_USER_MODEL = "accounts.User"
 
 # --- middleware: ตัวกลางที่ทุก request/response ต้องผ่าน (ค่ามาตรฐานของ Django) ---
 MIDDLEWARE = [
