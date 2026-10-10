@@ -12,7 +12,7 @@
 
 1. **การตัดสินใจที่ผู้ใช้ยืนยันแล้ว** — บันทึกไว้ใน [`docs/database.md`](docs/database.md) §11 และในไฟล์นี้ (`CLAUDE.md`) — **ชนะรายงานเสมอ**
 2. **รายงาน** `บทที่_1_2_3_4_5 - ปรับปรุง - หลัง feedback - หลังเพิ่มสารบัญ.docx` — บทที่ 1 ขอบเขต, บทที่ 3 ยูสเคส UC-01–UC-19, บทที่ 4 ฐานข้อมูล 20 ตาราง, บทที่ 5 หน้าจอ — **ส่งแล้ว ไม่แก้ไฟล์ .docx อีก**
-3. **`docs/` ส่วนอื่น** (v2.1) — สเปกฐานข้อมูลที่ขยายรายละเอียดจากรายงาน
+3. **`docs/` ส่วนอื่น** (v2.2) — สเปกฐานข้อมูลที่ขยายรายละเอียดจากรายงาน
    - [`docs/database.md`](docs/database.md) — สเปกเต็ม (field / type / constraint / สูตรคะแนน / บันทึกการตัดสินใจ §11 / สิ่งที่ไม่ทำใน MVP §13)
    - [`docs/database-guide.md`](docs/database-guide.md) — ใครเขียน/ใครอ่าน, state machine, workflow W1–W15, access pattern ตามหน้าจอ
    - [`docs/database-fields.md`](docs/database-fields.md) — quick reference ราย field
