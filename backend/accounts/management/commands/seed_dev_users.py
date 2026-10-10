@@ -95,6 +95,12 @@ class Command(BaseCommand):
                 admin_user = user
             rows.append((user.email, user.student_or_staff_id or "-", user.role, shown_password))
 
+        # บน Windows ถ้าส่งผลลัพธ์ต่อ (pipe) Python ใช้ชุดอักษร cp1252 ที่พิมพ์ภาษาไทยไม่ได้
+        # → สลับเป็น UTF-8 ก่อนพิมพ์ (ถ้าปลายทางรองรับการสลับ เช่น sys.stdout)
+        reconfigure = getattr(self.stdout._out, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(encoding="utf-8")
+
         # แสดงสรุปบนหน้าจอ (ครั้งเดียว — ไม่บันทึกลงไฟล์)
         self.stdout.write(self.style.SUCCESS("บัญชีทดลอง (ข้อมูลสมมติ — ใช้ในเครื่องพัฒนาเท่านั้น):"))
         for email, student_or_staff_id, role, password in rows:
