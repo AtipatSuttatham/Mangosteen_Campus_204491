@@ -27,7 +27,7 @@
 | ส่วน | เทคโนโลยี |
 |---|---|
 | Backend | Python + **Django 5.2** + Django REST Framework + **Simple JWT** (access + refresh, blacklist ตอน logout) |
-| Frontend | **React + TypeScript + Vite + Tailwind CSS** — SPA แยก origin เรียก REST API |
+| Frontend | **React + TypeScript + Vite + Tailwind CSS** — SPA (โค้ดแยกโฟลเดอร์ `/frontend`) เรียก REST API — **เบราว์เซอร์เห็นเป็น origin เดียวกับ backend**: ตอนพัฒนาผ่าน proxy ของ Vite, ตอน deploy Django ส่งหน้าเว็บเอง |
 | Database | **PostgreSQL** (ใช้ JSONB เก็บคำตอบแบบทดสอบ / changes ของ AuditLog) |
 | ไฟล์ | บริการจัดเก็บไฟล์ภายนอก — **Backblaze B2 (เบื้องต้น เปลี่ยนได้)** ต่อผ่าน `django-storages` แบบ S3 ; ช่วงพัฒนาเก็บในเครื่อง ; DB เก็บ**ตำแหน่งไฟล์** + metadata (ไม่เก็บลิงก์เต็ม) |
 | Hosting (เบื้องต้น) | **Render** (ตัวเว็บ: Django + หน้าเว็บที่ build แล้ว ใน service เดียว) + **Supabase** (PostgreSQL) + **Backblaze B2** (ไฟล์) + **UptimeRobot** (กันเว็บหลับ) — ทั้งหมดแผนฟรี ; รายละเอียดในตาราง "การตัดสินใจเรื่อง deploy" |
