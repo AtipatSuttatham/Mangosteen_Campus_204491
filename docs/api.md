@@ -118,3 +118,4 @@ try {
 - ตอน deploy ถ้าแยกโดเมน: ตั้ง `CORS_ALLOWED_ORIGINS` ใน `.env` (คั่นด้วยจุลภาค) เช่น `https://campus.example.com`
 - ค่าเริ่มต้น = ไม่อนุญาตโดเมนใดเลย ; อนุญาตส่ง cookie (`CORS_ALLOW_CREDENTIALS`) ; ใช้กับที่อยู่ใต้ `/api/` เท่านั้น
 - แนะนำให้ deploy frontend และ backend **โดเมนเดียวกัน** ถ้าทำได้ (cookie ของ refresh token ทำงานง่ายกว่า)
+- **แผน deploy ที่เลือก (เบื้องต้น) ใช้โดเมนเดียวกัน** — Render service เดียว ที่ Django ส่งหน้าเว็บเอง (หรือ VM ที่มี Caddy ถ้าเปลี่ยนไปใช้ Azure) → **ไม่ต้องตั้ง `CORS_ALLOWED_ORIGINS`** ; การตั้งค่า CORS ข้างบนเก็บไว้เผื่อเปลี่ยนไปแบบแยกโดเมน (ดู [`CLAUDE.md`](../CLAUDE.md) หัวข้อ "การตัดสินใจเรื่อง deploy")
