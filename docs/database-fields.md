@@ -1,4 +1,4 @@
-# สรุป field ทุกตาราง — LMS (v2.1)
+# สรุป field ทุกตาราง — LMS (v2.2)
 
 > Quick reference คู่กับ [`database.md`](./database.md) (สเปกเต็ม) และ [`database-erd.md`](./database-erd.md) (ERD) — ตรงกับรายงานตารางที่ 4.3–4.22
 > ทุกตารางมี `id` (PK, BigAutoField), `created_at`, `updated_at` — ไม่ลิสต์ซ้ำด้านล่าง (ยกเว้น `AuditLog` มีแค่ `created_at`)

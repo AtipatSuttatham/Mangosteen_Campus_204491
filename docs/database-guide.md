@@ -1,4 +1,4 @@
-# คู่มือการใช้งานฐานข้อมูล — LMS (v2.1)
+# คู่มือการใช้งานฐานข้อมูล — LMS (v2.2)
 
 > เอกสารนี้ตอบว่า **แต่ละตารางใช้ทำอะไร ใครเขียน ใครอ่าน เชื่อมกับอะไร และ workflow ครบวงจรเป็นยังไง**
 > ยึดตามรายงานบทที่ 1–5 (บทที่ 3 = ยูสเคส UC-01–UC-19, บทที่ 4 = ตาราง, บทที่ 5 = หน้าจอ) — ถ้าขัดกัน ให้ยึดรายงาน
@@ -143,12 +143,13 @@ Quiz/Assignment --เผยแพร่ (is_graded)--> GradeItem --(ผู้เ
 - **หน้าที่**: การเข้าทำ 1 ครั้งของผู้เรียน 1 คน + สถานะ + คะแนนรวม
 - **เขียนโดย**:
   - ผู้เรียน "เริ่มทำ" → `in_progress`, `started_at`=server now, `due_at`=snapshot
-  - ผู้เรียนส่ง หรือหมดเวลา → `submitted` / `auto_submitted`, `submitted_at`
+  - ผู้เรียนส่ง → `submitted`, `submitted_at`=now
+  - หมดเวลา → `auto_submitted`, `submitted_at`=`due_at` — ทำแบบ **lazy** ตอนมีการเข้าถึง (ไม่มี scheduled job ; ดู `database.md` UC-16 การบังคับเวลา)
   - ตัวตรวจอัตโนมัติ → ถ้าไม่มีอัตนัย → `graded`, `score`
   - ผู้สอน (ตรวจอัตนัยครบ) → `graded`, `graded_by`, `graded_at`
 - **อ่านโดย**: หน้าผลของผู้เรียน, signal sync → `Score`
 - **lifecycle**: `in_progress → submitted|auto_submitted → graded`
-- **invariant**: `(quiz, student, attempt_number)` unique ; ทุกการบันทึกคำตอบเช็ค `now() <= due_at`
+- **invariant**: `(quiz, student, attempt_number)` unique ; ทุกการบันทึกคำตอบเช็ค `now() <= due_at` ; ทุกจุดที่อ่านผล finalize attempt ที่ค้างเกินเวลาก่อน
 
 #### `Answer`
 - **หน้าที่**: คำตอบ 1 ข้อ ต่อ 1 attempt — `response` (JSONB)
@@ -254,6 +255,7 @@ in_progress ──► submitted ────────┐
      └──► auto_submitted (หมดเวลา)─┘
 ```
 - → `graded` เมื่อไม่มีอัตนัย (ตรวจอัตโนมัติจบเลย) **หรือ** ผู้สอนตรวจอัตนัยครบ
+- → `auto_submitted` **ไม่ได้เกิดตรงเวลาหมด** แต่เกิดตอนมีคำขอแรกที่เข้าถึง attempt หลังหมดเวลา (lazy) โดยบันทึก `submitted_at = due_at` → ผลที่ผู้ใช้เห็นเหมือนส่งตรงเวลา
 
 ### `Submission.status`
 ```
@@ -321,6 +323,7 @@ is_published = False (draft)  ──► True (ผู้เรียนเห็�
 1. "เริ่มทำ" → เช็คช่วงเวลา + จำนวนครั้ง → `QuizAttempt(in_progress, started_at=now, due_at=min(now+limit, available_until))`
 2. ตอบ → บันทึก `Answer.response` เป็นระยะ — ทุกครั้งเช็ค `now() <= due_at`
 3. กด "ส่งคำตอบทั้งหมด" **หรือ** หมดเวลา → `submitted` / `auto_submitted` (แก้คำตอบไม่ได้อีก)
+   - หมดเวลาระหว่างทำ: หน้าจอนับถอยหลังถึง 0 แล้วส่งให้ ; ถ้าปิดเบราว์เซอร์ไป → ระบบ finalize แบบ lazy ตอนมีคนเข้าถึง (ผู้สอนเปิดดูผล / ผู้เรียนเปิดหน้าคะแนน ฯลฯ) ด้วยคำตอบที่บันทึกไว้ + `submitted_at = due_at`
 4. ตรวจอัตโนมัติ: mcq/true_false เทียบ `is_correct` ; dropdown/matching คิดตามสัดส่วน ; short_answer รอผู้สอน (`is_correct=NULL`)
 5. ไม่มีอัตนัย → `score = Σ points_awarded`, `status=graded`
 6. **sync** → `Score(raw_score=<score>, source_attempt=<attempt>)` (หลายครั้ง → เอาสูงสุด)
@@ -411,8 +414,8 @@ is_published = False (draft)  ──► True (ผู้เรียนเห็�
 
 ## 6. สิ่งที่ยังไม่ตัดสิน / ตัดสินตอน implement
 
-- **ผู้ให้บริการเก็บไฟล์** (อาจไม่ใช่ Cloudinary) และ **ข้อจำกัดชนิด/ขนาดไฟล์ระดับระบบ** — รอเลือก cloud ก่อน (รายงานระบุว่ามีการตรวจ แต่ไม่ระบุค่า)
-- finalize attempt ที่ค้างเกินเวลา: lazy vs scheduled job
+- **ข้อจำกัดชนิด/ขนาดไฟล์ระดับระบบ** — ตัดสินตอนก้อน 1 (รูปโปรไฟล์) และก้อน 4/6 (รายงานระบุว่ามีการตรวจ แต่ไม่ระบุค่า) ; ผู้ให้บริการเก็บไฟล์ตัดสินแล้ว = Backblaze B2 เบื้องต้น (`database.md` §11 v2.2)
+- ~~finalize attempt ที่ค้างเกินเวลา: lazy vs scheduled job~~ → ตัดสินแล้ว = **lazy เท่านั้น** (`database.md` §11 v2.2)
 - retention ของ `AuditLog` และ `token_blacklist`
 - composite index จริง (ดู `database.md` §11 ท้าย)
 
