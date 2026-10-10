@@ -152,7 +152,34 @@ uv run python manage.py runserver 8008
 - ถ้าเห็น `"database":"unavailable"` = ฐานข้อมูลยังไม่เปิด หรือค่าใน `.env` ไม่ตรง (ดูหัวข้อ 6)
 - ปิดเซิร์ฟเวอร์: กด `Ctrl + C` ในหน้าต่างที่รันอยู่
 
-> ⚠️ ตอนนี้**ยังไม่ต้องสั่ง `migrate`** — ตารางผู้ใช้แบบของโปรเจกต์จะสร้างในก้อน 1 ถ้า migrate ก่อนจะต้องล้างฐานข้อมูลในเครื่องทีหลัง
+**ครั้งแรก และทุกครั้งที่มีตารางใหม่ (ไฟล์ใน `migrations/` เพิ่ม)** — สร้าง/ปรับตารางในฐานข้อมูลก่อนเปิด backend:
+```
+cd backend
+uv run python manage.py migrate
+```
+
+#### บัญชีทดลอง (ข้อมูลสมมติ — ใช้ในเครื่องเท่านั้น)
+ยังไม่มีหน้าจัดการบัญชี (มาในก้อน 2) จึงสร้างบัญชีทดลองด้วยคำสั่ง:
+```
+cd backend
+uv run python manage.py seed_dev_users
+```
+- ได้ 3 บัญชี: `admin@example.com` (ผู้ดูแลระบบ), `teacher@example.com` (ผู้สอน), `student@example.com` (ผู้เรียน รหัส `690000001`)
+- **รหัสผ่านสุ่มและแสดงบนหน้าจอครั้งเดียว** — จดไว้เอง (ไม่ได้บันทึกลงไฟล์ใด)
+- ลืมรหัส → `uv run python manage.py seed_dev_users --reset-passwords` (สุ่มรหัสใหม่ทั้ง 3 บัญชี)
+- บัญชี `admin@example.com` เข้าหน้า http://localhost:8008/admin/ ได้ (ช่อง "อีเมล" ใส่อีเมล) — ไว้ดู/แก้ข้อมูลตอนพัฒนา
+- คำสั่งนี้ทำงานเฉพาะเมื่อ `DJANGO_DEBUG=True` (โหมดพัฒนา)
+
+#### ล้างฐานข้อมูลในเครื่องแล้วเริ่มใหม่ (เมื่อจำเป็นเท่านั้น)
+⚠️ **ข้อมูลในเครื่องหายทั้งหมด** (บัญชีทดลอง ฯลฯ) — ใช้เมื่อฐานข้อมูลพังหรือ Claude แจ้งว่าต้องล้าง
+```
+docker compose down -v
+docker compose up -d
+cd backend
+uv run python manage.py migrate
+uv run python manage.py seed_dev_users
+```
+`-v` ลบเฉพาะข้อมูลของโปรเจกต์นี้ (volume ที่ `docker-compose.yml` ของ repo นี้สร้าง) — ไม่กระทบ container ของโปรเจกต์อื่น
 
 ### 3.3 เปิด frontend
 ```
@@ -285,6 +312,8 @@ repo: https://github.com/AtipatSuttatham/Mangosteen_Campus_204491
 | `/api/health/` ขึ้น `"database":"unavailable"` หรือ test ต่อฐานข้อมูลไม่ได้ | ยังไม่เปิด Docker Desktop / ยังไม่สั่ง `docker compose up -d` | ทำตามหัวข้อ 3.1 |
 | เปิด backend แล้วได้หน้าของระบบอื่น หรือ 404 แปลก ๆ | พอร์ตชนกับโปรแกรมอื่น (เช่น 8000 = DocuSynth) | ใช้พอร์ต 8008 ตามหัวข้อ 3.2 |
 | Docker Desktop ค้าง / ขึ้นว่าต่อ engine ไม่ได้ | engine ของ Docker หยุดทำงาน | คลิกขวาไอคอนปลาวาฬ → Quit Docker Desktop → เปิดใหม่ → รอ "Engine running" (ข้อมูลใน volume ไม่หาย) |
+| backend / `/admin/` ขึ้น `relation "accounts_user" does not exist` (หรือตารางอื่น) | ยังไม่ได้สร้างตารางในฐานข้อมูล | สั่ง `uv run python manage.py migrate` ในโฟลเดอร์ `backend` (หัวข้อ 3.2) |
+| ลืมรหัสผ่านบัญชีทดลอง | รหัสแสดงบนหน้าจอครั้งเดียวตอนสร้าง | `uv run python manage.py seed_dev_users --reset-passwords` (หัวข้อ 3.2) |
 | `uv` บอกว่าหา Python 3.13 ไม่เจอ | ยังไม่ได้ติดตั้ง | สั่ง `uv python install 3.13` |
 | `pnpm dev` ขึ้น `Port 5180 is already in use` | มีโปรแกรมอื่น (หรือ frontend ที่เปิดค้างไว้อีกหน้าต่าง) ใช้พอร์ต 5180 | ปิดหน้าต่างที่เปิดค้าง หรือตรวจด้วย `netstat -ano \| findstr :5180` |
 | หน้า frontend ขึ้นวงกลมสีแดงตลอด | backend ไม่ได้เปิด หรือเปิดคนละพอร์ต | เปิด backend ด้วย `runserver 8008` ตามหัวข้อ 3.2 |
