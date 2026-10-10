@@ -142,7 +142,7 @@
 
 | งานย่อย | รายละเอียด | สถานะ | PR |
 |---|---|---|---|
-| 1.1 | ตารางผู้ใช้ (`accounts.User`) + หน้า Django admin + คำสั่งสร้างบัญชีทดลอง `seed_dev_users` | 🔄 | |
+| 1.1 | ตารางผู้ใช้ (`accounts.User`) + หน้า Django admin + คำสั่งสร้างบัญชีทดลอง `seed_dev_users` | ✅ | [#10](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/10) |
 | 1.2 | API เข้าสู่ระบบ (Simple JWT): login ด้วยอีเมลหรือรหัส, แลก token, ออกจากระบบ, ข้อมูลของฉัน | ⬜ | |
 | 1.3 | เสนอ wireframe ใน canvas: หน้าเข้าสู่ระบบบนมือถือ, ข้อมูลส่วนตัว, โครงหน้าจอบนมือถือ, หน้าแรกชั่วคราว → รอผู้ใช้อนุมัติ | ⬜ | — |
 | 1.4 | ระบบ login ฝั่งหน้าเว็บ: React Router + TanStack Query + เก็บ token + แลก token อัตโนมัติ + กันหน้าตามบทบาท | ⬜ | |
