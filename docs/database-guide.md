@@ -13,13 +13,14 @@
 
 ## 0. สถาปัตยกรรมโดยรวม (ต้องเข้าใจก่อน)
 
-- **Backend**: Django 5.2 + DRF + Simple JWT, PostgreSQL. **Frontend**: React + Vite + TypeScript + Tailwind CSS (SPA แยก origin). ชื่อระบบ: **Mangosteen Campus**
+- **Backend**: Django 5.2 + DRF + Simple JWT, PostgreSQL. **Frontend**: React + Vite + TypeScript + Tailwind CSS (SPA — origin เดียวกับ backend). ชื่อระบบ: **Mangosteen Campus**
 - **ทิศทางข้อมูล**: frontend เรียก REST API → DRF serializer/viewset → service layer → model. **ไม่มี** business logic ใน frontend
 - **กลไกอัตโนมัติที่ต้องรู้**:
   1. **`Auditable` / `log_action`** — เหตุการณ์สำคัญเขียน `AuditLog` อัตโนมัติ (ขอบเขตตาม §1 audit)
   2. **สร้าง `GradeItem` อัตโนมัติ** — Quiz/Assignment ที่ `is_graded=True` เผยแพร่ครั้งแรก
   3. **signal sync คะแนน** — `QuizAttempt` / `Submission` ที่ `graded` → เขียน `Score`
   4. **คะแนนรวมคำนวณสด** จาก `Score` ทุกครั้งที่แสดงผล (ไม่มีตาราง cache)
+  5. **ปิด `QuizAttempt` ที่หมดเวลาแบบ lazy** — ไม่มี scheduled job ; ทุกจุดที่อ่านผลแบบทดสอบต้องเรียกฟังก์ชัน finalize ก่อน (`submitted_at = due_at`)
 - **ไม่มี soft delete** — ของที่มีข้อมูลผู้เรียนลบไม่ได้ ใช้ยกเลิกเผยแพร่ / ระงับ / ปิดรายวิชาแทน
 - **Timezone**: เก็บ UTC, แสดง/เทียบ "ส่งช้า" ใน `Asia/Bangkok`
 - **ภาษา**: field เดียว (ไม่แยก `_th/_en`) ; i18n = UI chrome ฝั่ง frontend
