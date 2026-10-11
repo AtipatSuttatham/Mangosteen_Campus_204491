@@ -13,8 +13,10 @@ from django.urls import include, path, re_path
 from common.views import api_not_found, health_check
 
 # เส้นทางของ API เวอร์ชัน 1 — แต่ละ app เพิ่มเส้นทางของตัวเองที่นี่ตอนทำฟีเจอร์
-# ตัวอย่าง (ก้อน 1):  path("auth/", include("accounts.urls")),
-api_v1_patterns: list = []
+api_v1_patterns: list = [
+    # เข้าสู่ระบบ / แลก token / ออกจากระบบ / ข้อมูลของฉัน (ก้อน 1)
+    path("auth/", include("accounts.urls")),
+]
 
 urlpatterns = [
     # หน้า Django admin

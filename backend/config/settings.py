@@ -7,6 +7,7 @@
 - ใช้ไฟล์ตั้งค่าไฟล์เดียวกันทุกที่ (เครื่องพัฒนา / CI) ความต่างอยู่ที่ค่าใน environment
 """
 
+from datetime import timedelta
 from pathlib import Path
 
 import environ
@@ -49,6 +50,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     # ไลบรารีภายนอก: Django REST Framework สำหรับสร้าง REST API
     "rest_framework",
+    # ไลบรารีภายนอก: Simple JWT — บัญชีดำของ refresh token (ใช้ตอนออกจากระบบ/แลก token ใหม่)
+    "rest_framework_simplejwt.token_blacklist",
     # ไลบรารีภายนอก: อนุญาตให้ frontend ที่อยู่คนละโดเมนเรียก API ได้ (CORS)
     "corsheaders",
     # app ของโปรเจกต์: ของใช้ร่วมกันทุก app (abstract model, endpoint ระบบ)
@@ -134,7 +137,38 @@ REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
     # แปลง error ทุกชนิดให้เป็นรูปแบบกลาง {code, detail, fields?} (ดู common/exceptions.py, docs/api.md)
     "EXCEPTION_HANDLER": "common.exceptions.api_exception_handler",
+    # ยืนยันตัวตนด้วย access token (JWT) ใน header "Authorization: Bearer <token>" เท่านั้น
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    # ค่าเริ่มต้น = ต้องเข้าสู่ระบบก่อนเสมอ ; ที่อยู่ที่เปิดให้ทุกคน (เช่น login, health) ระบุ AllowAny เอง
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
 }
+
+# --- Simple JWT: token สำหรับเข้าสู่ระบบ (CLAUDE.md หัวข้อ "Token", docs/api.md §6) ---
+SIMPLE_JWT = {
+    # access token อายุ 15 นาที (หน้าเว็บถือไว้ในหน่วยความจำ)
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    # refresh token อายุ 7 วัน (อยู่ใน httpOnly cookie)
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    # แลก token ทุกครั้ง → ได้ refresh token ใบใหม่ และใบเก่าขึ้นบัญชีดำทันที (ใช้ซ้ำไม่ได้)
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    # ลงลายเซ็น token ด้วยกุญแจลับของ Django
+    "SIGNING_KEY": SECRET_KEY,
+    "ALGORITHM": "HS256",
+    "AUTH_HEADER_TYPES": ("Bearer",),
+}
+
+# --- cookie ที่เก็บ refresh token ---
+# ชื่อ cookie
+REFRESH_COOKIE_NAME = "refresh_token"
+# ส่ง cookie ไปเฉพาะที่อยู่ของการยืนยันตัวตน (/api/v1/auth/...) ไม่แนบไปกับทุกคำขอ
+REFRESH_COOKIE_PATH = "/api/v1/auth/"
+# Strict = เว็บอื่นส่ง cookie นี้มาไม่ได้เลย (กันการปลอมคำขอข้ามเว็บ — ทำได้เพราะโดเมนเดียวกัน)
+REFRESH_COOKIE_SAMESITE = "Strict"
+# ส่งผ่าน HTTPS เท่านั้นเมื่อไม่ใช่โหมดพัฒนา (เครื่องพัฒนาใช้ http://localhost)
+REFRESH_COOKIE_SECURE = not DEBUG
 
 # --- CORS: frontend ที่อยู่คนละโดเมนกับ backend ---
 # ตอนพัฒนาในเครื่องไม่ได้ใช้ (frontend เรียก /api ผ่าน proxy ของ Vite จึงเหมือนอยู่ที่เดียวกัน)
