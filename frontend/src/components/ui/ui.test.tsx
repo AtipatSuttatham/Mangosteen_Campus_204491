@@ -234,6 +234,17 @@ describe('Avatar', () => {
     expect(circle.style.width).toBe('38px')
   })
 
+  it('แบบ ring (แถบบัตรประจำตัว) → ขอบเขียว + พื้นม่วงเข้ม และตัวอักษรตามสัดส่วนวงใหญ่', () => {
+    const { container } = render(
+      <Avatar user={{ ...user, avatar_url: null }} size={128} variant="ring" />,
+    )
+
+    const circle = container.firstElementChild as HTMLElement
+    expect(circle.className).toContain('border-accent')
+    expect(circle.className).toContain('bg-brand-hover')
+    expect(circle.style.fontSize).toBe('41px')
+  })
+
   it('มีรูป → แสดงรูปแทนตัวอักษรย่อ', () => {
     const { container } = render(
       <Avatar user={{ ...user, avatar_url: '/media/avatars/3.webp' }} size={36} />,
@@ -242,5 +253,18 @@ describe('Avatar', () => {
     const image = container.querySelector('img')
     expect(image).toHaveAttribute('src', '/media/avatars/3.webp')
     expect(container).not.toHaveTextContent('สร')
+  })
+})
+
+describe('TextField — คำแนะนำใต้ช่อง (hint)', () => {
+  it('แสดงคำแนะนำและผูกกับช่อง ; มี error → error แทนที่คำแนะนำ', () => {
+    const { rerender } = render(<TextField label="รหัสผ่านใหม่" hint="อย่างน้อย 8 ตัว" />)
+
+    expect(screen.getByLabelText('รหัสผ่านใหม่')).toHaveAccessibleDescription('อย่างน้อย 8 ตัว')
+
+    rerender(<TextField label="รหัสผ่านใหม่" hint="อย่างน้อย 8 ตัว" error="รหัสผ่านสั้นเกินไป" />)
+
+    expect(screen.queryByText('อย่างน้อย 8 ตัว')).not.toBeInTheDocument()
+    expect(screen.getByLabelText('รหัสผ่านใหม่')).toHaveAccessibleDescription('รหัสผ่านสั้นเกินไป')
   })
 })

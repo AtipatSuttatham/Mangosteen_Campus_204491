@@ -42,3 +42,12 @@ export function fieldErrorMessage(code: string | undefined): string | undefined 
     ? i18n.t(`fieldErrors.${code}`)
     : i18n.t('fieldErrors.unknown')
 }
+
+/**
+ * ข้อความของรหัส error หลายรหัสในช่องเดียว (เช่น รหัสผ่านไม่ผ่านกฎ 2 ข้อ) — ต่อกันเป็นประโยคเดียว
+ * ไม่มีรหัส = ไม่มีข้อความ
+ */
+export function fieldErrorsMessage(codes: string[] | undefined): string | undefined {
+  if (!codes || codes.length === 0) return undefined
+  return codes.map((code) => fieldErrorMessage(code)).join(' ')
+}

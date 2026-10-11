@@ -137,6 +137,11 @@ export default function ComponentGallery() {
             error={t('devGallery.sampleLoginError')}
           />
           <PasswordField label={t('devGallery.samplePasswordLabel')} />
+          {/* ช่องที่มีคำแนะนำใต้ช่อง (hint — หน้าข้อมูลส่วนตัว) */}
+          <PasswordField
+            label={t('devGallery.sampleNewPasswordLabel')}
+            hint={t('devGallery.sampleNewPasswordHint')}
+          />
           <Button className="w-full">{t('devGallery.sampleLogin')}</Button>
         </Card>
       </Section>
@@ -208,6 +213,11 @@ export default function ComponentGallery() {
             <Avatar key={user.email} user={user} size={38} />
           ))}
           <Avatar user={SAMPLE_STUDENT} size={36} />
+        </div>
+        {/* แบบวงแหวนบนแถบบัตรประจำตัว (หน้าข้อมูลส่วนตัว): จอใหญ่ 128px / มือถือ 88px */}
+        <div className="flex w-fit items-end gap-6 rounded-card bg-brand px-6 py-5">
+          <Avatar user={SAMPLE_STUDENT} size={128} variant="ring" />
+          <Avatar user={SAMPLE_STUDENT} size={88} variant="ring" />
         </div>
       </Section>
     </main>
