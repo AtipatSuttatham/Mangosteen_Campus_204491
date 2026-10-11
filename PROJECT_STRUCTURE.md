@@ -77,7 +77,7 @@ Mangosteen_Campus_204491/
 │       ├── main.tsx          จุดเริ่มต้น: เปิดระบบข้อความ แล้ววาด <Root /> ลงในหน้า HTML
 │       ├── Root.tsx          โครงนอกสุด: QueryClientProvider → BrowserRouter → AuthProvider → AppRoutes
 │       ├── router.tsx        แผนที่ของหน้าทั้งหมด (/login, /, /profile, /dev/...) + ยามหน้าประตู ; ที่อยู่อื่น → หน้าแรก
-│       ├── index.css         CSS หลัก: โหลด Tailwind + ธีมของระบบ (@theme: สี 20 ค่า, ฟอนต์, มุมโค้ง — ตรงกับ canvas)
+│       ├── index.css         CSS หลัก: โหลด Tailwind + ธีมของระบบ (@theme: สี 20 ค่า, ฟอนต์, มุมโค้ง, ภาพเคลื่อนไหวเมนูลิ้นชัก — ตรงกับ canvas)
 │       ├── auth/             ระบบเข้าสู่ระบบฝั่งหน้าเว็บ (docs/api.md §6.3)
 │       │   ├── session.ts    ที่เก็บ access token (ในหน่วยความจำ) + ตัวแลกบัตรครั้งเดียวต่อรอบ (กันหลายแท็บด้วย Web Locks)
 │       │   ├── AuthContext.ts  ข้อมูลกลาง (สถานะ / ผู้ใช้ / login / logout) + hook useAuth()
@@ -85,11 +85,12 @@ Mangosteen_Campus_204491/
 │       │   ├── guards.tsx    ยามหน้าประตู: RequireAuth (ต้องเข้าสู่ระบบ / ตามบทบาท), RedirectIfAuthed (หน้า login)
 │       │   ├── session.test.ts     test ตัวแลกบัตร + การแนบบัตร/แลกบัตรอัตโนมัติใน apiFetch
 │       │   └── auth-flow.test.tsx  test ครบเส้นทาง: เปิดเว็บ, login แล้วกลับหน้าเดิม, ถูกให้ออก, หลายแท็บ, บทบาท
-│       ├── pages/            หน้าจอของระบบ (ตอนนี้เป็นแบบชั่วคราว — หน้าตาจริงตาม wireframe มาในขั้น 1.5/1.6/1.8)
+│       ├── pages/            หน้าจอของระบบ (หน้าหลังเข้าสู่ระบบแสดงภายในโครงหน้าจอ components/layout/AppShell)
 │       │   ├── LoginPage.tsx     /login เข้าสู่ระบบตาม wireframe (จอใหญ่ภาพ 5.1 + มือถือ) — React Hook Form, กรอกผิดขอบแดง 2 ช่อง
 │       │   ├── LoginPage.test.tsx  test ฟอร์มเข้าสู่ระบบ (ไม่กรอก / กรอกผิด / ถูกระงับ / กันกดซ้ำ / หมดเวลา)
-│       │   ├── HomePage.tsx      / หน้าแรกหลังเข้าสู่ระบบ
-│       │   └── ProfilePage.tsx   /profile ข้อมูลส่วนตัว (ดึงจาก GET /auth/me/ ด้วย TanStack Query)
+│       │   ├── HomePage.tsx      / หน้าแรกชั่วคราว (ถึงก้อน 10) ตาม wireframe: ทักทาย, วันที่, รหัส, ข้อความ "ยังไม่มี…" ตามบทบาท
+│       │   ├── HomePage.test.tsx  test หน้าแรกทั้ง 3 บทบาท (ป้ายรหัส / ไม่มีรหัส / ข้อความตามบทบาท)
+│       │   └── ProfilePage.tsx   /profile ข้อมูลส่วนตัว — ยังชั่วคราว (ดึงจาก GET /auth/me/) ; หน้าจริงขั้น 1.8
 │       ├── api/              การเรียก backend
 │       │   ├── client.ts     apiFetch(): ตัวเรียก API กลาง (/api/v1/...) แนบบัตร + แลกบัตรเมื่อได้ 401 ; โยน ApiError รูปแบบเดียวกันทุกกรณี
 │       │   ├── auth.ts       ชนิดข้อมูล User/Role + login() / logout() / fetchMe()
@@ -104,9 +105,18 @@ Mangosteen_Campus_204491/
 │       │   └── locales/
 │       │       └── th.ts     ข้อความบนหน้าจอทุกตัว (แก้/เพิ่มข้อความที่ไฟล์นี้)
 │       ├── components/
+│       │   ├── layout/       โครงหน้าจอหลักหลังเข้าสู่ระบบ (ขั้น 1.6 — ตาม board หน้าแรก + โครงหน้าจอบนมือถือ)
+│       │   │   ├── AppShell.tsx      โครง: sidebar ม่วง (จอใหญ่ ≥ 1024px) / แถบบน + ปุ่ม ☰ (มือถือ), ลายจาง, ลิงก์ข้ามเมนู
+│       │   │   ├── MobileDrawer.tsx  เมนูลิ้นชักบนมือถือ (dialog: โฟกัส, Tab วน, Esc/แตะพื้นมืด/✕ ปิด, ล็อก scroll)
+│       │   │   ├── NavMenu.tsx       รายการเมนู + ส่วนผู้ใช้ (รูป ชื่อ บทบาท ข้อมูลส่วนตัว ออกจากระบบ) ใช้ทั้ง sidebar และลิ้นชัก
+│       │   │   ├── navigation.ts     รายการเมนูกลาง + บทบาทที่เห็น (เพิ่มเมนูของก้อนถัดไปที่นี่)
+│       │   │   ├── icons.tsx         ไอคอนเส้น ☰ / ✕ / ภาพรวม (จาก canvas)
+│       │   │   └── AppShell.test.tsx test ของโครงและเมนูลิ้นชัก
 │       │   └── ui/           คอมโพเนนต์พื้นฐาน (หน้าตาตาม canvas) — import จาก components/ui
 │       │       ├── index.ts        รวม export ทุกชิ้น
 │       │       ├── Button.tsx      ปุ่ม: primary / secondary / text / danger-text
+│       │       ├── buttonStyles.ts class หน้าตาปุ่ม + buttonClassName() ให้ลิงก์หน้าตาเหมือนปุ่ม
+│       │       ├── Avatar.tsx      รูปประจำตัววงกลม (มีรูป → รูป ; ไม่มี → ตัวอักษรย่อ)
 │       │       ├── TextField.tsx   ช่องกรอก + ป้ายชื่อ + ข้อความ error (ขอบแดง, role=alert) ; invalid / ปุ่มในช่อง / รับ ref
 │       │       ├── PasswordField.tsx  ช่องรหัสผ่าน + ปุ่ม "แสดง"/"ซ่อน" (ตามหน้าเข้าสู่ระบบใน canvas)
 │       │       ├── Card.tsx        การ์ดพื้นขาว ขอบ line มุม 14px
@@ -121,8 +131,10 @@ Mangosteen_Campus_204491/
 │       │   ├── HealthPage.tsx        /dev/health ทดสอบสุขภาพระบบ: ป้ายสถานะ + JSON จาก /api/health/ (เดิมคือ App.tsx)
 │       │   └── HealthPage.test.tsx   test ของหน้าทดสอบ (กำลังตรวจ / ปกติ / ฐานข้อมูลไม่พร้อม / ติดต่อไม่ได้ / ไม่ใช่ JSON)
 │       ├── lib/              ฟังก์ชันช่วยที่ใช้ร่วมกันทั้งแอป
-│       │   ├── datetime.ts   formatDateTime(): แสดงวันที่แบบ "25 ก.ค. 2569 23:59" (เวลาไทยเสมอ)
-│       │   └── datetime.test.ts  test ของการแสดงวันที่ (พ.ศ., ข้ามวัน, ข้ามปี, เติม 0)
+│       │   ├── datetime.ts   formatDateTime(): "25 ก.ค. 2569 23:59" ; formatLongDate(): "วันอาทิตย์ที่ 11 ตุลาคม 2569" (เวลาไทยเสมอ)
+│       │   ├── datetime.test.ts  test ของการแสดงวันที่ (พ.ศ., ข้ามวัน, ข้ามปี, เติม 0, แบบเต็ม)
+│       │   ├── names.ts      initials(): ตัวอักษรย่อจากชื่อ (ข้ามสระหน้า เ แ โ ใ ไ)
+│       │   └── names.test.ts test ของตัวอักษรย่อ
 │       └── test/
 │           └── setup.ts      ไฟล์เตรียมความพร้อมที่ Vitest รันก่อน test ทุกไฟล์
 │
