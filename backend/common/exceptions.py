@@ -135,6 +135,18 @@ def api_exception_handler(exc: Exception, context: dict[str, Any]) -> Response:
     if isinstance(exc, (exceptions.NotAuthenticated, exceptions.AuthenticationFailed)):
         response.status_code = status.HTTP_401_UNAUTHORIZED
 
+    # token ใช้ไม่ได้ทุกแบบ (หมดอายุ / ลายเซ็นผิด / บัญชีถูกระงับระหว่างใช้งาน ฯลฯ)
+    # Simple JWT ใช้รหัสย่อยของตัวเอง (เช่น token_not_valid, user_inactive)
+    # → รวมเป็นรหัสเดียว authentication_failed ให้ frontend จัดการแบบเดียวกัน (ขอ token ใหม่ / ไป login)
+    if isinstance(exc, exceptions.AuthenticationFailed):
+        detail = (
+            exc.detail
+            if isinstance(exc.detail, str)
+            else exceptions.AuthenticationFailed.default_detail
+        )
+        response.data = {"code": "authentication_failed", "detail": str(detail)}
+        return response
+
     # error อื่น ๆ (ไม่ได้เข้าสู่ระบบ, ไม่มีสิทธิ์, ไม่พบ, ApiError ฯลฯ)
     response.data = {"code": _code_of(exc), "detail": _detail_of(exc)}
     return response
