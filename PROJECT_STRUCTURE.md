@@ -30,16 +30,19 @@ Mangosteen_Campus_204491/
 │   ├── pyproject.toml        รายการแพ็กเกจ Python + ตั้งค่า pytest และ ruff
 │   ├── uv.lock               ล็อกเวอร์ชันแพ็กเกจทุกตัว (ทุกเครื่อง/CI ได้เวอร์ชันเดียวกัน) — uv สร้างให้ ห้ามแก้มือ
 │   ├── config/               ตั้งค่าของโปรเจกต์ Django
-│   │   ├── settings.py       ตั้งค่าหลัก: อ่านค่าลับจาก .env, ฐานข้อมูล, เขตเวลา, DRF, ตารางผู้ใช้ (AUTH_USER_MODEL), Simple JWT + cookie ของ refresh token
-│   │   ├── urls.py           รวมเส้นทาง URL ทั้งหมด (/admin/, /api/health/, /api/v1/ — มี auth/, 404 แบบ JSON ของ /api/)
+│   │   ├── settings.py       ตั้งค่าหลัก: อ่านค่าลับจาก .env, ฐานข้อมูล, เขตเวลา, DRF, ตารางผู้ใช้ (AUTH_USER_MODEL), Simple JWT + cookie ของ refresh token, ที่เก็บไฟล์ (STORAGES/MEDIA) + ขนาดรูปประจำตัว
+│   │   ├── urls.py           รวมเส้นทาง URL ทั้งหมด (/admin/, /api/health/, /api/v1/ — มี auth/, 404 แบบ JSON ของ /api/, /media/ เฉพาะโหมดพัฒนา)
 │   │   ├── wsgi.py           จุดเริ่มต้นเมื่อรันบนเซิร์ฟเวอร์แบบ WSGI
 │   │   └── asgi.py           จุดเริ่มต้นเมื่อรันบนเซิร์ฟเวอร์แบบ ASGI
+│   ├── media/                ไฟล์ที่ผู้ใช้อัปโหลดช่วงพัฒนา (เช่น avatars/…webp) — สร้างเองเมื่ออัปโหลดครั้งแรก, ไม่ขึ้น GitHub (.gitignore)
 │   ├── accounts/             app บัญชีผู้ใช้และการเข้าสู่ระบบ (ก้อน 1)
 │   │   ├── models.py         ตาราง User (อีเมล/รหัส/บทบาท/ระงับ/รูปประจำตัว) + ตัวช่วยสร้างผู้ใช้ (UserManager)
-│   │   ├── views.py          API เข้าสู่ระบบ: login / refresh / logout / me (docs/api.md §6)
+│   │   ├── views.py          API: login / refresh / logout / me (GET, PATCH) / me/password / me/avatar (docs/api.md §6)
 │   │   ├── urls.py           เส้นทางของ API ข้างบน (ต่ออยู่ใต้ /api/v1/auth/)
-│   │   ├── serializers.py    ตรวจข้อมูลตอน login + รูปแบบข้อมูลผู้ใช้ที่ส่งกลับ (MeSerializer)
-│   │   ├── tokens.py         ออก token (ใส่ role) + ตั้ง/ลบ cookie ของ refresh token
+│   │   ├── serializers.py    ตรวจข้อมูล: login, แก้ชื่อ/อีเมล, เปลี่ยนรหัสผ่าน, อัปโหลดรูป + รูปแบบข้อมูลผู้ใช้ที่ส่งกลับ (MeSerializer)
+│   │   ├── tokens.py         ออก token (ใส่ role + ลายนิ้วมือรหัสผ่าน pwd), ยกเลิกทุกใบของผู้ใช้, ตั้ง/ลบ cookie ของ refresh token
+│   │   ├── authentication.py ตัวตรวจ access token ของทุก API: ปฏิเสธบัตรที่ออกก่อนเปลี่ยนรหัสผ่าน (ขั้น 1.7)
+│   │   ├── avatars.py        ตรวจ/ย่อ/ล้างข้อมูลแฝงของรูปประจำตัว (Pillow) → WebP ไม่เกิน 512×512
 │   │   ├── admin.py          หน้าจัดการผู้ใช้ใน /admin/ (ค้นหา/กรอง/เพิ่ม/แก้ — สำหรับนักพัฒนา)
 │   │   ├── apps.py           ข้อมูลประจำ app
 │   │   ├── migrations/       ไฟล์สร้าง/เปลี่ยนโครงสร้างตาราง User (Django สร้างให้)
@@ -48,6 +51,8 @@ Mangosteen_Campus_204491/
 │   │   └── tests/
 │   │       ├── test_models.py         test ตาราง User (อีเมลตัวพิมพ์เล็ก, ห้ามซ้ำ, รหัสว่าง, ระงับบัญชี ฯลฯ)
 │   │       ├── test_auth_api.py       test API เข้าสู่ระบบ (login/refresh/logout/me, cookie, บัญชีถูกระงับ)
+│   │       ├── test_profile_api.py    test แก้ชื่อ/อีเมล + เปลี่ยนรหัสผ่าน (อุปกรณ์อื่นหลุดทันที, บัตรเก่าไม่มีลายนิ้วมือ)
+│   │       ├── test_avatars.py        test รูปประจำตัว (ชนิดไฟล์, ย่อ, ล้าง GPS, หมุนตามกล้อง, เกินขนาด, อัปโหลด/ลบผ่าน API)
 │   │       ├── test_admin.py          test หน้า /admin/ (login ด้วยอีเมล, หน้ารายชื่อ/เพิ่ม/แก้)
 │   │       └── test_seed_dev_users.py test คำสั่งสร้างบัญชีทดลอง (ครบ 3 บทบาท, รันซ้ำ, รีเซ็ตรหัส, ปฏิเสธบนเว็บจริง)
 │   └── common/               app ของใช้ร่วมกันทุก app

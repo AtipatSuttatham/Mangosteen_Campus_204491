@@ -71,6 +71,18 @@
 ใช้รหัสมาตรฐานของ Django REST Framework — ข้อความไทยอยู่ใน `th.ts` → `fieldErrors`:
 `required`, `blank`, `null`, `invalid`, `max_length`, `min_length`, `max_value`, `min_value`, `unique`, `invalid_choice` (รหัสอื่น → ข้อความสำรอง "ข้อมูลช่องนี้ไม่ถูกต้อง")
 
+รหัสรายช่องเฉพาะของระบบ (เพิ่มข้อความใน `fieldErrors` ของ `th.ts` ด้วยทุกครั้ง):
+
+| รหัส | ช่อง | เกิดเมื่อ | เพิ่มในขั้น |
+|---|---|---|---|
+| `password_incorrect` | `current_password` | เปลี่ยนรหัสผ่าน: รหัสผ่านปัจจุบันไม่ถูกต้อง | 1.7 |
+| `password_too_short` | `new_password` | รหัสผ่านใหม่สั้นกว่า 8 ตัว (กฎมาตรฐานของ Django) | 1.7 |
+| `password_too_common` | `new_password` | รหัสผ่านใหม่อยู่ในรายการรหัสยอดนิยม | 1.7 |
+| `password_entirely_numeric` | `new_password` | รหัสผ่านใหม่เป็นตัวเลขล้วน | 1.7 |
+| `password_too_similar` | `new_password` | รหัสผ่านใหม่คล้ายชื่อ/อีเมลของผู้ใช้ | 1.7 |
+
+ไม่ผ่านหลายกฎพร้อมกัน → ได้หลายรหัสในช่องเดียว เช่น `{"new_password": ["password_too_common", "password_entirely_numeric"]}`
+
 ### 3.3 รหัสเฉพาะเรื่องของระบบ (business rule)
 
 ใช้ `ApiError` จาก `backend/common/exceptions.py`:
@@ -92,8 +104,10 @@ raise ApiError("quiz_time_over", status_code=409)
 |---|---|---|---|
 | `invalid_credentials` | 400 | เข้าสู่ระบบ: ไม่พบบัญชี หรือรหัสผ่านผิด (ข้อความรวม — ไม่บอกว่าผิดช่องไหน) | 1 |
 | `account_disabled` | 403 | เข้าสู่ระบบ: รหัสผ่านถูก แต่บัญชีถูกระงับ (`is_active=False`) — บอกเฉพาะเมื่อรหัสผ่านถูก | 1 |
+| `avatar_too_large` | 400 | รูปประจำตัว: ไฟล์เกิน 2 MB หรือภาพเกิน 25 ล้านพิกเซล | 1 |
+| `avatar_invalid_type` | 400 | รูปประจำตัว: ไม่ใช่รูป / ไฟล์เสีย / ไม่ใช่ JPG-PNG-WebP (ตรวจจากเนื้อไฟล์) | 1 |
 
-> token ใช้ไม่ได้ทุกแบบ (หมดอายุ / ลายเซ็นผิด / ถูกยกเลิก / บัญชีถูกระงับระหว่างใช้งาน) ตอบ `authentication_failed` (401) รหัสเดียว — รหัสย่อยของ Simple JWT (`token_not_valid`, `user_inactive` ฯลฯ) ถูกรวมใน `api_exception_handler`
+> token ใช้ไม่ได้ทุกแบบ (หมดอายุ / ลายเซ็นผิด / ถูกยกเลิก / บัญชีถูกระงับระหว่างใช้งาน / ออกก่อนเปลี่ยนรหัสผ่าน) ตอบ `authentication_failed` (401) รหัสเดียว — รหัสย่อยของ Simple JWT (`token_not_valid`, `user_inactive` ฯลฯ) ถูกรวมใน `api_exception_handler`
 
 ## 4. ฝั่ง frontend: เรียก API และแสดง error
 
@@ -123,7 +137,7 @@ try {
 - แนะนำให้ deploy frontend และ backend **โดเมนเดียวกัน** ถ้าทำได้ (cookie ของ refresh token ทำงานง่ายกว่า)
 - **แผน deploy ที่เลือก (เบื้องต้น) ใช้โดเมนเดียวกัน** — Render service เดียว ที่ Django ส่งหน้าเว็บเอง (หรือ VM ที่มี Caddy ถ้าเปลี่ยนไปใช้ Azure) → **ไม่ต้องตั้ง `CORS_ALLOWED_ORIGINS`** ; การตั้งค่า CORS ข้างบนเก็บไว้เผื่อเปลี่ยนไปแบบแยกโดเมน (ดู [`CLAUDE.md`](../CLAUDE.md) หัวข้อ "การตัดสินใจเรื่อง deploy")
 
-## 6. การเข้าสู่ระบบ (ก้อน 1 — UC-01)
+## 6. การเข้าสู่ระบบ + ข้อมูลส่วนตัว (ก้อน 1 — UC-01, UC-02)
 
 ### 6.1 token 2 ชนิด
 
@@ -132,7 +146,9 @@ try {
 | อายุ | **15 นาที** | **7 วัน** |
 | อยู่ที่ไหน | JSON ของคำตอบ → หน้าเว็บถือไว้**ในหน่วยความจำ** (หายเมื่อปิดแท็บ) | **httpOnly cookie** ชื่อ `refresh_token` (JavaScript อ่านไม่ได้) |
 | ใช้ทำอะไร | แนบทุกคำขอ: header `Authorization: Bearer <access>` | แลก access token ใบใหม่ที่ `refresh/` |
-| ข้อมูลข้างใน | `user_id`, `role` | `user_id`, `role` |
+| ข้อมูลข้างใน | `user_id`, `role`, `pwd` | `user_id`, `role`, `pwd` |
+
+`pwd` = "ลายนิ้วมือของรหัสผ่าน" (16 ตัวแรกของ `get_session_auth_hash()` ของ Django — อ่านย้อนเป็นรหัสผ่านไม่ได้) ; ทุกคำขอและทุกการแลกบัตรเทียบกับรหัสผ่านปัจจุบัน → **รหัสผ่านเปลี่ยน (เปลี่ยนเอง / ผู้ดูแลระบบรีเซ็ต) บัตรเดิมทุกใบใช้ไม่ได้ทันที** (ตัวตรวจ `accounts/authentication.py` — ขั้น 1.7) ; บัตรที่ไม่มี `pwd` (ออกก่อนขั้น 1.7) ใช้ไม่ได้
 
 cookie ตั้งค่า: `HttpOnly` ; `Path=/api/v1/auth/` (ส่งเฉพาะที่อยู่ของการยืนยันตัวตน) ; `SameSite=Strict` (เว็บอื่นส่งมาไม่ได้ — ใช้ได้เพราะ frontend/backend โดเมนเดียวกัน) ; `Secure` เมื่อ `DEBUG=False` ; อายุ 7 วัน
 
@@ -146,8 +162,12 @@ cookie ตั้งค่า: `HttpOnly` ; `Path=/api/v1/auth/` (ส่งเฉ
 | `POST /api/v1/auth/refresh/` | (ไม่มี body — ใช้ cookie) | 200 `{access, user}` + cookie **ใบใหม่** (ใบเก่าขึ้นบัญชีดำ — ใช้ได้ครั้งเดียว **แม้ยื่นพร้อมกันหลายคำขอ: ผ่านแค่คำขอแรก** — ขั้น 1.4.1) | 401 `authentication_failed` + ลบ cookie (ไม่มี cookie / หมดอายุ / ถูกยกเลิก / บัญชีถูกระงับ) |
 | `POST /api/v1/auth/logout/` | (ไม่มี body — ใช้ cookie) | 204 + ลบ cookie + refresh token ขึ้นบัญชีดำ | — (สำเร็จเสมอ) |
 | `GET /api/v1/auth/me/` | header `Authorization: Bearer <access>` | 200 `user` | 401 `not_authenticated` / `authentication_failed` |
+| `PATCH /api/v1/auth/me/` | `{first_name?, last_name?, email?}` — ส่งเฉพาะช่องที่แก้ ; ตัดช่องว่างหัวท้าย ; อีเมลเก็บตัวพิมพ์เล็ก ไม่ต้องกรอกรหัสผ่าน ; ช่องอื่น (`role`, `student_or_staff_id` ฯลฯ) ไม่มีผล | 200 `user` | 400 `validation_error` เช่น `{"email": ["unique"]}` (ซ้ำแบบไม่สนตัวพิมพ์), `["invalid"]`, `{"first_name": ["blank"]}` |
+| `POST /api/v1/auth/me/password/` | `{"current_password": "...", "new_password": "..."}` (ไม่ตัดช่องว่าง) | 200 `{access, user}` + cookie ใบใหม่ (เครื่องนี้อยู่ต่อ) ; refresh token ทุกใบของผู้ใช้ขึ้นบัญชีดำ + บัตรเดิมทุกใบใช้ไม่ได้ (`pwd` ไม่ตรง) → **อุปกรณ์อื่นออกทันที** | 400 `validation_error`: `current_password` → `password_incorrect` ; `new_password` → รหัสกฎ (§3.2) |
+| `POST /api/v1/auth/me/avatar/` | multipart ช่อง `avatar` — JPG / PNG / WebP ≤ 2 MB | 200 `user` (`avatar_url` ใหม่) — ระบบย่อให้ไม่เกิน 512×512, บันทึกเป็น WebP ชื่อสุ่ม, ไม่มีข้อมูลแฝง (GPS ฯลฯ) ; ลบไฟล์เดิม | 400 `avatar_too_large` / `avatar_invalid_type` / `validation_error` (`{"avatar": ["required"]}`) |
+| `DELETE /api/v1/auth/me/avatar/` | – | 200 `user` (`avatar_url: null`) + ลบไฟล์ ; ไม่มีรูปอยู่แล้วก็ 200 | – |
 
-`user` = `{id, email, student_or_staff_id, role, first_name, last_name, avatar_url}` (`avatar_url` = ลิงก์รูป หรือ `null`)
+`user` = `{id, email, student_or_staff_id, role, first_name, last_name, avatar_url}` (`avatar_url` = ลิงก์รูปที่ระบบ storage สร้าง เช่น `/media/avatars/3f9c….webp` ช่วงพัฒนา หรือ `null`)
 
 ### 6.3 ลำดับการทำงานฝั่ง frontend
 

@@ -5,8 +5,11 @@
 - /api/health/   ตรวจสุขภาพระบบ (ระบบทำงาน + เชื่อมฐานข้อมูลได้) — ของระบบ จึงอยู่นอก v1
 - /api/v1/...    API ของฟีเจอร์ทั้งหมด (เพิ่มเส้นทางของแต่ละ app ใน api_v1_patterns)
 - /api/อื่น ๆ     ที่อยู่ API ที่ไม่มีอยู่จริง → ตอบ 404 ในรูปแบบ error กลาง (JSON)
+- /media/...     ไฟล์ที่ผู้ใช้อัปโหลด (รูปประจำตัว ฯลฯ) — เฉพาะโหมดพัฒนา (DEBUG=True)
 """
 
+from django.conf import settings
+from django.conf.urls.static import static
 from django.contrib import admin
 from django.urls import include, path, re_path
 
@@ -28,3 +31,8 @@ urlpatterns = [
     # ต้องอยู่ท้ายสุด: ที่อยู่ใต้ /api/ ที่ไม่ตรงกับเส้นทางใดเลย → 404 แบบ JSON
     re_path(r"^api/(?P<unknown_path>.*)$", api_not_found, name="api-not-found"),
 ]
+
+# โหมดพัฒนา: ให้ Django ส่งไฟล์ที่อัปโหลดไว้ใน backend/media/ (หน้าเว็บเปิดรูปประจำตัวได้)
+# ตอน deploy ไฟล์อยู่บน cloud (Backblaze B2) และลิงก์ชี้ไปที่ cloud — บรรทัดนี้ไม่ทำงานเมื่อ DEBUG=False
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

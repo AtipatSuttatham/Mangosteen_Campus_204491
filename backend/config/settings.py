@@ -131,6 +131,27 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# --- ไฟล์ที่ผู้ใช้อัปโหลด (รูปประจำตัว ฯลฯ) — CLAUDE.md "ฟิลด์ไฟล์", docs/database.md §1 ---
+# โค้ดทุกจุดเก็บ/อ่านไฟล์ผ่านระบบ storage ของ Django (FileField / default_storage) เท่านั้น
+# ช่วงพัฒนา: เก็บในโฟลเดอร์ backend/media/ ของเครื่อง (อยู่ใน .gitignore)
+# ตอน deploy: ติดตั้ง django-storages แล้วเปลี่ยน "default" เป็น Backblaze B2 (แบบ S3) — แก้แค่ตรงนี้
+#   ไม่ต้องแก้โค้ดหรือข้อมูล (ผู้ใช้เลือกแบบ ก ขั้น 1.7: ติดตั้ง django-storages ตอนต่อ cloud)
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "django.contrib.staticfiles.storage.StaticFilesStorage"},
+}
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
+
+# --- รูปประจำตัว (การตัดสินใจก้อน 1 / docs/database.md §11 v2.3) ---
+# ขนาดไฟล์สูงสุดที่รับ: 2 MB
+AVATAR_MAX_BYTES = 2 * 1024 * 1024
+# ย่อให้ด้านยาวไม่เกิน 512px (ไม่ขยายรูปเล็ก)
+AVATAR_MAX_SIZE = 512
+# จำนวนพิกเซลสูงสุดของรูปต้นฉบับ (25 ล้าน ≈ 5000×5000) — กันไฟล์เล็กที่ขยายแล้วกินหน่วยความจำมาก
+# (เครื่องฟรีตอน deploy มี RAM 512 MB — ข้อควรระวังข้อ 3 ใน CLAUDE.md)
+AVATAR_MAX_PIXELS = 25_000_000
+
 # --- Django REST Framework ---
 REST_FRAMEWORK = {
     # ส่งข้อมูลกลับเป็น JSON เท่านั้น (frontend เป็น React ไม่ใช้หน้า HTML ของ DRF)
@@ -138,8 +159,9 @@ REST_FRAMEWORK = {
     # แปลง error ทุกชนิดให้เป็นรูปแบบกลาง {code, detail, fields?} (ดู common/exceptions.py, docs/api.md)
     "EXCEPTION_HANDLER": "common.exceptions.api_exception_handler",
     # ยืนยันตัวตนด้วย access token (JWT) ใน header "Authorization: Bearer <token>" เท่านั้น
+    # ตัวตรวจของเราเพิ่มการตรวจ "บัตรออกก่อนเปลี่ยนรหัสผ่านหรือไม่" (accounts/authentication.py — ขั้น 1.7)
     "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework_simplejwt.authentication.JWTAuthentication",
+        "accounts.authentication.PasswordAwareJWTAuthentication",
     ],
     # ค่าเริ่มต้น = ต้องเข้าสู่ระบบก่อนเสมอ ; ที่อยู่ที่เปิดให้ทุกคน (เช่น login, health) ระบุ AllowAny เอง
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],

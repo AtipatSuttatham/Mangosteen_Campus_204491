@@ -30,6 +30,11 @@ export default defineConfig({
         target: backendUrl,
         changeOrigin: true,
       },
+      // ไฟล์ที่ผู้ใช้อัปโหลด (เช่น รูปประจำตัว) — ช่วงพัฒนา backend เก็บไว้ในเครื่องและส่งที่ /media/
+      '/media': {
+        target: backendUrl,
+        changeOrigin: true,
+      },
     },
   },
 
