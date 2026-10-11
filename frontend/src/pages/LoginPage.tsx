@@ -89,15 +89,14 @@ export default function LoginPage() {
           className="pointer-events-none absolute -right-[230px] -bottom-[250px] hidden text-accent opacity-[0.22] lg:block"
         />
 
-        {/* ตรา + ชื่อระบบ (มือถือ 34px / จอใหญ่ 36px ตาม canvas) */}
-        <Logo size={34} withWordmark tone="onDark" wordmarkSize="sm" className="relative lg:hidden" />
-        <Logo
-          size={36}
-          withWordmark
-          tone="onDark"
-          wordmarkSize="md"
-          className="relative hidden lg:inline-flex"
-        />
+        {/* ตรา + ชื่อระบบ (มือถือ 34px / จอใหญ่ 36px ตาม canvas)
+            ซ่อน/แสดงที่กล่องครอบ — Logo ใส่ inline-flex ในตัว ถ้าใส่ hidden ที่ Logo ตรง ๆ จะชนกัน */}
+        <div className="relative lg:hidden">
+          <Logo size={34} withWordmark tone="onDark" wordmarkSize="sm" />
+        </div>
+        <div className="relative hidden lg:block">
+          <Logo size={36} withWordmark tone="onDark" wordmarkSize="md" />
+        </div>
 
         {/* ข้อความแนะนำระบบ */}
         <div className="relative mt-10 max-w-[300px] lg:mt-[170px] lg:max-w-[390px]">
