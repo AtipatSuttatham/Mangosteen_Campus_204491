@@ -17,11 +17,12 @@
  *   - ไม่กรอกช่องใด → ข้อความใต้ช่องนั้น "กรุณากรอกข้อมูลช่องนี้" (ไม่ส่งไป backend)
  *   - backend ปฏิเสธ (รหัสผิด / ถูกระงับ / ติดต่อไม่ได้) → ขอบแดง 2 ช่อง + ข้อความเดียวใต้ช่องรหัสผ่าน
  *     (ตาม board กรอกผิด: ไม่บอกว่าผิดช่องไหน) ; พิมพ์แก้ช่องใดก็ได้ → ข้อความหายไป
- *   - ระหว่างส่ง → ปุ่มกดไม่ได้ + "กำลังเข้าสู่ระบบ…" (กันกดซ้ำ)
+ *   - ระหว่างส่ง → ปุ่มกดไม่ได้ + "กำลังเข้าสู่ระบบ…" ; กดซ้ำเร็วกว่าที่หน้าจอวาดใหม่ทันก็ส่งครั้งเดียว
  *   - สำเร็จ → RedirectIfAuthed (auth/guards.tsx) พาไปหน้าที่ตั้งใจจะไปเอง
  *   - ถูกให้ออกจากระบบกลางคัน → แถบ "หมดเวลาการใช้งาน" บนการ์ด (การตัดสินใจขั้น 1.4)
+ *     ซ่อนทันทีที่กดเข้าสู่ระบบใหม่ (ไม่ให้ซ้อนกับข้อความ error ของการลองครั้งใหม่)
  */
-import { useState } from 'react'
+import { useRef, useState, type FormEvent } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { ApiError } from '../api/client'
@@ -46,6 +47,11 @@ export default function LoginPage() {
   const { login, sessionExpired } = useAuth()
   // ข้อความ error จาก backend (รหัสผิด / ถูกระงับ / ติดต่อไม่ได้) — ไม่มี = ยังไม่มีปัญหา
   const [serverError, setServerError] = useState<string>()
+  // กดเข้าสู่ระบบไปแล้วอย่างน้อย 1 ครั้ง → ซ่อนแถบ "หมดเวลาการใช้งาน" (เป็นเรื่องของรอบก่อน)
+  const [attempted, setAttempted] = useState(false)
+  // กำลังส่งอยู่ไหม — เก็บใน ref (เปลี่ยนทันที ไม่ต้องรอหน้าจอวาดใหม่) กันกดซ้ำเร็ว ๆ ส่งหลายครั้ง
+  // (ปุ่มถูกปิดหลังหน้าจอวาดใหม่ ถ้ากด/กด Enter เร็วกว่านั้น คำขอซ้ำจะหลุดไปได้)
+  const submittingRef = useRef(false)
   const {
     register,
     handleSubmit,
@@ -54,12 +60,28 @@ export default function LoginPage() {
 
   /** ส่งฟอร์ม (เรียกเมื่อกรอกครบทั้ง 2 ช่องแล้วเท่านั้น) */
   async function onSubmit({ identifier, password }: LoginForm) {
+    setAttempted(true)
     setServerError(undefined)
     try {
       await login(identifier.trim(), password)
     } catch (caught) {
       // แสดงข้อความจากรหัส error เท่านั้น — ห้ามแสดง detail ของ backend
       setServerError(errorMessage(caught instanceof ApiError ? caught.code : 'unknown'))
+    }
+  }
+
+  /**
+   * ตัวรับการส่งฟอร์ม: กันส่งซ้ำก่อน แล้วให้ React Hook Form ตรวจช่องว่างและเรียก onSubmit
+   * (เรียก handleSubmit ในตัวรับ event ไม่ใช่ตอนวาดหน้าจอ — ตามกฎของ React เรื่องการใช้ ref)
+   */
+  async function handleFormSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (submittingRef.current) return
+    submittingRef.current = true
+    try {
+      await handleSubmit(onSubmit)(event)
+    } finally {
+      submittingRef.current = false
     }
   }
 
@@ -126,7 +148,7 @@ export default function LoginPage() {
           <form
             noValidate
             aria-labelledby="login-title"
-            onSubmit={handleSubmit(onSubmit)}
+            onSubmit={handleFormSubmit}
             className="flex flex-col gap-[18px] lg:gap-5"
           >
             <div>
@@ -143,7 +165,7 @@ export default function LoginPage() {
             </div>
 
             {/* ถูกให้ออกจากระบบกลางคัน */}
-            {sessionExpired && (
+            {sessionExpired && !attempted && (
               <p
                 role="status"
                 className="m-0 rounded-control bg-warn-soft px-3.5 py-2.5 text-[14.5px] leading-[1.55] text-warn"
