@@ -187,8 +187,10 @@ uv run python manage.py seed_dev_users
 cd frontend
 pnpm dev
 ```
-- เปิดเบราว์เซอร์ไปที่ http://localhost:5180
-- ตอนนี้เป็น**หน้าทดสอบชั่วคราว** แสดงสถานะการเชื่อมต่อ:
+- เปิดเบราว์เซอร์ไปที่ http://localhost:5180 → จะพาไปหน้า**เข้าสู่ระบบ** (ตอนนี้เป็นหน้าแบบเรียบชั่วคราว — หน้าตาจริงตาม wireframe มาในขั้น 1.5)
+  - เข้าสู่ระบบด้วยบัญชีทดลอง (หัวข้อ 3.2 "บัญชีทดลอง") — ใส่อีเมล หรือรหัส เช่น `690000001`
+  - ปิดแท็บแล้วเปิดใหม่ / กดรีเฟรช → ยังอยู่ในระบบ (ภายใน 7 วัน) ; เปิดหลายแท็บได้ ; ออกจากระบบแท็บหนึ่ง → ทุกแท็บออก
+- **ตรวจการเชื่อมต่อ:** http://localhost:5180/dev/health (เฉพาะโหมดพัฒนา) แสดงสถานะ:
   - 🟢 **ระบบพร้อมใช้งาน** + `{"status":"ok","database":"ok"}` = frontend ↔ backend ↔ ฐานข้อมูล ต่อกันครบ
   - 🔴 **ติดต่อเซิร์ฟเวอร์ไม่ได้** = ติดต่อ backend ไม่ได้ → เปิด backend ตามหัวข้อ 3.2
   - 🔴 **ระบบทำงาน แต่ฐานข้อมูลยังไม่พร้อม** = backend ทำงาน แต่ฐานข้อมูลยังไม่เปิด → หัวข้อ 3.1
@@ -316,6 +318,7 @@ repo: https://github.com/AtipatSuttatham/Mangosteen_Campus_204491
 | backend / `/admin/` ขึ้น `relation "accounts_user" does not exist` (หรือตารางอื่น) | ยังไม่ได้สร้างตารางในฐานข้อมูล | สั่ง `uv run python manage.py migrate` ในโฟลเดอร์ `backend` (หัวข้อ 3.2) |
 | ลืมรหัสผ่านบัญชีทดลอง | รหัสแสดงบนหน้าจอครั้งเดียวตอนสร้าง | `uv run python manage.py seed_dev_users --reset-passwords` (หัวข้อ 3.2) |
 | `uv add` / `uv sync` ขึ้น `failed to hardlink file` ... `incompatible hardlinks (os error 396)` แล้ว backend ขึ้น `No module named ...` | uv สร้าง link ไปที่ cache ไม่ได้ (เกิดกับโฟลเดอร์บางชนิดบน Windows) แพ็กเกจจึงติดตั้งไม่ครบ | สั่งใหม่โดยบอกให้คัดลอกไฟล์แทน: PowerShell `$env:UV_LINK_MODE='copy'; uv sync --reinstall` (ในโฟลเดอร์ `backend`) แล้วเปิด backend ใหม่ |
+| login แล้วขึ้น "ระบบขัดข้อง" หรือ "ติดต่อเซิร์ฟเวอร์ไม่ได้" (หรือเคยเข้าสู่ระบบไว้แล้วแต่ถูกพาไปหน้าเข้าสู่ระบบ) | backend ไม่ได้เปิด — หน้าเว็บตรวจบัตรกับ backend ไม่ได้ | เปิด backend ตามหัวข้อ 3.2 แล้วรีเฟรช ; ตรวจได้ที่ http://localhost:5180/dev/health |
 | `uv` บอกว่าหา Python 3.13 ไม่เจอ | ยังไม่ได้ติดตั้ง | สั่ง `uv python install 3.13` |
 | `pnpm dev` ขึ้น `Port 5180 is already in use` | มีโปรแกรมอื่น (หรือ frontend ที่เปิดค้างไว้อีกหน้าต่าง) ใช้พอร์ต 5180 | ปิดหน้าต่างที่เปิดค้าง หรือตรวจด้วย `netstat -ano \| findstr :5180` |
 | หน้า frontend ขึ้นวงกลมสีแดงตลอด | backend ไม่ได้เปิด หรือเปิดคนละพอร์ต | เปิด backend ด้วย `runserver 8008` ตามหัวข้อ 3.2 |

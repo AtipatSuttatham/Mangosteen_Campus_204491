@@ -1,6 +1,7 @@
 /**
- * หน้าทดสอบชั่วคราว (ขั้น 0.2–0.6) — พิสูจน์ว่า frontend เรียก backend ได้
- * จะถูกแทนที่ด้วยหน้าจอจริงของระบบในก้อน 1
+ * หน้าทดสอบสุขภาพระบบ /dev/health (เฉพาะโหมดพัฒนา — ไม่อยู่ในไฟล์ที่ deploy)
+ * ใช้ตรวจว่า frontend เรียก backend ได้ และฐานข้อมูลพร้อม (เดิมเป็นหน้าแรกในขั้น 0.2–0.6 ;
+ * ย้ายมาที่นี่ในขั้น 1.4 ตามที่ผู้ใช้เลือก)
  *
  * แสดง (ใช้คอมโพเนนต์และสีของธีมจริง):
  *   - ตราสัญลักษณ์ + ชื่อระบบ
@@ -9,8 +10,8 @@
  */
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
-import { fetchHealth, type HealthResult } from './api/health'
-import { Card, Logo, StatusBadge, type StatusTone } from './components/ui'
+import { fetchHealth, type HealthResult } from '../api/health'
+import { Card, Logo, StatusBadge, type StatusTone } from '../components/ui'
 
 /** สถานะของหน้าจอ: ยังรอผล หรือได้ผลแล้ว */
 type ViewState = { kind: 'loading' } | ({ kind: 'done' } & HealthResult)
@@ -43,7 +44,7 @@ const STATUS_TONE: Record<DisplayStatus, StatusTone> = {
   unreachable: 'bad',
 }
 
-function App() {
+export default function HealthPage() {
   const { t } = useTranslation()
   const [state, setState] = useState<ViewState>({ kind: 'loading' })
 
@@ -80,4 +81,3 @@ function App() {
   )
 }
 
-export default App
