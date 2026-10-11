@@ -90,7 +90,10 @@ raise ApiError("quiz_time_over", status_code=409)
 
 | `code` | HTTP | เกิดเมื่อ | เพิ่มในก้อน |
 |---|---|---|---|
-| (ยังไม่มี — เพิ่มตอนทำฟีเจอร์) | | | |
+| `invalid_credentials` | 400 | เข้าสู่ระบบ: ไม่พบบัญชี หรือรหัสผ่านผิด (ข้อความรวม — ไม่บอกว่าผิดช่องไหน) | 1 |
+| `account_disabled` | 403 | เข้าสู่ระบบ: รหัสผ่านถูก แต่บัญชีถูกระงับ (`is_active=False`) — บอกเฉพาะเมื่อรหัสผ่านถูก | 1 |
+
+> token ใช้ไม่ได้ทุกแบบ (หมดอายุ / ลายเซ็นผิด / ถูกยกเลิก / บัญชีถูกระงับระหว่างใช้งาน) ตอบ `authentication_failed` (401) รหัสเดียว — รหัสย่อยของ Simple JWT (`token_not_valid`, `user_inactive` ฯลฯ) ถูกรวมใน `api_exception_handler`
 
 ## 4. ฝั่ง frontend: เรียก API และแสดง error
 
@@ -119,3 +122,39 @@ try {
 - ค่าเริ่มต้น = ไม่อนุญาตโดเมนใดเลย ; อนุญาตส่ง cookie (`CORS_ALLOW_CREDENTIALS`) ; ใช้กับที่อยู่ใต้ `/api/` เท่านั้น
 - แนะนำให้ deploy frontend และ backend **โดเมนเดียวกัน** ถ้าทำได้ (cookie ของ refresh token ทำงานง่ายกว่า)
 - **แผน deploy ที่เลือก (เบื้องต้น) ใช้โดเมนเดียวกัน** — Render service เดียว ที่ Django ส่งหน้าเว็บเอง (หรือ VM ที่มี Caddy ถ้าเปลี่ยนไปใช้ Azure) → **ไม่ต้องตั้ง `CORS_ALLOWED_ORIGINS`** ; การตั้งค่า CORS ข้างบนเก็บไว้เผื่อเปลี่ยนไปแบบแยกโดเมน (ดู [`CLAUDE.md`](../CLAUDE.md) หัวข้อ "การตัดสินใจเรื่อง deploy")
+
+## 6. การเข้าสู่ระบบ (ก้อน 1 — UC-01)
+
+### 6.1 token 2 ชนิด
+
+| | access token | refresh token |
+|---|---|---|
+| อายุ | **15 นาที** | **7 วัน** |
+| อยู่ที่ไหน | JSON ของคำตอบ → หน้าเว็บถือไว้**ในหน่วยความจำ** (หายเมื่อปิดแท็บ) | **httpOnly cookie** ชื่อ `refresh_token` (JavaScript อ่านไม่ได้) |
+| ใช้ทำอะไร | แนบทุกคำขอ: header `Authorization: Bearer <access>` | แลก access token ใบใหม่ที่ `refresh/` |
+| ข้อมูลข้างใน | `user_id`, `role` | `user_id`, `role` |
+
+cookie ตั้งค่า: `HttpOnly` ; `Path=/api/v1/auth/` (ส่งเฉพาะที่อยู่ของการยืนยันตัวตน) ; `SameSite=Strict` (เว็บอื่นส่งมาไม่ได้ — ใช้ได้เพราะ frontend/backend โดเมนเดียวกัน) ; `Secure` เมื่อ `DEBUG=False` ; อายุ 7 วัน
+
+**ทุก API ต้องเข้าสู่ระบบเป็นค่าเริ่มต้น** (`IsAuthenticated`) — ที่อยู่ที่เปิดให้ทุกคนต้องระบุ `AllowAny` เอง (ตอนนี้: `health/`, `auth/login/`, `auth/refresh/`, `auth/logout/`)
+
+### 6.2 ที่อยู่
+
+| ที่อยู่ | ส่ง | สำเร็จ | ไม่สำเร็จ |
+|---|---|---|---|
+| `POST /api/v1/auth/login/` | `{"identifier": "...", "password": "..."}` — `identifier` มี `@` = อีเมล (ไม่สนตัวพิมพ์) ; ไม่มี = รหัสนักศึกษา/พนักงาน | 200 `{access, user}` + ตั้ง cookie | 400 `validation_error` (ไม่กรอก) / 400 `invalid_credentials` / 403 `account_disabled` |
+| `POST /api/v1/auth/refresh/` | (ไม่มี body — ใช้ cookie) | 200 `{access, user}` + cookie **ใบใหม่** (ใบเก่าขึ้นบัญชีดำ — ใช้ได้ครั้งเดียว) | 401 `authentication_failed` + ลบ cookie (ไม่มี cookie / หมดอายุ / ถูกยกเลิก / บัญชีถูกระงับ) |
+| `POST /api/v1/auth/logout/` | (ไม่มี body — ใช้ cookie) | 204 + ลบ cookie + refresh token ขึ้นบัญชีดำ | — (สำเร็จเสมอ) |
+| `GET /api/v1/auth/me/` | header `Authorization: Bearer <access>` | 200 `user` | 401 `not_authenticated` / `authentication_failed` |
+
+`user` = `{id, email, student_or_staff_id, role, first_name, last_name, avatar_url}` (`avatar_url` = ลิงก์รูป หรือ `null`)
+
+### 6.3 ลำดับการทำงานฝั่ง frontend (ทำในขั้น 1.4)
+
+1. เปิดหน้าเว็บ → เรียก `refresh/` ทันที → สำเร็จ = ยังอยู่ในระบบ ; 401 = ไปหน้าเข้าสู่ระบบ
+2. เรียก API ได้ 401 → เรียก `refresh/` **ครั้งเดียว** (คำขอที่ค้างพร้อมกันรอผลเดียวกัน) แล้วลองคำขอเดิมซ้ำ ; ยัง 401 = ไปหน้าเข้าสู่ระบบ
+3. บัญชีถูกระงับระหว่างใช้งาน → คำขอถัดไปได้ 401 (ระบบตรวจ `is_active` ทุกคำขอ) → `refresh/` ก็ 401 → ไปหน้าเข้าสู่ระบบ
+
+### 6.4 งานดูแลระบบ
+
+ตาราง token ที่หมดอายุ (`token_blacklist`) สะสมเรื่อย ๆ → ล้างด้วย `uv run python manage.py flushexpiredtokens` **ตอน deploy / ตอนเปิดเครื่อง** (ไม่ใช้งานตั้งเวลา — ข้อควรระวังข้อ 1 ใน `CLAUDE.md`)
