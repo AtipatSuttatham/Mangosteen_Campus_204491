@@ -99,8 +99,10 @@ export function ProfileInfoForm() {
         {t('profile.infoTitle')}
       </h2>
 
-      {/* ชื่อ-นามสกุลคู่กัน (กว้างอย่างน้อยช่องละ 150px ตาม canvas — จอแคบมากเรียงลงเอง) */}
-      <div className="grid grid-cols-[repeat(auto-fit,minmax(150px,1fr))] gap-4">
+      {/* ชื่อ-นามสกุลคู่กัน — จอแคบมากเรียงลงเอง
+          ช่องกว้างอย่างน้อย 140px (canvas ใช้ 150px แต่โครงหน้าจอมือถือเว้นขอบ 20px มากกว่า board
+          ข้อมูลส่วนตัว 4px ต่อข้าง → ที่มือถือ 390px ต้อง 140px ถึงจะคู่กันได้ตาม wireframe) */}
+      <div className="grid grid-cols-[repeat(auto-fit,minmax(140px,1fr))] gap-4">
         <TextField
           label={t('profile.firstName')}
           autoComplete="given-name"
