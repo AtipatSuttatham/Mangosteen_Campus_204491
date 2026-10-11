@@ -75,12 +75,23 @@ Mangosteen_Campus_204491/
 │   │   └── favicon.svg       ไอคอนบนแท็บเบราว์เซอร์: ตรากลีบเลี้ยงมังคุด (รูปทรงเดียวกับ Logo.tsx)
 │   └── src/                  โค้ดของแอป
 │       ├── main.tsx          จุดเริ่มต้น: เปิดระบบข้อความ แล้ววาด <Root /> ลงในหน้า HTML
-│       ├── Root.tsx          เลือกหน้าตามที่อยู่ (ชั่วคราว จนมี router ในก้อน 1): /dev/components → หน้ารวมตัวอย่าง, อื่น ๆ → App
+│       ├── Root.tsx          โครงนอกสุด: QueryClientProvider → BrowserRouter → AuthProvider → AppRoutes
+│       ├── router.tsx        แผนที่ของหน้าทั้งหมด (/login, /, /profile, /dev/...) + ยามหน้าประตู ; ที่อยู่อื่น → หน้าแรก
 │       ├── index.css         CSS หลัก: โหลด Tailwind + ธีมของระบบ (@theme: สี 20 ค่า, ฟอนต์, มุมโค้ง — ตรงกับ canvas)
-│       ├── App.tsx           หน้าทดสอบชั่วคราว: โลโก้ + ป้ายสถานะภาษาไทย + JSON จาก /api/health/ (ใช้ธีมจริง)
-│       ├── App.test.tsx      test ของหน้าทดสอบ (กำลังตรวจ / ปกติ / ฐานข้อมูลไม่พร้อม / ติดต่อไม่ได้ / ไม่ใช่ JSON)
+│       ├── auth/             ระบบเข้าสู่ระบบฝั่งหน้าเว็บ (docs/api.md §6.3)
+│       │   ├── session.ts    ที่เก็บ access token (ในหน่วยความจำ) + ตัวแลกบัตรครั้งเดียวต่อรอบ (กันหลายแท็บด้วย Web Locks)
+│       │   ├── AuthContext.ts  ข้อมูลกลาง (สถานะ / ผู้ใช้ / login / logout) + hook useAuth()
+│       │   ├── AuthProvider.tsx  "สมอง": แลกบัตรตอนเปิดเว็บ, ถูกให้ออกกลางคัน, ออกจากระบบทุกแท็บ (BroadcastChannel)
+│       │   ├── guards.tsx    ยามหน้าประตู: RequireAuth (ต้องเข้าสู่ระบบ / ตามบทบาท), RedirectIfAuthed (หน้า login)
+│       │   ├── session.test.ts     test ตัวแลกบัตร + การแนบบัตร/แลกบัตรอัตโนมัติใน apiFetch
+│       │   └── auth-flow.test.tsx  test ครบเส้นทาง: เปิดเว็บ, login แล้วกลับหน้าเดิม, ถูกให้ออก, หลายแท็บ, บทบาท
+│       ├── pages/            หน้าจอของระบบ (ตอนนี้เป็นแบบชั่วคราว — หน้าตาจริงตาม wireframe มาในขั้น 1.5/1.6/1.8)
+│       │   ├── LoginPage.tsx     /login เข้าสู่ระบบ (แสดง "หมดเวลาการใช้งาน" เมื่อถูกให้ออก)
+│       │   ├── HomePage.tsx      / หน้าแรกหลังเข้าสู่ระบบ
+│       │   └── ProfilePage.tsx   /profile ข้อมูลส่วนตัว (ดึงจาก GET /auth/me/ ด้วย TanStack Query)
 │       ├── api/              การเรียก backend
-│       │   ├── client.ts     apiFetch(): ตัวเรียก API กลาง (/api/v1/...) โยน ApiError รูปแบบเดียวกันทุกกรณี
+│       │   ├── client.ts     apiFetch(): ตัวเรียก API กลาง (/api/v1/...) แนบบัตร + แลกบัตรเมื่อได้ 401 ; โยน ApiError รูปแบบเดียวกันทุกกรณี
+│       │   ├── auth.ts       ชนิดข้อมูล User/Role + login() / logout() / fetchMe()
 │       │   ├── client.test.ts  test ของ apiFetch (สำเร็จ / error ทุกแบบ / ติดต่อไม่ได้ / ไม่ใช่ JSON)
 │       │   ├── errors.ts     errorMessage() / fieldErrorMessage(): แปลงรหัส error เป็นข้อความไทยจาก th.ts
 │       │   ├── errors.test.ts  test ของการแปลงรหัส error (รู้จัก / ไม่รู้จัก → ข้อความสำรอง)
@@ -100,8 +111,10 @@ Mangosteen_Campus_204491/
 │       │       ├── StatusBadge.tsx ป้ายสถานะวงรี: warn / ok / bad / mute
 │       │       ├── Logo.tsx        ตรากลีบเลี้ยงมังคุด (+ ชื่อระบบ) — รูปทรงตาม board BrandLogo
 │       │       └── ui.test.tsx     test ของคอมโพเนนต์ทั้ง 5 (พฤติกรรม + การเข้าถึง)
-│       ├── dev/
-│       │   └── ComponentGallery.tsx  หน้ารวมตัวอย่าง /dev/components (เฉพาะโหมดพัฒนา ไม่อยู่ในไฟล์ที่ deploy)
+│       ├── dev/              หน้าสำหรับนักพัฒนา (เฉพาะโหมดพัฒนา ไม่อยู่ในไฟล์ที่ deploy)
+│       │   ├── ComponentGallery.tsx  /dev/components หน้ารวมตัวอย่างคอมโพเนนต์
+│       │   ├── HealthPage.tsx        /dev/health ทดสอบสุขภาพระบบ: ป้ายสถานะ + JSON จาก /api/health/ (เดิมคือ App.tsx)
+│       │   └── HealthPage.test.tsx   test ของหน้าทดสอบ (กำลังตรวจ / ปกติ / ฐานข้อมูลไม่พร้อม / ติดต่อไม่ได้ / ไม่ใช่ JSON)
 │       ├── lib/              ฟังก์ชันช่วยที่ใช้ร่วมกันทั้งแอป
 │       │   ├── datetime.ts   formatDateTime(): แสดงวันที่แบบ "25 ก.ค. 2569 23:59" (เวลาไทยเสมอ)
 │       │   └── datetime.test.ts  test ของการแสดงวันที่ (พ.ศ., ข้ามวัน, ข้ามปี, เติม 0)
