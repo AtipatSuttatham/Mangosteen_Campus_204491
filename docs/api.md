@@ -176,6 +176,9 @@ cookie ตั้งค่า: `HttpOnly` ; `Path=/api/v1/auth/` (ส่งเฉ
 3. บัญชีถูกระงับระหว่างใช้งาน → คำขอถัดไปได้ 401 (ระบบตรวจ `is_active` ทุกคำขอ) → `refresh/` ก็ 401 → ไปหน้าเข้าสู่ระบบ
 4. หลายแท็บ: การแลกบัตรทำทีละแท็บด้วย Web Locks API (refresh token ใช้ได้ครั้งเดียว) ; ออกจากระบบแท็บหนึ่ง → แท็บอื่นออกทันทีผ่าน BroadcastChannel
 5. `refresh/` ได้ 5xx หรือติดต่อไม่ได้ ≠ บัตรหมดอายุ → **ไม่**ล้างการเข้าสู่ระบบ (แสดง error ตามปกติ)
+6. แก้ชื่อ/อีเมล/รูป สำเร็จ → `updateUser(user)` ใช้ข้อมูลชุดใหม่ทั่วหน้าจอ + ส่ง `user-updated` ให้แท็บอื่นผ่าน BroadcastChannel (ขั้น 1.8)
+7. เปลี่ยนรหัสผ่านสำเร็จ → `acceptSession({access, user})` ใช้บัตรชุดใหม่ ; แท็บอื่นของเบราว์เซอร์เดียวกันได้ 401 ในคำขอถัดไป → แลกบัตรด้วย cookie ใบใหม่ได้เอง (ไม่หลุด) ; อุปกรณ์อื่นหลุดทันที
+8. อัปโหลดรูป: `apiFetch()` รับ `FormData` (ไม่ตั้ง `Content-Type` เอง — เบราว์เซอร์ใส่เส้นคั่น multipart ให้)
 
 ทำแล้วในขั้น 1.4: `frontend/src/auth/` (session.ts, AuthProvider.tsx, guards.tsx) + `apiFetch()` ใน `frontend/src/api/client.ts`
 

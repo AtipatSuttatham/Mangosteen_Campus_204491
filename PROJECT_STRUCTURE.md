@@ -85,8 +85,8 @@ Mangosteen_Campus_204491/
 │       ├── index.css         CSS หลัก: โหลด Tailwind + ธีมของระบบ (@theme: สี 20 ค่า, ฟอนต์, มุมโค้ง, ภาพเคลื่อนไหวเมนูลิ้นชัก — ตรงกับ canvas)
 │       ├── auth/             ระบบเข้าสู่ระบบฝั่งหน้าเว็บ (docs/api.md §6.3)
 │       │   ├── session.ts    ที่เก็บ access token (ในหน่วยความจำ) + ตัวแลกบัตรครั้งเดียวต่อรอบ (กันหลายแท็บด้วย Web Locks)
-│       │   ├── AuthContext.ts  ข้อมูลกลาง (สถานะ / ผู้ใช้ / login / logout) + hook useAuth()
-│       │   ├── AuthProvider.tsx  "สมอง": แลกบัตรตอนเปิดเว็บ, ถูกให้ออกกลางคัน, ออกจากระบบทุกแท็บ (BroadcastChannel)
+│       │   ├── AuthContext.ts  ข้อมูลกลาง (สถานะ / ผู้ใช้ / login / logout / updateUser / acceptSession) + hook useAuth()
+│       │   ├── AuthProvider.tsx  "สมอง": แลกบัตรตอนเปิดเว็บ, ถูกให้ออกกลางคัน, ออกจากระบบทุกแท็บ + ข้อมูลผู้ใช้เปลี่ยนตามทุกแท็บ (BroadcastChannel)
 │       │   ├── guards.tsx    ยามหน้าประตู: RequireAuth (ต้องเข้าสู่ระบบ / ตามบทบาท), RedirectIfAuthed (หน้า login)
 │       │   ├── session.test.ts     test ตัวแลกบัตร + การแนบบัตร/แลกบัตรอัตโนมัติใน apiFetch
 │       │   └── auth-flow.test.tsx  test ครบเส้นทาง: เปิดเว็บ, login แล้วกลับหน้าเดิม, ถูกให้ออก, หลายแท็บ, บทบาท
@@ -95,12 +95,19 @@ Mangosteen_Campus_204491/
 │       │   ├── LoginPage.test.tsx  test ฟอร์มเข้าสู่ระบบ (ไม่กรอก / กรอกผิด / ถูกระงับ / กันกดซ้ำ / หมดเวลา)
 │       │   ├── HomePage.tsx      / หน้าแรกชั่วคราว (ถึงก้อน 10) ตาม wireframe: ทักทาย, วันที่, รหัส, ข้อความ "ยังไม่มี…" ตามบทบาท
 │       │   ├── HomePage.test.tsx  test หน้าแรกทั้ง 3 บทบาท (ป้ายรหัส / ไม่มีรหัส / ข้อความตามบทบาท)
-│       │   └── ProfilePage.tsx   /profile ข้อมูลส่วนตัว — ยังชั่วคราว (ดึงจาก GET /auth/me/) ; หน้าจริงขั้น 1.8
+│       │   └── profile/          /profile ข้อมูลส่วนตัว (UC-02 — ขั้น 1.8) ตาม board "ข้อมูลส่วนตัว" จอใหญ่ + มือถือ
+│       │       ├── ProfilePage.tsx      ประกอบหน้า: หัวข้อ + แถบบัตร + การ์ด 2 คอลัมน์ (มือถือเรียงลง) + error ของรูป
+│       │       ├── ProfileHeader.tsx    แถบบัตรม่วง: รูปแบบ ring + ปุ่มกล้อง → เมนู เลือกรูปใหม่ / ลบรูป (ใช้แป้นพิมพ์ได้)
+│       │       ├── ProfileInfoForm.tsx  ฟอร์มชื่อ/นามสกุล/อีเมล → ป้าย "บันทึกแล้ว" ; ชื่อทั่วหน้าจอเปลี่ยนตาม
+│       │       ├── PasswordForm.tsx     ฟอร์มเปลี่ยนรหัสผ่าน 3 ช่อง (ตรวจไม่ตรงกันในหน้าเว็บ) → ใช้บัตรชุดใหม่
+│       │       ├── avatarFile.ts        ตรวจชนิด/ขนาดรูปในหน้าเว็บก่อนอัปโหลด (JPG/PNG/WebP ≤ 2 MB)
+│       │       ├── icons.tsx            ไอคอนกล้อง / อัปโหลด / ถังขยะ / เครื่องหมายถูก (จาก canvas)
+│       │       └── ProfilePage.test.tsx test ทั้งหน้า (เมนูรูป, อัปโหลด/ลบ, ฟอร์มทั้ง 2 ชุดทุกกรณี)
 │       ├── api/              การเรียก backend
-│       │   ├── client.ts     apiFetch(): ตัวเรียก API กลาง (/api/v1/...) แนบบัตร + แลกบัตรเมื่อได้ 401 ; โยน ApiError รูปแบบเดียวกันทุกกรณี
-│       │   ├── auth.ts       ชนิดข้อมูล User/Role + login() / logout() / fetchMe()
+│       │   ├── client.ts     apiFetch(): ตัวเรียก API กลาง (/api/v1/...) แนบบัตร + แลกบัตรเมื่อได้ 401 ; ส่ง JSON หรือไฟล์ (FormData) ; โยน ApiError รูปแบบเดียวกันทุกกรณี
+│       │   ├── auth.ts       ชนิดข้อมูล User/Role + login() / logout() / fetchMe() / updateProfile() / changePassword() / uploadAvatar() / deleteAvatar()
 │       │   ├── client.test.ts  test ของ apiFetch (สำเร็จ / error ทุกแบบ / ติดต่อไม่ได้ / ไม่ใช่ JSON)
-│       │   ├── errors.ts     errorMessage() / fieldErrorMessage(): แปลงรหัส error เป็นข้อความไทยจาก th.ts
+│       │   ├── errors.ts     errorMessage() / fieldErrorMessage() / fieldErrorsMessage() (หลายรหัส): แปลงรหัส error เป็นข้อความไทยจาก th.ts
 │       │   ├── errors.test.ts  test ของการแปลงรหัส error (รู้จัก / ไม่รู้จัก → ข้อความสำรอง)
 │       │   └── health.ts     ฟังก์ชันเรียก GET /api/health/ (คืนผลเสมอ ไม่โยน error)
 │       ├── i18n/             ระบบข้อความบนหน้าจอ (i18next — ภาษาไทยภาษาเดียว)
@@ -121,8 +128,8 @@ Mangosteen_Campus_204491/
 │       │       ├── index.ts        รวม export ทุกชิ้น
 │       │       ├── Button.tsx      ปุ่ม: primary / secondary / text / danger-text
 │       │       ├── buttonStyles.ts class หน้าตาปุ่ม + buttonClassName() ให้ลิงก์หน้าตาเหมือนปุ่ม
-│       │       ├── Avatar.tsx      รูปประจำตัววงกลม (มีรูป → รูป ; ไม่มี → ตัวอักษรย่อ)
-│       │       ├── TextField.tsx   ช่องกรอก + ป้ายชื่อ + ข้อความ error (ขอบแดง, role=alert) ; invalid / ปุ่มในช่อง / รับ ref
+│       │       ├── Avatar.tsx      รูปประจำตัววงกลม (มีรูป → รูป ; ไม่มี → ตัวอักษรย่อ) ; แบบ plain / ring (แถบบัตรประจำตัว)
+│       │       ├── TextField.tsx   ช่องกรอก + ป้ายชื่อ + ข้อความ error (ขอบแดง, role=alert) ; invalid / ปุ่มในช่อง / คำแนะนำใต้ช่อง (hint) / รับ ref
 │       │       ├── PasswordField.tsx  ช่องรหัสผ่าน + ปุ่ม "แสดง"/"ซ่อน" (ตามหน้าเข้าสู่ระบบใน canvas)
 │       │       ├── Card.tsx        การ์ดพื้นขาว ขอบ line มุม 14px
 │       │       ├── StatusBadge.tsx ป้ายสถานะวงรี: warn / ok / bad / mute
