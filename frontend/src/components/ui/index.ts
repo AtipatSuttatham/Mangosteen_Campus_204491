@@ -6,5 +6,6 @@
 export { Button, type ButtonVariant } from './Button'
 export { Card } from './Card'
 export { Logo } from './Logo'
+export { PasswordField } from './PasswordField'
 export { StatusBadge, type StatusTone } from './StatusBadge'
 export { TextField } from './TextField'

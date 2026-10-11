@@ -8,7 +8,7 @@
  */
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Card, Logo, StatusBadge, TextField } from '../components/ui'
+import { Button, Card, Logo, PasswordField, StatusBadge, TextField } from '../components/ui'
 
 /** สีทั้งหมดของระบบ (ชื่อตรงกับ --color-* ใน index.css) */
 const COLOR_TOKENS = [
@@ -105,16 +105,17 @@ export default function ComponentGallery() {
         </div>
       </Section>
 
-      {/* ช่องกรอก: ปกติ และมี error (ข้อความเดียวกับหน้า "เข้าสู่ระบบ กรอกผิด") */}
+      {/* ช่องกรอก: แบบเดียวกับหน้า "เข้าสู่ระบบ (กรอกผิด)" — ช่องแรกขอบแดงอย่างเดียว (invalid),
+          ช่องรหัสผ่าน (PasswordField มีปุ่มแสดง/ซ่อน) มีข้อความ error ; ด้านล่างเป็นช่องปกติ */}
       <Section title={t('devGallery.fields')}>
         <Card className="flex max-w-[440px] flex-col gap-5 p-9">
-          <TextField label={t('devGallery.sampleIdLabel')} defaultValue="690000001" />
-          <TextField
+          <TextField label={t('devGallery.sampleIdLabel')} defaultValue="690000001" invalid />
+          <PasswordField
             label={t('devGallery.samplePasswordLabel')}
-            type="password"
             defaultValue="password12"
             error={t('devGallery.sampleLoginError')}
           />
+          <PasswordField label={t('devGallery.samplePasswordLabel')} />
           <Button className="w-full">{t('devGallery.sampleLogin')}</Button>
         </Card>
       </Section>
