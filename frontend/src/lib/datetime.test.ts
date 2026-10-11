@@ -1,8 +1,8 @@
 /**
- * test ของฟังก์ชันแสดงวันที่ formatDateTime
+ * test ของฟังก์ชันแสดงวันที่ formatDateTime และ formatLongDate
  */
 import { describe, expect, it } from 'vitest'
-import { formatDateTime } from './datetime'
+import { formatDateTime, formatLongDate } from './datetime'
 
 // 25 ก.ค. 2026 เวลา 16:59 UTC = 23:59 เวลาไทย (UTC+7)
 const SAMPLE_UTC = '2026-07-25T16:59:00Z'
@@ -27,5 +27,16 @@ describe('formatDateTime', () => {
 
   it('ข้ามปี: 31 ธ.ค. 2026 20:00 UTC = 1 ม.ค. 2570 03:00 เวลาไทย', () => {
     expect(formatDateTime('2026-12-31T20:00:00Z')).toBe('1 ม.ค. 2570 03:00')
+  })
+})
+
+describe('formatLongDate', () => {
+  it('แสดงชื่อวัน วันที่ ชื่อเดือนเต็ม และปี พ.ศ. ตามแบบใน wireframe', () => {
+    // 11 ต.ค. 2026 10:00 เวลาไทย
+    expect(formatLongDate('2026-10-11T03:00:00Z')).toBe('วันอาทิตย์ที่ 11 ตุลาคม 2569')
+  })
+
+  it('ยึดวันตามเวลาไทย: 17:30 UTC วันเสาร์ = 00:30 วันอาทิตย์ในไทย', () => {
+    expect(formatLongDate(new Date('2026-10-10T17:30:00Z'))).toBe('วันอาทิตย์ที่ 11 ตุลาคม 2569')
   })
 })
