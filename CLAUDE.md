@@ -63,7 +63,7 @@
 
 **ธีมและคอมโพเนนต์ในโค้ด (ทำแล้วในขั้น 0.6):**
 - ค่าสี/ฟอนต์/มุมโค้งทั้งหมดอยู่ใน `frontend/src/index.css` (`@theme`) — ตรวจแล้วตรงกับ canvas ทุกค่า ; **ห้ามใส่รหัสสี hex ลงในหน้าจอตรง ๆ** ให้ใช้ชื่อ เช่น `bg-brand`, `text-ink-muted`, `border-line`, `rounded-card`, `font-display`
-- คอมโพเนนต์พื้นฐานอยู่ใน `frontend/src/components/ui/` (import จาก `components/ui`): `Button` (primary / secondary / text / danger-text), `TextField` (ป้ายชื่อ + error), `Card`, `StatusBadge` (warn / ok / bad / mute), `Logo` — **หน้าจอใหม่ต้องใช้ชิ้นเหล่านี้ก่อน** ถ้าต้องการแบบใหม่ที่ canvas ไม่มี ให้เสนอผู้ใช้ก่อน
+- คอมโพเนนต์พื้นฐานอยู่ใน `frontend/src/components/ui/` (import จาก `components/ui`): `Button` (primary / secondary / text / danger-text), `TextField` (ป้ายชื่อ + error), `Card`, `StatusBadge` (warn / ok / bad / mute), `Logo`, `PasswordField` (ปุ่มแสดง/ซ่อน — ขั้น 1.5) ; ภาพประกอบใน `frontend/src/components/brand/`: `CalyxPattern` (ลายกลีบเลี้ยง), `MangosteenIllustration` (ภาพผ่ามังคุด) — **หน้าจอใหม่ต้องใช้ชิ้นเหล่านี้ก่อน** ถ้าต้องการแบบใหม่ที่ canvas ไม่มี ให้เสนอผู้ใช้ก่อน
 - หน้ารวมตัวอย่าง **http://localhost:5180/dev/components** (เฉพาะโหมดพัฒนา ไม่อยู่ในไฟล์ที่ deploy) — เพิ่มตัวอย่างทุกครั้งที่เพิ่ม/แก้คอมโพเนนต์พื้นฐาน
 
 ## บทบาทผู้ใช้ (รายงานตาราง 3.1)

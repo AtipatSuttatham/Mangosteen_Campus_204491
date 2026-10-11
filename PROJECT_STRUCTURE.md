@@ -86,7 +86,8 @@ Mangosteen_Campus_204491/
 │       │   ├── session.test.ts     test ตัวแลกบัตร + การแนบบัตร/แลกบัตรอัตโนมัติใน apiFetch
 │       │   └── auth-flow.test.tsx  test ครบเส้นทาง: เปิดเว็บ, login แล้วกลับหน้าเดิม, ถูกให้ออก, หลายแท็บ, บทบาท
 │       ├── pages/            หน้าจอของระบบ (ตอนนี้เป็นแบบชั่วคราว — หน้าตาจริงตาม wireframe มาในขั้น 1.5/1.6/1.8)
-│       │   ├── LoginPage.tsx     /login เข้าสู่ระบบ (แสดง "หมดเวลาการใช้งาน" เมื่อถูกให้ออก)
+│       │   ├── LoginPage.tsx     /login เข้าสู่ระบบตาม wireframe (จอใหญ่ภาพ 5.1 + มือถือ) — React Hook Form, กรอกผิดขอบแดง 2 ช่อง
+│       │   ├── LoginPage.test.tsx  test ฟอร์มเข้าสู่ระบบ (ไม่กรอก / กรอกผิด / ถูกระงับ / กันกดซ้ำ / หมดเวลา)
 │       │   ├── HomePage.tsx      / หน้าแรกหลังเข้าสู่ระบบ
 │       │   └── ProfilePage.tsx   /profile ข้อมูลส่วนตัว (ดึงจาก GET /auth/me/ ด้วย TanStack Query)
 │       ├── api/              การเรียก backend
@@ -106,11 +107,15 @@ Mangosteen_Campus_204491/
 │       │   └── ui/           คอมโพเนนต์พื้นฐาน (หน้าตาตาม canvas) — import จาก components/ui
 │       │       ├── index.ts        รวม export ทุกชิ้น
 │       │       ├── Button.tsx      ปุ่ม: primary / secondary / text / danger-text
-│       │       ├── TextField.tsx   ช่องกรอก + ป้ายชื่อ + ข้อความ error (ขอบแดง, role=alert)
+│       │       ├── TextField.tsx   ช่องกรอก + ป้ายชื่อ + ข้อความ error (ขอบแดง, role=alert) ; invalid / ปุ่มในช่อง / รับ ref
+│       │       ├── PasswordField.tsx  ช่องรหัสผ่าน + ปุ่ม "แสดง"/"ซ่อน" (ตามหน้าเข้าสู่ระบบใน canvas)
 │       │       ├── Card.tsx        การ์ดพื้นขาว ขอบ line มุม 14px
 │       │       ├── StatusBadge.tsx ป้ายสถานะวงรี: warn / ok / bad / mute
 │       │       ├── Logo.tsx        ตรากลีบเลี้ยงมังคุด (+ ชื่อระบบ) — รูปทรงตาม board BrandLogo
-│       │       └── ui.test.tsx     test ของคอมโพเนนต์ทั้ง 5 (พฤติกรรม + การเข้าถึง)
+│       │       └── ui.test.tsx     test ของคอมโพเนนต์พื้นฐานทั้งหมด (พฤติกรรม + การเข้าถึง)
+│       │   └── brand/        ภาพประกอบของแบรนด์ (คัดลอกรูปทรงจาก canvas — aria-hidden)
+│       │       ├── CalyxPattern.tsx          ลายกลีบเลี้ยงเส้นบาง สีตาม class (แผงม่วง / ลายจางพื้นหลัง)
+│       │       └── MangosteenIllustration.tsx  ภาพผ่ามังคุด (หน้าเข้าสู่ระบบจอใหญ่)
 │       ├── dev/              หน้าสำหรับนักพัฒนา (เฉพาะโหมดพัฒนา ไม่อยู่ในไฟล์ที่ deploy)
 │       │   ├── ComponentGallery.tsx  /dev/components หน้ารวมตัวอย่างคอมโพเนนต์
 │       │   ├── HealthPage.tsx        /dev/health ทดสอบสุขภาพระบบ: ป้ายสถานะ + JSON จาก /api/health/ (เดิมคือ App.tsx)
