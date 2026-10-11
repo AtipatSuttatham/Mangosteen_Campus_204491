@@ -1,11 +1,11 @@
 /**
- * test ของคอมโพเนนต์พื้นฐาน (Button / TextField / Card / StatusBadge / Logo)
+ * test ของคอมโพเนนต์พื้นฐาน (Button / TextField / PasswordField / Card / StatusBadge / Logo)
  * ตรวจพฤติกรรมและการเข้าถึง (โปรแกรมอ่านหน้าจอ / แป้นพิมพ์) — หน้าตาตรวจด้วยตาที่หน้า /dev/components
  */
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { Button, Card, Logo, StatusBadge, TextField } from './index'
+import { Button, Card, Logo, PasswordField, StatusBadge, TextField } from './index'
 
 describe('Button', () => {
   it('ค่าเริ่มต้นเป็นปุ่มแบบ primary และ type="button" (ไม่ส่งฟอร์มโดยไม่ตั้งใจ)', () => {
@@ -83,6 +83,61 @@ describe('TextField', () => {
     )
 
     expect(screen.getByLabelText('ชื่อ').id).not.toBe(screen.getByLabelText('นามสกุล').id)
+  })
+})
+
+describe('TextField — แบบ "กรอกผิด" หลายช่อง (ขั้น 1.5)', () => {
+  it('invalid → ขอบแดง + aria-invalid โดยไม่มีข้อความของตัวเอง ; ผูกกับข้อความ error ภายนอกได้', () => {
+    render(
+      <>
+        <TextField label="รหัส" invalid errorDescribedBy="shared-error" />
+        <p id="shared-error">รหัสหรือรหัสผ่านไม่ถูกต้อง</p>
+      </>,
+    )
+
+    const input = screen.getByLabelText('รหัส')
+    expect(input).toHaveAttribute('aria-invalid', 'true')
+    expect(input.className).toContain('border-danger')
+    expect(input).toHaveAccessibleDescription('รหัสหรือรหัสผ่านไม่ถูกต้อง')
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('ส่ง ref ได้ (ใช้กับ React Hook Form)', () => {
+    const ref = { current: null as HTMLInputElement | null }
+    render(<TextField label="อีเมล" ref={ref} />)
+
+    expect(ref.current).toBe(screen.getByLabelText('อีเมล'))
+  })
+})
+
+describe('PasswordField', () => {
+  it('ซ่อนรหัสเป็นค่าเริ่มต้น ; กด "แสดง" → เห็นรหัส ; กด "ซ่อน" → กลับเป็นจุด', async () => {
+    const user = userEvent.setup()
+    render(<PasswordField label="รหัสผ่าน" defaultValue="secret" />)
+    const input = screen.getByLabelText('รหัสผ่าน')
+
+    expect(input).toHaveAttribute('type', 'password')
+    await user.click(screen.getByRole('button', { name: 'แสดงรหัสผ่าน' }))
+    expect(input).toHaveAttribute('type', 'text')
+    expect(screen.getByRole('button', { name: 'ซ่อนรหัสผ่าน' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    )
+    await user.click(screen.getByRole('button', { name: 'ซ่อนรหัสผ่าน' }))
+    expect(input).toHaveAttribute('type', 'password')
+  })
+
+  it('ปุ่มแสดง/ซ่อนไม่ส่งฟอร์ม', async () => {
+    const user = userEvent.setup()
+    const onSubmit = vi.fn((event: { preventDefault: () => void }) => event.preventDefault())
+    render(
+      <form onSubmit={onSubmit}>
+        <PasswordField label="รหัสผ่าน" />
+      </form>,
+    )
+
+    await user.click(screen.getByRole('button', { name: 'แสดงรหัสผ่าน' }))
+    expect(onSubmit).not.toHaveBeenCalled()
   })
 })
 
