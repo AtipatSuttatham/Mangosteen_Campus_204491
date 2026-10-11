@@ -2,8 +2,9 @@
  * แผนที่ของหน้าทั้งหมด (React Router) — ที่อยู่ → หน้า + ยามหน้าประตู
  *
  *   /login            หน้าเข้าสู่ระบบ (เข้าสู่ระบบอยู่แล้ว → พาไปหน้าที่ตั้งใจจะไป)
- *   /                 หน้าแรก (ต้องเข้าสู่ระบบ — ทุกบทบาท)
- *   /profile          ข้อมูลส่วนตัว (ต้องเข้าสู่ระบบ — ทุกบทบาท ตาม UC-02)
+ *   ── หน้าที่ต้องเข้าสู่ระบบ: อยู่ในโครงหน้าจอ AppShell (sidebar / เมนูมือถือ) ตรวจการเข้าสู่ระบบที่โครงจุดเดียว
+ *   /                 หน้าแรก (ทุกบทบาท)
+ *   /profile          ข้อมูลส่วนตัว (ทุกบทบาท ตาม UC-02)
  *   /dev/components   ตัวอย่างคอมโพเนนต์ (เฉพาะโหมดพัฒนา)
  *   /dev/health       ทดสอบสุขภาพระบบ (เฉพาะโหมดพัฒนา)
  *   อื่น ๆ             ไม่มีหน้านี้ → พากลับหน้าแรก (หน้า "ไม่พบหน้านี้" ยังไม่มี wireframe)
@@ -11,6 +12,7 @@
 import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router'
 import { RedirectIfAuthed, RequireAuth } from './auth/guards'
+import AppShell from './components/layout/AppShell'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import ProfilePage from './pages/ProfilePage'
@@ -31,22 +33,17 @@ export function AppRoutes() {
           </RedirectIfAuthed>
         }
       />
+      {/* โครงหน้าจอหลัก: หน้าลูกแสดงตรง <Outlet /> ของ AppShell — เพิ่มหน้าใหม่ของก้อนถัดไปที่นี่ */}
       <Route
-        path="/"
         element={
           <RequireAuth>
-            <HomePage />
+            <AppShell />
           </RequireAuth>
         }
-      />
-      <Route
-        path="/profile"
-        element={
-          <RequireAuth>
-            <ProfilePage />
-          </RequireAuth>
-        }
-      />
+      >
+        <Route path="/" element={<HomePage />} />
+        <Route path="/profile" element={<ProfilePage />} />
+      </Route>
       {ComponentGallery && (
         <Route
           path="/dev/components"
