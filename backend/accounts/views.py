@@ -16,7 +16,12 @@ from rest_framework_simplejwt.tokens import RefreshToken
 
 from accounts.models import User, normalize_email
 from accounts.serializers import LoginSerializer, MeSerializer
-from accounts.tokens import delete_refresh_cookie, issue_refresh_token, set_refresh_cookie
+from accounts.tokens import (
+    claim_refresh_token,
+    delete_refresh_cookie,
+    issue_refresh_token,
+    set_refresh_cookie,
+)
 from common.exceptions import ApiError
 
 
@@ -123,8 +128,10 @@ class RefreshView(APIView):
             return _session_expired_response()
 
         user = User.objects.filter(pk=refresh.get("user_id")).first()
-        # ยกเลิกใบเดิมเสมอ — ใบละครั้งเดียว (ถ้ามีคนขโมยไปใช้ก่อน เจ้าของจะถูกบังคับ login ใหม่)
-        refresh.blacklist()
+        # "ใช้" ใบเดิม — ใบละครั้งเดียว แม้ยื่นพร้อมกันหลายคำขอ (ขั้น 1.4.1)
+        # ถ้ามีคำขออื่นใช้ไปก่อนแล้ว (หรือมีคนขโมยไปใช้ก่อน) → ไม่ออกบัตรใหม่
+        if not claim_refresh_token(refresh):
+            return _session_expired_response()
         if user is None or not user.is_active:
             # บัญชีถูกระงับระหว่างใช้งาน → ไม่ออก token ใหม่ (คำขอถัดไปถูกปฏิเสธทันที — UC-04)
             return _session_expired_response()

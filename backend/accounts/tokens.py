@@ -24,6 +24,20 @@ def issue_refresh_token(user: User) -> RefreshToken:
     return refresh
 
 
+def claim_refresh_token(refresh: RefreshToken) -> bool:
+    """
+    "ใช้" refresh token ใบนี้ — ใบละครั้งเดียว แม้ยื่นพร้อมกันหลายคำขอ (ขั้น 1.4.1)
+
+    ทำในจังหวะเดียว: บันทึกใบนี้ลงบัญชีดำ แล้วดูว่า "เราเป็นคนบันทึก" หรือมีคนบันทึกไปก่อนแล้ว
+    ตารางบัญชีดำมีกฎห้ามซ้ำ (1 บัตร = 1 แถว) → ฐานข้อมูลยอมให้บันทึกสำเร็จได้แค่คำขอเดียว
+    (แบบเดิม "ตรวจว่าใช้แล้วหรือยัง" แล้วค่อย "บันทึก" แยกจังหวะกัน คำขอที่มาพร้อมกันจึงผ่านได้หลายคำขอ)
+
+    @returns True = คำขอนี้ได้สิทธิ์ใช้บัตร (ออกบัตรใหม่ได้) ; False = มีคำขออื่นใช้ไปก่อนแล้ว
+    """
+    _, created = refresh.blacklist()
+    return created
+
+
 def set_refresh_cookie(response: Response, refresh: RefreshToken) -> None:
     """แนบ refresh token ไปกับคำตอบเป็น httpOnly cookie (ค่าตั้งอยู่ใน settings: REFRESH_COOKIE_*)"""
     response.set_cookie(

@@ -143,7 +143,7 @@ cookie ตั้งค่า: `HttpOnly` ; `Path=/api/v1/auth/` (ส่งเฉ
 | ที่อยู่ | ส่ง | สำเร็จ | ไม่สำเร็จ |
 |---|---|---|---|
 | `POST /api/v1/auth/login/` | `{"identifier": "...", "password": "..."}` — `identifier` มี `@` = อีเมล (ไม่สนตัวพิมพ์) ; ไม่มี = รหัสนักศึกษา/พนักงาน | 200 `{access, user}` + ตั้ง cookie | 400 `validation_error` (ไม่กรอก) / 400 `invalid_credentials` / 403 `account_disabled` |
-| `POST /api/v1/auth/refresh/` | (ไม่มี body — ใช้ cookie) | 200 `{access, user}` + cookie **ใบใหม่** (ใบเก่าขึ้นบัญชีดำ — ใช้ได้ครั้งเดียว) | 401 `authentication_failed` + ลบ cookie (ไม่มี cookie / หมดอายุ / ถูกยกเลิก / บัญชีถูกระงับ) |
+| `POST /api/v1/auth/refresh/` | (ไม่มี body — ใช้ cookie) | 200 `{access, user}` + cookie **ใบใหม่** (ใบเก่าขึ้นบัญชีดำ — ใช้ได้ครั้งเดียว **แม้ยื่นพร้อมกันหลายคำขอ: ผ่านแค่คำขอแรก** — ขั้น 1.4.1) | 401 `authentication_failed` + ลบ cookie (ไม่มี cookie / หมดอายุ / ถูกยกเลิก / บัญชีถูกระงับ) |
 | `POST /api/v1/auth/logout/` | (ไม่มี body — ใช้ cookie) | 204 + ลบ cookie + refresh token ขึ้นบัญชีดำ | — (สำเร็จเสมอ) |
 | `GET /api/v1/auth/me/` | header `Authorization: Bearer <access>` | 200 `user` | 401 `not_authenticated` / `authentication_failed` |
 

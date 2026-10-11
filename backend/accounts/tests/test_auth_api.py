@@ -317,3 +317,50 @@ def test_me_is_get_only(client: APIClient, student: User) -> None:
     client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
 
     assert client.patch(ME_URL, {}, format="json").status_code == 405
+
+
+# ---------------------------------------------------------------- แลกบัตรพร้อมกัน (ขั้น 1.4.1)
+
+
+@pytest.mark.django_db(transaction=True)
+def test_concurrent_refresh_with_same_token_succeeds_only_once() -> None:
+    """
+    ยื่น refresh token ใบเดียวกันพร้อมกันหลายคำขอ (คนละ thread = คนละการเชื่อมต่อฐานข้อมูล)
+    → ผ่านแค่ 1 คำขอ ที่เหลือ 401 — บัตรใช้ได้ครั้งเดียวจริงแม้ยื่นพร้อมกัน
+    (ก่อนแก้: ผ่านทุกคำขอ เพราะ "ตรวจว่าใช้แล้วหรือยัง" กับ "บันทึกว่าใช้แล้ว" แยกจังหวะกัน)
+    """
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    from django.db import connection
+
+    User.objects.create_user(
+        email="race@example.com", password=PASSWORD, role=User.Role.STUDENT, first_name="ก"
+    )
+    raw_cookie = login(APIClient(), "race@example.com").cookies[COOKIE].value
+    workers = 6
+    # ให้ทุก thread รอกันแล้วยิงพร้อมกันจริง ๆ
+    start_together = Barrier(workers)
+
+    def refresh_once(_: int) -> tuple[int, str]:
+        client = APIClient()
+        client.cookies[COOKIE] = raw_cookie
+        start_together.wait()
+        try:
+            response = client.post(REFRESH_URL)
+            new_cookie = response.cookies[COOKIE].value if COOKIE in response.cookies else ""
+            return response.status_code, new_cookie
+        finally:
+            # แต่ละ thread เปิดการเชื่อมต่อฐานข้อมูลของตัวเอง — ปิดให้เรียบร้อย
+            connection.close()
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        results = list(pool.map(refresh_once, range(workers)))
+
+    statuses = sorted(status for status, _ in results)
+    assert statuses == [200] + [401] * (workers - 1)
+    # บัตรใบใหม่ของคำขอที่ผ่าน ใช้แลกต่อได้ตามปกติ
+    winner_cookie = next(cookie for status, cookie in results if status == 200)
+    client = APIClient()
+    client.cookies[COOKIE] = winner_cookie
+    assert client.post(REFRESH_URL).status_code == 200
