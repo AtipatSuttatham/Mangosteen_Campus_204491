@@ -311,12 +311,14 @@ def test_me_rejected_immediately_after_suspension(client: APIClient, student: Us
     assert response.json()["code"] == "authentication_failed"
 
 
-def test_me_is_get_only(client: APIClient, student: User) -> None:
-    """me/ ยังรับแค่ GET (แก้ข้อมูลส่วนตัวมาในขั้น 1.7)"""
+def test_me_accepts_only_get_and_patch(client: APIClient, student: User) -> None:
+    """me/ รับแค่ GET (ดู) และ PATCH (แก้บางช่อง — ขั้น 1.7) ; แทนที่ทั้งก้อน/สร้าง/ลบบัญชีไม่ได้"""
     access = login(client, "student@example.com").json()["access"]
     client.credentials(HTTP_AUTHORIZATION=f"Bearer {access}")
 
-    assert client.patch(ME_URL, {}, format="json").status_code == 405
+    assert client.put(ME_URL, {}, format="json").status_code == 405
+    assert client.post(ME_URL, {}, format="json").status_code == 405
+    assert client.delete(ME_URL).status_code == 405
 
 
 # ---------------------------------------------------------------- แลกบัตรพร้อมกัน (ขั้น 1.4.1)
