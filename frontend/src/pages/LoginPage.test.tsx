@@ -2,7 +2,7 @@
  * test ของหน้าเข้าสู่ระบบ (LoginPage) — พฤติกรรมของฟอร์มตาม board "เข้าสู่ระบบ" + "กรอกผิด"
  * ใช้ "สมอง" ปลอม (AuthContext) แทนของจริง เพื่อกำหนดผลของ login() ได้เองในแต่ละข้อ
  */
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../api/client'
@@ -113,6 +113,33 @@ describe('LoginPage', () => {
     const button = await screen.findByRole('button', { name: 'กำลังเข้าสู่ระบบ…' })
     expect(button).toBeDisabled()
     expect(login).toHaveBeenCalledTimes(1)
+  })
+
+  it('กดส่งหลายครั้งเร็วกว่าที่หน้าจอวาดใหม่ทัน → เรียก login() ครั้งเดียว', async () => {
+    const login = vi.fn(() => new Promise<void>(() => {}))
+    renderLogin(login)
+    const user = userEvent.setup()
+    await user.type(screen.getByLabelText(ID_LABEL), '690000001')
+    await user.type(screen.getByLabelText('รหัสผ่าน'), 'pw')
+    const form = screen.getByRole('button', { name: 'เข้าสู่ระบบ' }).closest('form')!
+
+    // ส่งฟอร์ม 3 ครั้งติดกันในจังหวะเดียว (เหมือนกด Enter ค้าง / ดับเบิลคลิกเร็วมาก)
+    fireEvent.submit(form)
+    fireEvent.submit(form)
+    fireEvent.submit(form)
+
+    await screen.findByRole('button', { name: 'กำลังเข้าสู่ระบบ…' })
+    expect(login).toHaveBeenCalledTimes(1)
+  })
+
+  it('แถบ "หมดเวลา" หายไปเมื่อกดเข้าสู่ระบบใหม่ (ไม่ซ้อนกับข้อความ error รอบใหม่)', async () => {
+    renderLogin(vi.fn().mockRejectedValue(new ApiError(400, 'invalid_credentials')), true)
+    expect(screen.getByRole('status')).toBeInTheDocument()
+
+    await fillAndSubmit('690000001', 'wrong')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent(WRONG)
+    expect(screen.queryByRole('status')).not.toBeInTheDocument()
   })
 
   it('ถูกให้ออกจากระบบกลางคัน → แถบ "หมดเวลาการใช้งาน"', () => {
