@@ -2,11 +2,13 @@
  * test การเข้าสู่ระบบแบบครบเส้นทาง: AuthProvider + ยามหน้าประตู + router + หน้าชั่วคราว
  * ไม่เรียก backend จริง: แทนที่ fetch ด้วย "backend ปลอม" ที่ตอบตามที่อยู่
  */
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router'
+import { fetchMe } from '../api/auth'
+import LoginPage from '../pages/LoginPage'
 import { AppRoutes } from '../router'
 import { AUTH_CHANNEL_NAME, AuthProvider } from './AuthProvider'
 import { RequireAuth } from './guards'
@@ -87,6 +89,12 @@ class FakeChannel {
   receive(data: unknown) {
     this.onmessage?.(new MessageEvent('message', { data }))
   }
+}
+
+/** หน้าทดสอบ: เรียก GET me ตอนเปิด (ใช้จำลองบัตรหมดอายุกลางคันระหว่างดึงข้อมูล) */
+function FetchMePage() {
+  const { data } = useQuery({ queryKey: ['me'], queryFn: fetchMe })
+  return <p>{data?.email}</p>
 }
 
 /** วาดแอปที่ที่อยู่ที่กำหนด (ใช้ router จริงของแอป) */
@@ -172,8 +180,8 @@ describe('เข้าสู่ระบบ', () => {
 
     await submitLogin('690000001', 'correct-pass')
 
-    expect(await screen.findByRole('heading', { name: 'ข้อมูลส่วนตัว' })).toBeInTheDocument()
-    expect(await screen.findByText('student@example.com')).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { level: 1, name: 'ข้อมูลส่วนตัว' })).toBeInTheDocument()
+    expect(await screen.findByDisplayValue('student@example.com')).toBeInTheDocument()
   })
 
   it('รหัสผิด → แสดงข้อความรวมตาม wireframe และยังอยู่หน้าเดิม', async () => {
@@ -248,7 +256,21 @@ describe('ออกจากระบบ / ถูกให้ออก', () => {
   it('บัตรหมดอายุกลางคันและแลกไม่ได้ → หน้าเข้าสู่ระบบพร้อม "หมดเวลาการใช้งาน"', async () => {
     fakeBackend({ hasSession: true, meExpired: true })
 
-    renderApp('/profile')
+    // หน้าทดสอบที่เรียก API (GET me) ตอนเปิด — จำลองหน้าใดก็ได้ที่ดึงข้อมูลแล้วบัตรใช้ไม่ได้
+    renderApp(
+      '/data',
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/data"
+          element={
+            <RequireAuth>
+              <FetchMePage />
+            </RequireAuth>
+          }
+        />
+      </Routes>,
+    )
 
     expect(
       await screen.findByText('หมดเวลาการใช้งาน กรุณาเข้าสู่ระบบอีกครั้ง'),

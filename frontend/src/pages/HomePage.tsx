@@ -26,7 +26,7 @@ export default function HomePage() {
 
   // ป้ายรหัส: ผู้เรียน = รหัสนักศึกษา ; ผู้สอน/ผู้ดูแลระบบ = รหัสพนักงาน
   const idLabel = user.student_or_staff_id
-    ? t(user.role === 'student' ? 'home.studentId' : 'home.staffId', {
+    ? t(user.role === 'student' ? 'account.studentId' : 'account.staffId', {
         id: user.student_or_staff_id,
       })
     : null
