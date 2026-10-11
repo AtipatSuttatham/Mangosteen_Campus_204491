@@ -62,8 +62,10 @@ export default function AppShell() {
         href={`#${MAIN_ID}`}
         inert={menuOpen}
         className={
-          'sr-only rounded-control bg-surface px-4 py-2.5 font-semibold text-brand no-underline ' +
-          `focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 ${FOCUS}`
+          // ระยะขอบใส่เฉพาะตอนโฟกัส — ถ้าใส่ตลอด จะไปทับค่า padding 0 ของ sr-only ตอนซ่อน
+          'sr-only rounded-control bg-surface font-semibold text-brand no-underline ' +
+          'focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2.5 ' +
+          FOCUS
         }
       >
         {t('nav.skipToContent')}

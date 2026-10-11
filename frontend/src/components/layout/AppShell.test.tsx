@@ -2,9 +2,9 @@
  * test ของโครงหน้าจอหลัก (AppShell): เมนูตามบทบาท, เมนูหน้าปัจจุบัน, ออกจากระบบ, เมนูลิ้นชักบนมือถือ
  * ใช้ "สมอง" ปลอม (AuthContext) แทนของจริง และหน้าลูกแบบง่ายแทนหน้าจริง
  */
-import { render, screen, within } from '@testing-library/react'
+import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router'
 import type { Role, User } from '../../api/auth'
 import { AuthContext, type AuthContextValue } from '../../auth/AuthContext'
@@ -168,6 +168,35 @@ describe('AppShell — เมนูลิ้นชักบนมือถือ
 
     await user.tab()
     expect(closeButton).toHaveFocus()
+  })
+})
+
+describe('AppShell — ขยายจอระหว่างเปิดเมนู', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
+  it('จอกว้างถึงขนาดจอใหญ่ (≥ 1024px) → เมนูลิ้นชักปิดเอง และหน้าเลื่อนได้ตามเดิม', async () => {
+    // จำลองตัวตรวจขนาดจอของเบราว์เซอร์ (jsdom ไม่มี matchMedia) แล้วเก็บตัวรับการเปลี่ยนไว้เรียกเอง
+    let notifyChange: ((event: { matches: boolean }) => void) | undefined
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn(() => ({
+        matches: false,
+        addEventListener: (_type: string, handler: typeof notifyChange) => {
+          notifyChange = handler
+        },
+        removeEventListener: vi.fn(),
+      })),
+    )
+    const { user } = renderShell('/')
+    await user.click(menuButton())
+    expect(screen.getByRole('dialog')).toBeInTheDocument()
+
+    act(() => notifyChange?.({ matches: true }))
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(document.body.style.overflow).toBe('')
   })
 })
 
