@@ -30,6 +30,8 @@ function renderShell(path = '/', logout = vi.fn()) {
     sessionExpired: false,
     login: vi.fn(),
     logout,
+    updateUser: vi.fn(),
+    acceptSession: vi.fn(),
   }
   render(
     <AuthContext.Provider value={value}>

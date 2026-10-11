@@ -20,6 +20,8 @@ function renderLogin(login: AuthContextValue['login'], sessionExpired = false) {
     sessionExpired,
     login,
     logout: vi.fn(),
+    updateUser: vi.fn(),
+    acceptSession: vi.fn(),
   }
   render(
     <AuthContext.Provider value={value}>

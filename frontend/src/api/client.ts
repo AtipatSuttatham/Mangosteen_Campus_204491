@@ -48,6 +48,7 @@ export class ApiError extends Error {
 
 /**
  * ตัวเลือกของ apiFetch: เหมือน fetch ปกติ แต่ body ส่งเป็น object ได้เลย (แปลงเป็น JSON ให้)
+ * หรือส่ง FormData เพื่ออัปโหลดไฟล์ (ส่งตามเดิม ไม่แปลง)
  * - auth: false = ไม่แนบ access token และไม่แลกบัตรเมื่อได้ 401 (ใช้กับ login / logout)
  */
 export type ApiFetchOptions = Omit<RequestInit, 'body'> & { body?: unknown; auth?: boolean }
@@ -96,6 +97,9 @@ export async function apiFetch<T = unknown>(
 ): Promise<T> {
   const { body, headers, auth = true, ...rest } = options
   const hasBody = body !== undefined
+  // ส่งไฟล์ (FormData) → ส่งตามเดิม และให้เบราว์เซอร์ตั้ง Content-Type เอง (มีเส้นคั่นของ multipart)
+  // ข้อมูลอื่น → แปลงเป็น JSON (ขั้น 1.8: ใช้ส่งรูปประจำตัว)
+  const isFormData = typeof FormData !== 'undefined' && body instanceof FormData
 
   /** ส่งคำขอ 1 ครั้ง (แนบ access token ล่าสุดถ้ามี) */
   const send = async (): Promise<Response> => {
@@ -107,11 +111,11 @@ export async function apiFetch<T = unknown>(
         credentials: 'include',
         headers: {
           Accept: 'application/json',
-          ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+          ...(hasBody && !isFormData ? { 'Content-Type': 'application/json' } : {}),
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
           ...headers,
         },
-        body: hasBody ? JSON.stringify(body) : undefined,
+        body: isFormData ? (body as FormData) : hasBody ? JSON.stringify(body) : undefined,
       })
     } catch {
       // ไม่มีคำตอบกลับมาเลย (backend ปิดอยู่ / เครือข่ายขัดข้อง)

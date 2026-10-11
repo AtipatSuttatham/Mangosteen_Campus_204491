@@ -219,6 +219,32 @@ describe('ออกจากระบบ / ถูกให้ออก', () => {
     expect(await screen.findByRole('heading', { name: 'เข้าสู่ระบบ' })).toBeInTheDocument()
   })
 
+  it('แท็บอื่นแก้ข้อมูลส่วนตัว → ชื่อในแท็บนี้เปลี่ยนตาม (ไม่ต้องรีเฟรช)', async () => {
+    fakeBackend({ hasSession: true })
+    renderApp('/')
+    await screen.findByRole('heading', { name: 'สวัสดี สมใจ' })
+
+    FakeChannel.instances
+      .at(-1)
+      ?.receive({ type: 'user-updated', user: { ...STUDENT, first_name: 'สมหญิง' } })
+
+    expect(await screen.findByRole('heading', { name: 'สวัสดี สมหญิง' })).toBeInTheDocument()
+  })
+
+  it('ข้อมูลที่แท็บอื่นส่งมาเป็นของผู้ใช้คนอื่น → ไม่เปลี่ยน', async () => {
+    fakeBackend({ hasSession: true })
+    renderApp('/')
+    await screen.findByRole('heading', { name: 'สวัสดี สมใจ' })
+
+    FakeChannel.instances
+      .at(-1)
+      ?.receive({ type: 'user-updated', user: { ...STUDENT, id: 99, first_name: 'คนอื่น' } })
+
+    await waitFor(() =>
+      expect(screen.getByRole('heading', { name: 'สวัสดี สมใจ' })).toBeInTheDocument(),
+    )
+  })
+
   it('บัตรหมดอายุกลางคันและแลกไม่ได้ → หน้าเข้าสู่ระบบพร้อม "หมดเวลาการใช้งาน"', async () => {
     fakeBackend({ hasSession: true, meExpired: true })
 

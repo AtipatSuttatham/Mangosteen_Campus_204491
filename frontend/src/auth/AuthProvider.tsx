@@ -9,18 +9,25 @@
  *      พร้อมธง sessionExpired ให้หน้าเข้าสู่ระบบแสดง "หมดเวลาการใช้งาน"
  *   4. ออกจากระบบในแท็บหนึ่ง → บอกแท็บอื่นผ่าน BroadcastChannel ให้ออกจากระบบทันที
  *   5. ทุกครั้งที่ออกจากระบบ ล้างข้อมูลที่แคชไว้ (TanStack Query) — คนถัดไปไม่เห็นข้อมูลเก่า
+ *   6. แก้ข้อมูลส่วนตัว (ขั้น 1.8) → updateUser() เปลี่ยนข้อมูลผู้ใช้ทั่วหน้าจอ + บอกแท็บอื่นให้เปลี่ยนตาม ;
+ *      เปลี่ยนรหัสผ่าน → acceptSession() ใช้บัตรชุดใหม่ (แท็บอื่นของเบราว์เซอร์นี้แลกบัตรจาก cookie ใหม่ได้เอง)
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import { login as apiLogin, logout as apiLogout, type User } from '../api/auth'
+import {
+  login as apiLogin,
+  logout as apiLogout,
+  type TokenResponse,
+  type User,
+} from '../api/auth'
 import { AuthContext, type AuthContextValue, type AuthStatus } from './AuthContext'
 import { onSessionExpired, refreshSession, setAccessToken } from './session'
 
 /** ชื่อช่องสื่อสารระหว่างแท็บ (ใช้ร่วมกันทุกแท็บของเว็บนี้) */
 export const AUTH_CHANNEL_NAME = 'mangosteen-auth'
 
-/** ข้อความที่ส่งระหว่างแท็บ */
-type AuthMessage = { type: 'logout' }
+/** ข้อความที่ส่งระหว่างแท็บ: ออกจากระบบ / ข้อมูลผู้ใช้เปลี่ยน (แก้ชื่อ อีเมล รูป) */
+type AuthMessage = { type: 'logout' } | { type: 'user-updated'; user: User }
 
 type State = { status: AuthStatus; user: User | null; sessionExpired: boolean }
 
@@ -92,6 +99,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (event.data?.type === 'logout' && statusRef.current === 'authenticated') {
         signOutLocally(false)
       }
+      // แท็บอื่นแก้ข้อมูลส่วนตัว → ใช้ข้อมูลชุดใหม่ (เฉพาะเมื่อเป็นผู้ใช้คนเดียวกัน)
+      if (event.data?.type === 'user-updated') {
+        const updated = event.data.user
+        setState((current) =>
+          current.status === 'authenticated' && current.user?.id === updated.id
+            ? { ...current, user: updated }
+            : current,
+        )
+      }
     }
     return () => {
       channel.close()
@@ -116,9 +132,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     channelRef.current?.postMessage({ type: 'logout' } satisfies AuthMessage)
   }, [signOutLocally])
 
+  // 5) ข้อมูลผู้ใช้เปลี่ยน (ขั้น 1.8)
+  const updateUser = useCallback((user: User) => {
+    setState((current) => ({ ...current, user }))
+    channelRef.current?.postMessage({ type: 'user-updated', user } satisfies AuthMessage)
+  }, [])
+
+  const acceptSession = useCallback(
+    (result: TokenResponse) => {
+      setAccessToken(result.access)
+      updateUser(result.user)
+    },
+    [updateUser],
+  )
+
   const value = useMemo<AuthContextValue>(
-    () => ({ ...state, login, logout }),
-    [state, login, logout],
+    () => ({ ...state, login, logout, updateUser, acceptSession }),
+    [state, login, logout, updateUser, acceptSession],
   )
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
