@@ -148,7 +148,7 @@
 | 1.4 | ระบบ login ฝั่งหน้าเว็บ: React Router + TanStack Query + เก็บ token + แลก token อัตโนมัติ + กันหน้าตามบทบาท | ✅ | [#12](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/12) |
 | 1.4.1 | แก้จุดอ่อนที่เจอตอนทดสอบบนเบราว์เซอร์: refresh token ใบเดียวกันยื่นพร้อมกันแล้วผ่านหลายคำขอ → ผ่านแค่คำขอแรก | ✅ | [#14](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/14) |
 | 1.5 | หน้าเข้าสู่ระบบตาม wireframe (จอใหญ่ภาพ 5.1 + มือถือ) + React Hook Form + PasswordField (ปุ่มออกจากระบบจริงอยู่ใน sidebar ขั้น 1.6) | ✅ | [#15](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/15) |
-| 1.6 | โครงหน้าจอหลัก (sidebar + เมนูมือถือ) + หน้าแรกชั่วคราว | ⬜ | |
+| 1.6 | โครงหน้าจอหลัก (sidebar + แถบบน/เมนูลิ้นชักบนมือถือ + ปุ่มออกจากระบบจริง) + หน้าแรกชั่วคราว (ข้อความ "ยังไม่มี…" ตามบทบาท) + Avatar | ✅ | [#17](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/17) |
 | 1.7 | API ข้อมูลส่วนตัว: แก้ชื่อ/อีเมล, เปลี่ยนรหัสผ่าน, อัปโหลด/ลบรูปประจำตัว | ⬜ | |
 | 1.8 | หน้าข้อมูลส่วนตัว (React Hook Form) | ⬜ | |
 

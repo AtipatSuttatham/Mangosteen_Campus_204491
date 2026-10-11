@@ -36,3 +36,28 @@ export function formatDateTime(value: Date | string): string {
 
   return `${parts.day} ${parts.month} ${parts.year} ${parts.hour}:${parts.minute}`
 }
+
+/** ตัวจัดรูปแบบวันที่แบบเต็ม (มีชื่อวัน + ชื่อเดือนเต็ม) — ใช้กับ formatLongDate */
+const longDateFormatter = new Intl.DateTimeFormat('th-TH-u-ca-buddhist', {
+  weekday: 'long',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric',
+  timeZone: DISPLAY_TIME_ZONE,
+})
+
+/**
+ * แปลงวันที่เป็นข้อความแบบเต็ม เช่น "วันอาทิตย์ที่ 11 ตุลาคม 2569" (ไม่มีเวลา)
+ * ใช้ในหัวหน้าแรกหลังเข้าสู่ระบบ (wireframe "หน้าแรกหลังเข้าสู่ระบบ") — ยึดวันตามเวลาประเทศไทย
+ * @param value วันที่ (Date หรือข้อความรูปแบบ ISO)
+ */
+export function formatLongDate(value: Date | string): string {
+  const date = typeof value === 'string' ? new Date(value) : value
+
+  // ประกอบจากชิ้นเอง (เหตุผลเดียวกับ formatDateTime) — ชื่อวันจากเบราว์เซอร์มีคำว่า "วัน" นำหน้าแล้ว
+  const parts = Object.fromEntries(
+    longDateFormatter.formatToParts(date).map((part) => [part.type, part.value]),
+  ) as Partial<Record<Intl.DateTimeFormatPartTypes, string>>
+
+  return `${parts.weekday}ที่ ${parts.day} ${parts.month} ${parts.year}`
+}
