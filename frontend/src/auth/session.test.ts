@@ -82,6 +82,14 @@ describe('refreshSession', () => {
     expect(getAccessToken()).toBeNull()
   })
 
+  it('backend ขัดข้อง (502) → โยน server_error และไม่ล้างการเข้าสู่ระบบ', async () => {
+    setAccessToken('old-token')
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('Bad Gateway', { status: 502 }))
+
+    await expect(refreshSession()).rejects.toMatchObject({ code: 'server_error', status: 502 })
+    expect(getAccessToken()).toBe('old-token')
+  })
+
   it('ติดต่อ backend ไม่ได้ → โยน network_error และไม่ล้างการเข้าสู่ระบบ', async () => {
     setAccessToken('old-token')
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new TypeError('Failed to fetch'))

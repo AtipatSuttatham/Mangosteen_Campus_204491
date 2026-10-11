@@ -65,10 +65,14 @@ async function requestRefresh(): Promise<TokenResponse | null> {
     throw new ApiError(0, 'network_error')
   }
 
-  if (!response.ok) {
-    // 401 = ไม่มี cookie / หมดอายุ / ถูกยกเลิก / บัญชีถูกระงับ → ไม่ได้อยู่ในระบบแล้ว
+  if (response.status === 401 || response.status === 403) {
+    // ไม่มี cookie / หมดอายุ / ถูกยกเลิก / บัญชีถูกระงับ → ไม่ได้อยู่ในระบบแล้ว
     accessToken = null
     return null
+  }
+  if (!response.ok) {
+    // backend ขัดข้อง (เช่น 500 / 502 ตอนเซิร์ฟเวอร์กำลังเปิด) ≠ บัตรหมดอายุ → ไม่ล้างการเข้าสู่ระบบ
+    throw new ApiError(response.status, response.status >= 500 ? 'server_error' : 'unknown')
   }
   const data = (await response.json()) as TokenResponse
   accessToken = data.access
