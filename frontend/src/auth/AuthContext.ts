@@ -6,7 +6,7 @@
  *   const { status, user, login, logout } = useAuth()
  */
 import { createContext, useContext } from 'react'
-import type { User } from '../api/auth'
+import type { TokenResponse, User } from '../api/auth'
 
 /** สถานะการเข้าสู่ระบบ */
 export type AuthStatus =
@@ -27,6 +27,13 @@ export type AuthContextValue = {
   login: (identifier: string, password: string) => Promise<void>
   /** ออกจากระบบ (ทุกแท็บของเว็บนี้ไปหน้าเข้าสู่ระบบด้วย) */
   logout: () => Promise<void>
+  /**
+   * ใช้ข้อมูลผู้ใช้ชุดใหม่ที่ได้จาก API (หลังแก้ชื่อ/อีเมล/รูป — ขั้น 1.8)
+   * ชื่อและรูปทั่วหน้าจอ (sidebar, แถบมือถือ, หน้าแรก) เปลี่ยนทันที + แท็บอื่นเปลี่ยนตาม
+   */
+  updateUser: (user: User) => void
+  /** ใช้บัตรชุดใหม่ที่ได้หลังเปลี่ยนรหัสผ่าน (เครื่องนี้อยู่ในระบบต่อ — ขั้น 1.8) */
+  acceptSession: (result: TokenResponse) => void
 }
 
 export const AuthContext = createContext<AuthContextValue | null>(null)

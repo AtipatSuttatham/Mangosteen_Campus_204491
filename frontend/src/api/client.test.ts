@@ -50,6 +50,19 @@ describe('apiFetch — กรณีสำเร็จ', () => {
     expect(init?.headers).toMatchObject({ 'Content-Type': 'application/json' })
   })
 
+  it('ส่งไฟล์ (FormData) → ส่งตามเดิม ไม่แปลงเป็น JSON และไม่ตั้ง Content-Type เอง', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ id: 3 }, 200))
+    const form = new FormData()
+    form.append('avatar', new File(['x'], 'a.png', { type: 'image/png' }))
+
+    await apiFetch('/auth/me/avatar/', { method: 'POST', body: form })
+
+    const init = fetchMock.mock.calls[0]?.[1]
+    expect(init?.body).toBe(form)
+    // เบราว์เซอร์ต้องตั้ง Content-Type เอง (มีเส้นคั่นของ multipart) — ถ้าเราตั้งเอง backend อ่านไฟล์ไม่ได้
+    expect(init?.headers).not.toHaveProperty('Content-Type')
+  })
+
   it('คำตอบที่ไม่มีเนื้อหา (204) → คืน undefined', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }))
 

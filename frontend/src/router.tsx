@@ -15,7 +15,7 @@ import { RedirectIfAuthed, RequireAuth } from './auth/guards'
 import AppShell from './components/layout/AppShell'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
-import ProfilePage from './pages/ProfilePage'
+import ProfilePage from './pages/profile/ProfilePage'
 
 // หน้าสำหรับนักพัฒนา: โหลดแยกไฟล์เมื่อเปิดหน้านั้นเท่านั้น
 // import.meta.env.DEV เป็น false ตอน build → Vite ตัดโค้ดส่วนนี้ทิ้ง ไม่อยู่ในไฟล์ที่ deploy

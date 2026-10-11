@@ -17,6 +17,8 @@
  *     (ช่องรหัสและช่องรหัสผ่านแดงทั้งคู่ แต่ข้อความอยู่ใต้ช่องรหัสผ่านช่องเดียว)
  *   - errorDescribedBy: id ของข้อความ error ที่อยู่นอกช่องนี้ (ให้โปรแกรมอ่านหน้าจออ่านด้วย)
  *   - trailing: ปุ่มที่วางไว้ด้านขวาในช่อง เช่น ปุ่ม "แสดง" ของช่องรหัสผ่าน
+ * ตัวเลือกเพิ่ม (ขั้น 1.8 — ตามหน้าข้อมูลส่วนตัว):
+ *   - hint: คำแนะนำสีรองใต้ช่อง เช่น กฎรหัสผ่าน — ซ่อนเมื่อมี error (error แทนที่ตำแหน่งเดียวกัน)
  */
 import { useId, type ComponentProps, type ReactNode } from 'react'
 
@@ -31,6 +33,8 @@ type TextFieldProps = ComponentProps<'input'> & {
   errorDescribedBy?: string
   /** ปุ่มที่วางไว้ด้านขวาในช่อง (เช่น ปุ่ม "แสดง" รหัสผ่าน) */
   trailing?: ReactNode
+  /** คำแนะนำใต้ช่อง (ข้อความจาก th.ts) */
+  hint?: string
 }
 
 /** ช่องกรอกข้อความพร้อมป้ายชื่อ และข้อความ error (ถ้ามี) */
@@ -40,6 +44,7 @@ export function TextField({
   invalid = false,
   errorDescribedBy,
   trailing,
+  hint,
   id,
   className = '',
   ...props
@@ -48,11 +53,20 @@ export function TextField({
   const generatedId = useId()
   const inputId = id ?? generatedId
   const errorId = `${inputId}-error`
+  const hintId = `${inputId}-hint`
   const hasError = Boolean(error)
+  // คำแนะนำแสดงเฉพาะตอนไม่มี error
+  const showHint = Boolean(hint) && !hasError
   // ขอบแดงเมื่อมีข้อความ error ของตัวเอง หรือถูกบอกว่า invalid
   const showInvalid = hasError || invalid
   // ข้อความที่โปรแกรมอ่านหน้าจอต้องอ่านคู่กับช่องนี้
-  const describedBy = [hasError ? errorId : undefined, errorDescribedBy].filter(Boolean).join(' ')
+  const describedBy = [
+    hasError ? errorId : undefined,
+    showHint ? hintId : undefined,
+    errorDescribedBy,
+  ]
+    .filter(Boolean)
+    .join(' ')
 
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
@@ -76,6 +90,11 @@ export function TextField({
         />
         {trailing && <div className="absolute top-[3px] right-1">{trailing}</div>}
       </div>
+      {showHint && (
+        <p id={hintId} className="m-0 text-[13.5px] leading-[1.55] text-ink-muted">
+          {hint}
+        </p>
+      )}
       {hasError && (
         // role="alert" = โปรแกรมอ่านหน้าจออ่านข้อความนี้ทันทีที่ปรากฏ
         <div

@@ -42,6 +42,8 @@ function renderHome(user: User) {
     sessionExpired: false,
     login: vi.fn(),
     logout: vi.fn(),
+    updateUser: vi.fn(),
+    acceptSession: vi.fn(),
   }
   render(
     <AuthContext.Provider value={value}>

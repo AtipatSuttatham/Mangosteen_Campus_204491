@@ -49,3 +49,40 @@ export function logout(): Promise<void> {
 export function fetchMe(): Promise<User> {
   return apiFetch<User>('/auth/me/')
 }
+
+/** ข้อมูลที่แก้ได้ในหน้าข้อมูลส่วนตัว (ส่งเฉพาะช่องที่แก้ก็ได้) */
+export type ProfileUpdate = Partial<Pick<User, 'first_name' | 'last_name' | 'email'>>
+
+/**
+ * แก้ชื่อ-นามสกุล / อีเมลของตัวเอง (UC-02) → ข้อมูลผู้ใช้ล่าสุด
+ * @throws ApiError validation_error เช่น fields.email = ['unique']
+ */
+export function updateProfile(changes: ProfileUpdate): Promise<User> {
+  return apiFetch<User>('/auth/me/', { method: 'PATCH', body: changes })
+}
+
+/**
+ * เปลี่ยนรหัสผ่าน (UC-02) → บัตรชุดใหม่ของเครื่องนี้ (เหมือนตอน login) ; อุปกรณ์อื่นออกจากระบบทันที
+ * @throws ApiError validation_error เช่น fields.current_password = ['password_incorrect']
+ */
+export function changePassword(currentPassword: string, newPassword: string): Promise<TokenResponse> {
+  return apiFetch<TokenResponse>('/auth/me/password/', {
+    method: 'POST',
+    body: { current_password: currentPassword, new_password: newPassword },
+  })
+}
+
+/**
+ * อัปโหลด/เปลี่ยนรูปประจำตัว (ส่งเป็นไฟล์แบบ multipart ช่อง avatar) → ข้อมูลผู้ใช้ที่มีลิงก์รูปใหม่
+ * @throws ApiError avatar_too_large / avatar_invalid_type
+ */
+export function uploadAvatar(file: File): Promise<User> {
+  const form = new FormData()
+  form.append('avatar', file)
+  return apiFetch<User>('/auth/me/avatar/', { method: 'POST', body: form })
+}
+
+/** ลบรูปประจำตัว → ข้อมูลผู้ใช้ (avatar_url = null) */
+export function deleteAvatar(): Promise<User> {
+  return apiFetch<User>('/auth/me/avatar/', { method: 'DELETE' })
+}
