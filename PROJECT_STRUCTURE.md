@@ -30,12 +30,16 @@ Mangosteen_Campus_204491/
 │   ├── pyproject.toml        รายการแพ็กเกจ Python + ตั้งค่า pytest และ ruff
 │   ├── uv.lock               ล็อกเวอร์ชันแพ็กเกจทุกตัว (ทุกเครื่อง/CI ได้เวอร์ชันเดียวกัน) — uv สร้างให้ ห้ามแก้มือ
 │   ├── config/               ตั้งค่าของโปรเจกต์ Django
-│   │   ├── settings.py       ตั้งค่าหลัก: อ่านค่าลับจาก .env, ฐานข้อมูล, เขตเวลา, DRF, ตารางผู้ใช้ (AUTH_USER_MODEL)
-│   │   ├── urls.py           รวมเส้นทาง URL ทั้งหมด (/admin/, /api/health/, /api/v1/, 404 แบบ JSON ของ /api/)
+│   │   ├── settings.py       ตั้งค่าหลัก: อ่านค่าลับจาก .env, ฐานข้อมูล, เขตเวลา, DRF, ตารางผู้ใช้ (AUTH_USER_MODEL), Simple JWT + cookie ของ refresh token
+│   │   ├── urls.py           รวมเส้นทาง URL ทั้งหมด (/admin/, /api/health/, /api/v1/ — มี auth/, 404 แบบ JSON ของ /api/)
 │   │   ├── wsgi.py           จุดเริ่มต้นเมื่อรันบนเซิร์ฟเวอร์แบบ WSGI
 │   │   └── asgi.py           จุดเริ่มต้นเมื่อรันบนเซิร์ฟเวอร์แบบ ASGI
 │   ├── accounts/             app บัญชีผู้ใช้และการเข้าสู่ระบบ (ก้อน 1)
 │   │   ├── models.py         ตาราง User (อีเมล/รหัส/บทบาท/ระงับ/รูปประจำตัว) + ตัวช่วยสร้างผู้ใช้ (UserManager)
+│   │   ├── views.py          API เข้าสู่ระบบ: login / refresh / logout / me (docs/api.md §6)
+│   │   ├── urls.py           เส้นทางของ API ข้างบน (ต่ออยู่ใต้ /api/v1/auth/)
+│   │   ├── serializers.py    ตรวจข้อมูลตอน login + รูปแบบข้อมูลผู้ใช้ที่ส่งกลับ (MeSerializer)
+│   │   ├── tokens.py         ออก token (ใส่ role) + ตั้ง/ลบ cookie ของ refresh token
 │   │   ├── admin.py          หน้าจัดการผู้ใช้ใน /admin/ (ค้นหา/กรอง/เพิ่ม/แก้ — สำหรับนักพัฒนา)
 │   │   ├── apps.py           ข้อมูลประจำ app
 │   │   ├── migrations/       ไฟล์สร้าง/เปลี่ยนโครงสร้างตาราง User (Django สร้างให้)
@@ -43,6 +47,7 @@ Mangosteen_Campus_204491/
 │   │   │   └── seed_dev_users.py  คำสั่งสร้างบัญชีทดลอง 3 บทบาท (เฉพาะโหมดพัฒนา, ข้อมูลสมมติ)
 │   │   └── tests/
 │   │       ├── test_models.py         test ตาราง User (อีเมลตัวพิมพ์เล็ก, ห้ามซ้ำ, รหัสว่าง, ระงับบัญชี ฯลฯ)
+│   │       ├── test_auth_api.py       test API เข้าสู่ระบบ (login/refresh/logout/me, cookie, บัญชีถูกระงับ)
 │   │       ├── test_admin.py          test หน้า /admin/ (login ด้วยอีเมล, หน้ารายชื่อ/เพิ่ม/แก้)
 │   │       └── test_seed_dev_users.py test คำสั่งสร้างบัญชีทดลอง (ครบ 3 บทบาท, รันซ้ำ, รีเซ็ตรหัส, ปฏิเสธบนเว็บจริง)
 │   └── common/               app ของใช้ร่วมกันทุก app
