@@ -108,7 +108,7 @@ export default function ComponentGallery() {
       {/* ช่องกรอก: ปกติ และมี error (ข้อความเดียวกับหน้า "เข้าสู่ระบบ กรอกผิด") */}
       <Section title={t('devGallery.fields')}>
         <Card className="flex max-w-[440px] flex-col gap-5 p-9">
-          <TextField label={t('devGallery.sampleIdLabel')} defaultValue="660510730" />
+          <TextField label={t('devGallery.sampleIdLabel')} defaultValue="690000001" />
           <TextField
             label={t('devGallery.samplePasswordLabel')}
             type="password"
