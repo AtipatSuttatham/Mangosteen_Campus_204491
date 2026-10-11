@@ -4,6 +4,9 @@
  * หน้าที่:
  *   - ต่อที่อยู่ให้เป็น /api/v1/... อัตโนมัติ
  *   - ส่ง/รับข้อมูลเป็น JSON
+ *   - แนบ access token (header Authorization) ให้อัตโนมัติ ถ้าเข้าสู่ระบบอยู่
+ *   - ได้ 401 (บัตรรายวันหมดอายุ) → แลกบัตรใหม่ด้วย cookie แล้วลองคำขอเดิมซ้ำ 1 ครั้ง ;
+ *     แลกไม่ได้ → แจ้ง "ถูกให้ออกจากระบบกลางคัน" แล้วโยน error เดิม (docs/api.md §6.3)
  *   - ถ้าเกิด error ทุกกรณี (backend ตอบ error / ติดต่อไม่ได้ / ได้คำตอบที่อ่านไม่ออก)
  *     จะโยนเป็น ApiError รูปแบบเดียวกันเสมอ → หน้าจอนำ code ไปแปลด้วย errorMessage()
  *
@@ -11,6 +14,8 @@
  *   const courses = await apiFetch<Course[]>('/courses/')
  *   await apiFetch('/courses/', { method: 'POST', body: { code: '204111', name: 'Python พื้นฐาน' } })
  */
+
+import { getAccessToken, notifySessionExpired, refreshSession } from '../auth/session'
 
 /** ที่อยู่ตั้งต้นของ API ของฟีเจอร์ทั้งหมด (ตอนพัฒนา Vite ส่งต่อ /api ไปที่ backend) */
 export const API_BASE = '/api/v1'
@@ -41,8 +46,11 @@ export class ApiError extends Error {
   }
 }
 
-/** ตัวเลือกของ apiFetch: เหมือน fetch ปกติ แต่ body ส่งเป็น object ได้เลย (แปลงเป็น JSON ให้) */
-export type ApiFetchOptions = Omit<RequestInit, 'body'> & { body?: unknown }
+/**
+ * ตัวเลือกของ apiFetch: เหมือน fetch ปกติ แต่ body ส่งเป็น object ได้เลย (แปลงเป็น JSON ให้)
+ * - auth: false = ไม่แนบ access token และไม่แลกบัตรเมื่อได้ 401 (ใช้กับ login / logout)
+ */
+export type ApiFetchOptions = Omit<RequestInit, 'body'> & { body?: unknown; auth?: boolean }
 
 /** ตรวจว่าข้อมูลที่ backend ส่งมามีรูปแบบ error กลาง ({ code: "..." }) หรือไม่ */
 function isErrorBody(
@@ -86,25 +94,42 @@ export async function apiFetch<T = unknown>(
   path: string,
   options: ApiFetchOptions = {},
 ): Promise<T> {
-  const { body, headers, ...rest } = options
+  const { body, headers, auth = true, ...rest } = options
   const hasBody = body !== undefined
 
-  let response: Response
-  try {
-    response = await fetch(`${API_BASE}${path}`, {
-      ...rest,
-      // ส่ง cookie ไปด้วยเสมอ (refresh token อยู่ใน httpOnly cookie — ก้อน 1)
-      credentials: 'include',
-      headers: {
-        Accept: 'application/json',
-        ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
-        ...headers,
-      },
-      body: hasBody ? JSON.stringify(body) : undefined,
-    })
-  } catch {
-    // ไม่มีคำตอบกลับมาเลย (backend ปิดอยู่ / เครือข่ายขัดข้อง)
-    throw new ApiError(0, 'network_error')
+  /** ส่งคำขอ 1 ครั้ง (แนบ access token ล่าสุดถ้ามี) */
+  const send = async (): Promise<Response> => {
+    const token = auth ? getAccessToken() : null
+    try {
+      return await fetch(`${API_BASE}${path}`, {
+        ...rest,
+        // ส่ง cookie ไปด้วยเสมอ (refresh token อยู่ใน httpOnly cookie)
+        credentials: 'include',
+        headers: {
+          Accept: 'application/json',
+          ...(hasBody ? { 'Content-Type': 'application/json' } : {}),
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...headers,
+        },
+        body: hasBody ? JSON.stringify(body) : undefined,
+      })
+    } catch {
+      // ไม่มีคำตอบกลับมาเลย (backend ปิดอยู่ / เครือข่ายขัดข้อง)
+      throw new ApiError(0, 'network_error')
+    }
+  }
+
+  let response = await send()
+
+  // บัตรรายวันหมดอายุ/ใช้ไม่ได้ → แลกใหม่ 1 ครั้ง แล้วลองคำขอเดิมซ้ำ
+  if (response.status === 401 && auth) {
+    const refreshed = await refreshSession()
+    if (refreshed) {
+      response = await send()
+    } else {
+      // แลกไม่ได้ = ไม่ได้อยู่ในระบบแล้ว → ให้ AuthProvider พาไปหน้าเข้าสู่ระบบ
+      notifySessionExpired()
+    }
   }
 
   // อ่านคำตอบเป็น JSON (ถ้าไม่มีเนื้อหาหรือไม่ใช่ JSON ได้ undefined)
