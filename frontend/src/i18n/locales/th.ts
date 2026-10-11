@@ -138,6 +138,9 @@ export const th = {
     sampleUnpublished: 'ยังไม่เผยแพร่',
     logoOnDark: 'บนพื้นสีม่วง (แถบเมนู 34px)',
     logoOnLight: 'บนพื้นสว่าง (48px)',
+    buttonLinks: 'ลิงก์แบบปุ่ม',
+    sampleViewProfile: 'ดูข้อมูลส่วนตัว',
+    avatars: 'รูปประจำตัว (ตัวอักษรย่อ)',
   },
 
   // หน้าทดสอบสุขภาพระบบ /dev/health (เฉพาะโหมดพัฒนา)

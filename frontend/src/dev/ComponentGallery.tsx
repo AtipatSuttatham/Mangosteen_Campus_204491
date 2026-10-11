@@ -8,7 +8,16 @@
  */
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Button, Card, Logo, PasswordField, StatusBadge, TextField } from '../components/ui'
+import {
+  Avatar,
+  Button,
+  buttonClassName,
+  Card,
+  Logo,
+  PasswordField,
+  StatusBadge,
+  TextField,
+} from '../components/ui'
 
 /** สีทั้งหมดของระบบ (ชื่อตรงกับ --color-* ใน index.css) */
 const COLOR_TOKENS = [
@@ -33,6 +42,18 @@ const COLOR_TOKENS = [
   'mute',
   'mute-soft',
 ] as const
+
+/** ผู้ใช้สมมติสำหรับตัวอย่างรูปประจำตัว (ชื่อเดียวกับใน wireframe ; ชื่อที่ขึ้นต้นด้วยสระหน้า) */
+const SAMPLE_STUDENT = {
+  first_name: 'สมใจ',
+  last_name: 'รักเรียน',
+  email: 'student@example.com',
+  avatar_url: null,
+}
+const SAMPLE_USERS = [
+  SAMPLE_STUDENT,
+  { first_name: 'เอกชัย', last_name: 'ใจดี', email: 'teacher@example.com', avatar_url: null },
+]
 
 /** หัวข้อของแต่ละกลุ่มตัวอย่าง (ขนาด/น้ำหนักเดียวกับหัวข้อรองใน canvas) */
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -168,6 +189,25 @@ export default function ComponentGallery() {
             </Card>
             <figcaption className="text-sm text-ink-muted">{t('devGallery.logoOnLight')}</figcaption>
           </figure>
+        </div>
+      </Section>
+
+      {/* ลิงก์ที่หน้าตาเหมือนปุ่ม (buttonClassName) — เช่น "ดูข้อมูลส่วนตัว" บนหน้าแรก */}
+      <Section title={t('devGallery.buttonLinks')}>
+        <div>
+          <a href="#button-link" className={buttonClassName('secondary')}>
+            {t('devGallery.sampleViewProfile')}
+          </a>
+        </div>
+      </Section>
+
+      {/* รูปประจำตัว: ยังไม่มีรูป → ตัวอักษรย่อ (ขนาด sidebar 38px และแถบบนมือถือ 36px) */}
+      <Section title={t('devGallery.avatars')}>
+        <div className="flex w-fit items-center gap-4 rounded-card bg-brand px-5 py-4">
+          {SAMPLE_USERS.map((user) => (
+            <Avatar key={user.email} user={user} size={38} />
+          ))}
+          <Avatar user={SAMPLE_STUDENT} size={36} />
         </div>
       </Section>
     </main>

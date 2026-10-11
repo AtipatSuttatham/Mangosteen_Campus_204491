@@ -1,11 +1,20 @@
 /**
- * test ของคอมโพเนนต์พื้นฐาน (Button / TextField / PasswordField / Card / StatusBadge / Logo)
+ * test ของคอมโพเนนต์พื้นฐาน (Button / TextField / PasswordField / Card / StatusBadge / Logo / Avatar)
  * ตรวจพฤติกรรมและการเข้าถึง (โปรแกรมอ่านหน้าจอ / แป้นพิมพ์) — หน้าตาตรวจด้วยตาที่หน้า /dev/components
  */
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
-import { Button, Card, Logo, PasswordField, StatusBadge, TextField } from './index'
+import {
+  Avatar,
+  Button,
+  buttonClassName,
+  Card,
+  Logo,
+  PasswordField,
+  StatusBadge,
+  TextField,
+} from './index'
 
 describe('Button', () => {
   it('ค่าเริ่มต้นเป็นปุ่มแบบ primary และ type="button" (ไม่ส่งฟอร์มโดยไม่ตั้งใจ)', () => {
@@ -196,5 +205,42 @@ describe('Logo', () => {
     const ids = [...container.querySelectorAll('mask')].map((mask) => mask.id)
     expect(ids).toHaveLength(6)
     expect(new Set(ids).size).toBe(6)
+  })
+})
+
+describe('buttonClassName', () => {
+  it('ลิงก์ใช้หน้าตาเดียวกับปุ่มแบบเดียวกันได้', () => {
+    render(
+      <a href="/profile" className={buttonClassName('secondary')}>
+        ดูข้อมูลส่วนตัว
+      </a>,
+    )
+
+    const link = screen.getByRole('link', { name: 'ดูข้อมูลส่วนตัว' })
+    expect(link.className).toContain('border-line-strong')
+    expect(link.className).toContain('focus-visible:outline-accent')
+  })
+})
+
+describe('Avatar', () => {
+  const user = { first_name: 'สมใจ', last_name: 'รักเรียน', email: 'student@example.com' }
+
+  it('ยังไม่มีรูป → แสดงตัวอักษรย่อ และเป็นการตกแต่ง (โปรแกรมอ่านหน้าจอข้าม)', () => {
+    const { container } = render(<Avatar user={{ ...user, avatar_url: null }} size={38} />)
+
+    const circle = container.firstElementChild as HTMLElement
+    expect(circle).toHaveTextContent('สร')
+    expect(circle).toHaveAttribute('aria-hidden', 'true')
+    expect(circle.style.width).toBe('38px')
+  })
+
+  it('มีรูป → แสดงรูปแทนตัวอักษรย่อ', () => {
+    const { container } = render(
+      <Avatar user={{ ...user, avatar_url: '/media/avatars/3.webp' }} size={36} />,
+    )
+
+    const image = container.querySelector('img')
+    expect(image).toHaveAttribute('src', '/media/avatars/3.webp')
+    expect(container).not.toHaveTextContent('สร')
   })
 })

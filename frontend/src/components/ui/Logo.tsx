@@ -34,10 +34,13 @@ type LogoProps = {
   withWordmark?: boolean
   /** สีของชื่อระบบ: onLight = ตัวอักษรเข้ม (พื้นสว่าง), onDark = ตัวอักษรขาว (พื้นสีม่วง) */
   tone?: 'onLight' | 'onDark'
-  /** ขนาดชื่อระบบ: sm = 17px (sidebar), md = 20px (หน้าเข้าสู่ระบบ) — ตาม canvas */
-  wordmarkSize?: 'sm' | 'md'
+  /** ขนาดชื่อระบบ: xs = 16px (แถบบนมือถือ), sm = 17px (sidebar), md = 20px (หน้าเข้าสู่ระบบ) — ตาม canvas */
+  wordmarkSize?: 'xs' | 'sm' | 'md'
   className?: string
 }
+
+/** ขนาดตัวอักษรของชื่อระบบแต่ละแบบ */
+const WORDMARK_SIZE_CLASSES = { xs: 'text-base', sm: 'text-[17px]', md: 'text-xl' } as const
 
 /** ตรากลีบเลี้ยงมังคุด (+ ชื่อระบบ ถ้าต้องการ) */
 export function Logo({
@@ -145,7 +148,7 @@ export function Logo({
       <span
         className={
           'font-display font-semibold whitespace-nowrap ' +
-          `${wordmarkSize === 'sm' ? 'text-[17px]' : 'text-xl'} ` +
+          `${WORDMARK_SIZE_CLASSES[wordmarkSize]} ` +
           `${tone === 'onDark' ? 'text-white' : 'text-ink'}`
         }
       >
