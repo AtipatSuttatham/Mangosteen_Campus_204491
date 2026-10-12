@@ -15,12 +15,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.csv_import import import_rows, read_csv_upload, validate_rows
 from accounts.manage_serializers import (
     AdminPasswordResetSerializer,
     AdminUserCreateSerializer,
     AdminUserFilterSerializer,
     AdminUserSerializer,
     AdminUserWriteSerializer,
+    CsvUploadSerializer,
 )
 from accounts.models import User
 from accounts.permissions import IsAdminRole
@@ -288,3 +290,75 @@ class AdminPasswordResetView(APIView):
                 changes={"password": None},
             )
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+def _uploaded_csv(request: Request):
+    """ไฟล์ CSV จากช่อง "file" ของคำขอแบบ multipart ; ไม่ส่งไฟล์ → 400 validation_error"""
+    serializer = CsvUploadSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    return serializer.validated_data["file"]
+
+
+class AdminUserImportValidateView(APIView):
+    """
+    POST /api/v1/admin/users/import/validate/   (multipart: file)   ตรวจไฟล์ CSV — **ยังไม่บันทึก**
+
+    - ตรวจได้ (ถูกหรือผิดก็ตาม) → 200 รายงาน {valid, total, by_role, errors} (ดู csv_import.validate_rows)
+    - ปัญหาระดับไฟล์ → 400 csv_unreadable / csv_too_large / csv_too_many_rows / csv_empty /
+      csv_missing_columns (+ fields บอกคอลัมน์ที่ขาด) ; ไม่ส่งไฟล์ → 400 validation_error
+    - ไม่ใช่ผู้ดูแลระบบ → 403 permission_denied
+    หน้าเว็บเรียกที่อยู่นี้ทันทีที่เลือกไฟล์ (การตัดสินใจก้อน 2 "นำเข้า CSV")
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminRole]
+
+    def post(self, request: Request) -> Response:
+        rows = read_csv_upload(_uploaded_csv(request))
+        return Response(validate_rows(rows).report)
+
+
+def _invalid_csv_error(report: dict) -> ApiError:
+    """กดนำเข้าแต่ไฟล์ยังมีแถวผิด → 400 csv_invalid พร้อมรายงานแบบเดียวกับที่อยู่ "ตรวจไฟล์" """
+    return ApiError("csv_invalid", "The file has invalid rows.", extra={"report": report})
+
+
+class AdminUserImportView(APIView):
+    """
+    POST /api/v1/admin/users/import/   (multipart: file)   นำเข้าบัญชีจาก CSV — **ทั้งไฟล์หรือไม่เลย**
+
+    หน้าเว็บส่งไฟล์เดิมซ้ำหลังผู้ดูแลระบบกด "นำเข้า" → ตรวจใหม่ทั้งหมด (server ไม่เก็บไฟล์จากรอบตรวจ
+    จึงไม่ต้องมีงานล้างไฟล์ค้าง ; และจับข้อมูลซ้ำที่เพิ่งเกิดระหว่างสองรอบได้)
+
+    - สำเร็จ → 201 {created, by_role, users: [{row, id, email, student_or_staff_id,
+      first_name, last_name, role, password}]} + Cache-Control: no-store
+      **รหัสผ่านอยู่ในคำตอบนี้ครั้งเดียว** — server ไม่เก็บ ; หน้าเว็บสร้างไฟล์ให้ดาวน์โหลด (ขั้น 2.7)
+    - มีแถวผิด → 400 csv_invalid + report (ไม่สร้างบัญชีใดเลย)
+    - ปัญหาระดับไฟล์ → 400 รหัส csv_* แบบเดียวกับที่อยู่ "ตรวจไฟล์"
+    - ไม่ใช่ผู้ดูแลระบบ → 403 permission_denied
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminRole]
+
+    def post(self, request: Request) -> Response:
+        rows = read_csv_upload(_uploaded_csv(request))
+        result = validate_rows(rows)
+        if not result.report["valid"]:
+            raise _invalid_csv_error(result.report)
+
+        try:
+            users = import_rows(result.rows, request.user)
+        except IntegrityError:
+            # มีคำขออื่นสร้างอีเมล/รหัสเดียวกันระหว่างตรวจกับบันทึก → transaction ถูกยกเลิกทั้งหมดแล้ว
+            # ตรวจใหม่เพื่อบอกว่าแถวไหนชน ; ถ้ายังไม่เจอ (ไม่ควรเกิด) ปล่อยเป็น error ของระบบ
+            report = validate_rows(rows).report
+            if report["valid"]:
+                raise
+            raise _invalid_csv_error(report) from None
+
+        response = Response(
+            {"created": len(users), "by_role": result.report["by_role"], "users": users},
+            status=status.HTTP_201_CREATED,
+        )
+        # คำตอบมีรหัสผ่าน → ห้ามเบราว์เซอร์/ตัวกลางเก็บสำเนาไว้
+        response["Cache-Control"] = "no-store"
+        return response

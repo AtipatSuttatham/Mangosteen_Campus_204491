@@ -260,7 +260,8 @@ t('dashboard.pendingTasks', { count: 3 })   // → "คุณมีงานค�
 - **เพิ่มรหัส error ใหม่ ต้องทำ 3 ที่:** โยน `ApiError("รหัส")` ใน backend → เพิ่มข้อความใน `th.ts` กลุ่ม `errors` → เพิ่มแถวในตารางของ `docs/api.md`
 - ลองดูรูปแบบ error ได้เอง: เปิด backend แล้วเข้า http://localhost:8008/api/v1/ไม่มีจริง/ → ได้ `{"code":"not_found",...}`
 - รายการยาว (เช่น รายชื่อผู้ใช้) มาเป็น**หน้า ๆ ละ 20** ในรูปแบบ `{count, next, previous, results}` — ขอหน้าถัดไปด้วย `?page=2` (`docs/api.md` §2)
-- การกระทำของผู้ดูแลระบบ (เพิ่ม / แก้ / ระงับ / รีเซ็ตรหัส) ถูกจดลง AuditLog — ดูได้ที่ http://localhost:8008/admin/audit/auditlog/ (บัญชี `admin@example.com`, ดูอย่างเดียว)
+- นำเข้าบัญชีจาก CSV มี 2 ขั้น: ตรวจไฟล์ (`…/admin/users/import/validate/` — ยังไม่บันทึก) แล้วค่อยนำเข้า (`…/admin/users/import/`) ; รูปแบบไฟล์และรายงานอยู่ใน `docs/api.md` §7.4 — ไฟล์ทดลองต้องใช้ข้อมูลสมมติ (`@example.com`) เท่านั้น และ**ห้าม commit ไฟล์รหัสผ่านที่ได้จากการนำเข้า**
+- การกระทำของผู้ดูแลระบบ (เพิ่ม / แก้ / ระงับ / รีเซ็ตรหัส / นำเข้า CSV) ถูกจดลง AuditLog — ดูได้ที่ http://localhost:8008/admin/audit/auditlog/ (บัญชี `admin@example.com`, ดูอย่างเดียว)
 
 ### 3.7 ดูตัวอย่างหน้าตา (ธีมและคอมโพเนนต์)
 

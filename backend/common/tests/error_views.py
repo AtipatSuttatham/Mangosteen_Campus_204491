@@ -82,6 +82,17 @@ def api_error_default_view(request: Request) -> Response:
 
 @api_view(["GET"])
 @permission_classes([AllowAny])
+def api_error_extra_view(request: Request) -> Response:
+    """error เฉพาะเรื่องที่แนบข้อมูลประกอบ (เช่น คอลัมน์ที่ขาดของ CSV) — ชื่อ code/detail ถูกกันไม่ให้ทับ"""
+    raise ApiError(
+        "csv_missing_columns",
+        "Missing columns.",
+        extra={"fields": {"email": ["required"]}, "code": "hijack", "detail": "hijack"},
+    )
+
+
+@api_view(["GET"])
+@permission_classes([AllowAny])
 def crash_view(request: Request) -> Response:
     """บั๊กที่ไม่คาดคิด — ข้อความภายในต้องไม่หลุดออกไปถึงผู้ใช้"""
     raise RuntimeError("secret internal detail: database password is hunter2")
@@ -95,5 +106,6 @@ urlpatterns = [
     path("not-authenticated/", not_authenticated_view),
     path("api-error/", api_error_view),
     path("api-error-default/", api_error_default_view),
+    path("api-error-extra/", api_error_extra_view),
     path("crash/", crash_view),
 ]

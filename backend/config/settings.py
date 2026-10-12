@@ -120,6 +120,19 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# --- ตัวเข้ารหัสรหัสผ่าน ---
+# ตัวแรก = ตัวหลักที่ใช้กับรหัสทุกตัว (ค่ามาตรฐานของ Django) ; ตัวอื่นใช้อ่านรหัสที่เก็บแบบนั้นไว้
+# แล้ว Django เปลี่ยนเป็นตัวหลักให้อัตโนมัติตอนผู้ใช้เข้าสู่ระบบ
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+    # รหัสชั่วคราวจากการนำเข้า CSV (เข้ารหัสแบบเบา — เหตุผลใน accounts/hashers.py ; ขั้น 2.4)
+    "accounts.hashers.TemporaryPasswordHasher",
+]
+
 # --- ภาษาและเวลา ---
 # ภาษาเริ่มต้นของข้อความระบบฝั่ง Django (หน้าจอหลักแปลภาษาที่ฝั่ง frontend)
 LANGUAGE_CODE = "th"
@@ -153,6 +166,12 @@ AVATAR_MAX_SIZE = 512
 # จำนวนพิกเซลสูงสุดของรูปต้นฉบับ (25 ล้าน ≈ 5000×5000) — กันไฟล์เล็กที่ขยายแล้วกินหน่วยความจำมาก
 # (เครื่องฟรีตอน deploy มี RAM 512 MB — ข้อควรระวังข้อ 3 ใน CLAUDE.md)
 AVATAR_MAX_PIXELS = 25_000_000
+
+# --- นำเข้าบัญชีจากไฟล์ CSV (การตัดสินใจก้อน 2 / docs/api.md §7.4) ---
+# ขนาดไฟล์สูงสุด: 1 MB
+CSV_IMPORT_MAX_BYTES = 1024 * 1024
+# จำนวนแถวข้อมูลสูงสุด (ไม่นับแถวหัวตารางและแถวว่าง)
+CSV_IMPORT_MAX_ROWS = 500
 
 # --- Django REST Framework ---
 REST_FRAMEWORK = {

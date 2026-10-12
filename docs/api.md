@@ -49,7 +49,8 @@
 |---|---|---|
 | `code` | ทุกครั้ง | **รหัส error** (ภาษาอังกฤษตัวเล็ก คั่นด้วย `_`) — frontend ใช้แปลเป็นข้อความไทย |
 | `detail` | ทุกครั้ง | คำอธิบายภาษาอังกฤษ **สำหรับนักพัฒนาเท่านั้น — frontend ห้ามแสดงให้ผู้ใช้** |
-| `fields` | เฉพาะ `validation_error` | รหัส error รายช่อง `{ชื่อช่อง: [รหัส, ...]}` ; ช่องซ้อนชั้นใช้จุด (`address.city`), รายการหลายแถวใช้ลำดับ (`items.1.qty`), error ที่ไม่ผูกกับช่องใดอยู่ใต้ `non_field_errors` |
+| `fields` | `validation_error` และ `csv_missing_columns` | รหัส error รายช่อง `{ชื่อช่อง: [รหัส, ...]}` ; ช่องซ้อนชั้นใช้จุด (`address.city`), รายการหลายแถวใช้ลำดับ (`items.1.qty`), error ที่ไม่ผูกกับช่องใดอยู่ใต้ `non_field_errors` |
+| `report` | เฉพาะ `csv_invalid` | รายงานแถวที่ผิดของไฟล์ CSV (§7.4) |
 
 ### 3.1 รหัส error รวม (ช่อง `code`)
 
@@ -82,6 +83,8 @@
 | `password_too_common` | `new_password` | รหัสผ่านใหม่อยู่ในรายการรหัสยอดนิยม | 1.7 |
 | `password_entirely_numeric` | `new_password` | รหัสผ่านใหม่เป็นตัวเลขล้วน | 1.7 |
 | `password_too_similar` | `new_password` | รหัสผ่านใหม่คล้ายชื่อ/อีเมลของผู้ใช้ | 1.7 |
+| `duplicate_in_file` | คอลัมน์ `email` / `student_or_staff_id` ในรายงาน CSV | ค่าซ้ำกับแถวก่อนหน้าในไฟล์เดียวกัน (แถวที่ซ้ำอยู่ใน `duplicate_of`) | 2.4 |
+| `csv_admin_not_allowed` | คอลัมน์ `role` ในรายงาน CSV | แถวที่บทบาทเป็นผู้ดูแลระบบ — สร้างจาก CSV ไม่ได้ | 2.4 |
 
 ไม่ผ่านหลายกฎพร้อมกัน → ได้หลายรหัสในช่องเดียว เช่น `{"new_password": ["password_too_common", "password_entirely_numeric"]}`
 
@@ -97,6 +100,7 @@ raise ApiError("quiz_time_over", status_code=409)
 ```
 
 - ค่าเริ่มต้น HTTP **400** ; ระบุ `status_code` ได้
+- แนบข้อมูลประกอบที่หน้าเว็บต้องใช้ได้ด้วย `extra` เช่น `ApiError("csv_missing_columns", extra={"fields": {...}})` → รวมเข้าไปในคำตอบ (ทับ `code` / `detail` ไม่ได้ — ขั้น 2.4)
 - **เพิ่มรหัสใหม่ทุกครั้งต้องทำ 3 อย่าง:**
   1. โยน `ApiError("รหัสใหม่")` ฝั่ง backend
   2. เพิ่มข้อความไทยใน `frontend/src/i18n/locales/th.ts` → กลุ่ม `errors`
@@ -110,6 +114,12 @@ raise ApiError("quiz_time_over", status_code=409)
 | `avatar_invalid_type` | 400 | รูปประจำตัว: ไม่ใช่รูป / ไฟล์เสีย / ไม่ใช่ JPG-PNG-WebP (ตรวจจากเนื้อไฟล์) | 1 |
 | `cannot_modify_self` | 403 | จัดการบัญชี: ผู้ดูแลระบบระงับ / เปิดใช้งาน / เปลี่ยนบทบาท / รีเซ็ตรหัสของบัญชีตัวเอง (§7.2) | 2 |
 | `last_active_admin` | 409 | จัดการบัญชี: ระงับหรือลดบทบาทแล้วจะไม่เหลือผู้ดูแลระบบที่ใช้งานได้ (§7.2) | 2 |
+| `csv_unreadable` | 400 | นำเข้า CSV: อ่านไม่ออก — ไม่ใช่ UTF-8 / TIS-620, เป็นไฟล์ชนิดอื่น (เช่น `.xlsx`, UTF-16) หรือรูปแบบ CSV เสีย (§7.4) | 2 |
+| `csv_too_large` | 400 | นำเข้า CSV: ไฟล์ใหญ่เกิน 1 MB | 2 |
+| `csv_too_many_rows` | 400 | นำเข้า CSV: แถวข้อมูลเกิน 500 แถว (ไม่นับหัวตารางและแถวว่าง) | 2 |
+| `csv_empty` | 400 | นำเข้า CSV: ไฟล์ว่าง หรือมีแต่หัวตาราง | 2 |
+| `csv_missing_columns` | 400 | นำเข้า CSV: ขาดคอลัมน์ที่บังคับ — แนบ `fields` เช่น `{"role": ["required"]}` | 2 |
+| `csv_invalid` | 400 | นำเข้า CSV: กดนำเข้าแต่ยังมีแถวผิด — แนบ `report` (ไม่สร้างบัญชีใดเลย) | 2 |
 
 > token ใช้ไม่ได้ทุกแบบ (หมดอายุ / ลายเซ็นผิด / ถูกยกเลิก / บัญชีถูกระงับระหว่างใช้งาน / ออกก่อนเปลี่ยนรหัสผ่าน) ตอบ `authentication_failed` (401) รหัสเดียว — รหัสย่อยของ Simple JWT (`token_not_valid`, `user_inactive` ฯลฯ) ถูกรวมใน `api_exception_handler`
 
@@ -204,6 +214,8 @@ cookie ตั้งค่า: `HttpOnly` ; `Path=/api/v1/auth/` (ส่งเฉ
 | `PATCH /api/v1/admin/users/{id}/` | `{email?, student_or_staff_id?, first_name?, last_name?, role?}` — ส่งเฉพาะช่องที่แก้ ; `is_active` / `is_staff` / `password` ส่งมาไม่มีผล | 200 `admin_user` | 400 `validation_error` (เหมือนเพิ่มบัญชี) / 403 `cannot_modify_self` (เปลี่ยนบทบาทตัวเอง) / 404 / 409 `last_active_admin` |
 | `POST /api/v1/admin/users/{id}/suspend/` | (ไม่มี body) | 200 `admin_user` (`is_active: false`) — ระงับอยู่แล้วก็ 200 | 403 `cannot_modify_self` / 404 / 409 `last_active_admin` |
 | `POST /api/v1/admin/users/{id}/activate/` | (ไม่มี body) | 200 `admin_user` (`is_active: true`) — ใช้งานได้อยู่แล้วก็ 200 | 403 `cannot_modify_self` / 404 |
+| `POST /api/v1/admin/users/import/validate/` | multipart ช่อง `file` (CSV) | 200 รายงาน (§7.4) — **ยังไม่บันทึก** ; ตอบ 200 ทั้งไฟล์ถูกและผิด | 400 `csv_*` ระดับไฟล์ (§3.3) / `validation_error` (`{"file": ["required"]}`) |
+| `POST /api/v1/admin/users/import/` | multipart ช่อง `file` (ไฟล์เดิมที่ตรวจแล้ว — ส่งซ้ำ) | 201 `{created, by_role, users}` พร้อม**รหัสผ่านชั่วคราวครั้งเดียว** + `Cache-Control: no-store` (§7.4) | 400 `csv_invalid` + `report` / `csv_*` ระดับไฟล์ |
 | `POST /api/v1/admin/users/{id}/password/` | `{"new_password": "..."}` (ไม่ตัดช่องว่าง) | 204 (ไม่ส่งรหัสกลับ) — refresh token ทุกใบของผู้ใช้ขึ้นบัญชีดำ + บัตรเดิมใช้ไม่ได้ (`pwd`) → **ทุกอุปกรณ์ของผู้ใช้ออกทันที** ; บัญชีที่ถูกระงับรีเซ็ตได้ | 400 `validation_error` (`new_password` → รหัสกฎ §3.2 เทียบกับเจ้าของบัญชี) / 403 `cannot_modify_self` / 404 |
 
 `admin_user` = `{id, email, student_or_staff_id, role, first_name, last_name, is_active, avatar_url, date_joined, last_login}` (`last_login` ยังไม่เคยเข้า = `null` ; ไม่มีรหัสผ่านหรือข้อมูลภายในเช่น `is_staff`)
@@ -225,5 +237,52 @@ cookie ตั้งค่า: `HttpOnly` ; `Path=/api/v1/auth/` (ส่งเฉ
 | แก้ไข (รวมผู้ดูแลระบบแก้บัญชีตัวเองผ่านหน้านี้ — ผู้ใช้เลือกแบบ ก ขั้น 2.3) | `update` | เฉพาะช่องที่เปลี่ยน เช่น `{"role": ["student", "teacher"]}` |
 | ระงับ / เปิดใช้งาน | `update` | `{"is_active": [true, false]}` / `{"is_active": [false, true]}` |
 | รีเซ็ตรหัสผ่าน | `update` | `{"password": ["***", "***"]}` |
+| นำเข้า CSV (ขั้น 2.4) | `create` **1 รายการต่อบัญชี** | แบบเดียวกับเพิ่มบัญชี (ทุกรายการอยู่ใน transaction เดียวกับการสร้างทั้งไฟล์) |
 
 > การแก้ข้อมูลตัวเองที่หน้าข้อมูลส่วนตัว (`/api/v1/auth/me/…` — UC-02) **ไม่จด**
+
+### 7.4 นำเข้าบัญชีจาก CSV (ขั้น 2.4)
+
+**ลำดับ:** เลือกไฟล์ → `import/validate/` (ตรวจ ยังไม่บันทึก) → ถูกทุกแถว = แสดงสรุป → กด "นำเข้า" → ส่ง**ไฟล์เดิมซ้ำ**ไปที่ `import/` → server ตรวจใหม่ทั้งหมดแล้วสร้าง**ทุกแถวใน transaction เดียว** (พลาดแถวไหน = ไม่สร้างเลย) — server ไม่เก็บไฟล์ระหว่างสองรอบ (ไม่ต้องมีงานล้างไฟล์ค้าง ; จับข้อมูลซ้ำที่เพิ่งเกิดระหว่างสองรอบได้)
+
+**ไฟล์:**
+- คอลัมน์ที่ต้องมี: `email, student_or_staff_id, first_name, last_name, role` — ไม่สนตัวพิมพ์/ช่องว่าง เรียงลำดับไหนก็ได้ ; คอลัมน์เกินไม่สนใจ ; ตัวคั่น = จุลภาค
+- การเข้ารหัส: UTF-8 (มี/ไม่มี BOM) หรือ TIS-620/cp874 — ตรวจอัตโนมัติ
+- ≤ 1 MB และ ≤ 500 แถวข้อมูล ; แถวว่างทั้งแถวถูกข้าม (เลขแถวยังนับตาม Excel)
+- `role`: `teacher` / `student` / `ผู้สอน` / `ผู้เรียน` (ไม่สนตัวพิมพ์ — ผู้ใช้เลือกแบบ ก) ; `admin` / `ผู้ดูแลระบบ` → `csv_admin_not_allowed`
+- `student_or_staff_id` ว่างได้ ; ช่องอื่นตรวจด้วยกติกาเดียวกับเพิ่มบัญชีทีละคน (§7.1)
+
+**รายงาน** (คำตอบของ `import/validate/` และ `report` ของ `csv_invalid`):
+
+```json
+{
+  "valid": false,
+  "total": 120,
+  "by_role": {"teacher": 2, "student": 118},
+  "errors": [
+    {"row": 7, "column": "email", "code": "unique", "value": "a@example.com"},
+    {"row": 9, "column": "email", "code": "duplicate_in_file", "value": "b@example.com", "duplicate_of": 4}
+  ]
+}
+```
+
+- `row` = เลขแถวแบบ Excel (หัวตาราง = 1) ; `value` = ค่าในไฟล์ (ตัดไม่เกิน 200 ตัว) ; `code` = รหัสรายช่อง §3.2 (ข้อความไทยใน `fieldErrors`) ; แต่ละช่องรายงานปัญหาแรก
+- `by_role` นับจากแถวที่ระบุบทบาทถูก ; `duplicate_of` มีเฉพาะ `duplicate_in_file`
+
+**ผลการนำเข้า** (201):
+
+```json
+{
+  "created": 120,
+  "by_role": {"teacher": 2, "student": 118},
+  "users": [
+    {"row": 2, "id": 15, "email": "a@example.com", "student_or_staff_id": "690000001",
+     "first_name": "สมชาย", "last_name": "ใจดี", "role": "student", "password": "<รหัสชั่วคราว>"}
+  ]
+}
+```
+
+- **รหัสผ่านอยู่ในคำตอบนี้ครั้งเดียว** — server เก็บแค่ค่าที่เข้ารหัสแล้ว ; หน้าเว็บ (ขั้น 2.7) สร้างไฟล์ให้ดาวน์โหลด — **ต้องกันสูตร Excel** ในไฟล์ผลลัพธ์ (ชื่อที่ขึ้นต้นด้วย `=` `+` `-` `@`)
+- รหัสชั่วคราว: สุ่ม 12 ตัวด้วย `secrets` จากอักขระ 56 แบบ (ตัด `l I 1 o O 0` ; ไม่มีสัญลักษณ์) และผ่านกฎรหัสผ่าน 4 ข้อ (`accounts/passwords.py`)
+- **เข้ารหัสแบบเบา** (`accounts/hashers.py` — PBKDF2 2,000 รอบ แทน 1,000,000 ; ผู้ใช้เลือกแบบ ก): ตัวหลักใช้ ~0.4 วินาทีต่อรหัส → 500 คนช้าเกินจนคำขอถูกตัดบนเครื่องฟรี ; วัดจริงแบบเบา 500 แถว ~1.2 วินาที ; รหัสสุ่ม ≈ 2^69 แบบจึงยังเดาไม่ได้ ; **ผู้ใช้เข้าสู่ระบบครั้งแรก Django เปลี่ยนเป็นตัวหลักให้อัตโนมัติ** (บัตรที่ได้จากการเข้าสู่ระบบครั้งนั้นใช้ได้ปกติ)
+- บัญชีที่สร้าง: `is_staff = false`, `created_by` = ผู้ดูแลระบบที่นำเข้า ; จด AuditLog `create` ทีละบัญชี (§7.3)
