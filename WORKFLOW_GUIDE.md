@@ -320,7 +320,7 @@ repo: https://github.com/AtipatSuttatham/Mangosteen_Campus_204491
 | `/api/health/` ขึ้น `"database":"unavailable"` หรือ test ต่อฐานข้อมูลไม่ได้ | ยังไม่เปิด Docker Desktop / ยังไม่สั่ง `docker compose up -d` | ทำตามหัวข้อ 3.1 |
 | เปิด backend แล้วได้หน้าของระบบอื่น หรือ 404 แปลก ๆ | พอร์ตชนกับโปรแกรมอื่น (เช่น 8000 = DocuSynth) | ใช้พอร์ต 8008 ตามหัวข้อ 3.2 |
 | Docker Desktop ค้าง / ขึ้นว่าต่อ engine ไม่ได้ | engine ของ Docker หยุดทำงาน | คลิกขวาไอคอนปลาวาฬ → Quit Docker Desktop → เปิดใหม่ → รอ "Engine running" (ข้อมูลใน volume ไม่หาย) |
-| backend / `/admin/` ขึ้น `relation "accounts_user" does not exist` (หรือตารางอื่น) | ยังไม่ได้สร้างตารางในฐานข้อมูล | สั่ง `uv run python manage.py migrate` ในโฟลเดอร์ `backend` (หัวข้อ 3.2) |
+| backend / `/admin/` ขึ้น `relation "accounts_user" does not exist` (หรือตารางอื่น เช่น `audit_auditlog` ที่เพิ่มในขั้น 2.2) | ยังไม่ได้สร้างตารางในฐานข้อมูล | สั่ง `uv run python manage.py migrate` ในโฟลเดอร์ `backend` (หัวข้อ 3.2) |
 | ลืมรหัสผ่านบัญชีทดลอง | รหัสแสดงบนหน้าจอครั้งเดียวตอนสร้าง | `uv run python manage.py seed_dev_users --reset-passwords` (หัวข้อ 3.2) |
 | `uv add` / `uv sync` ขึ้น `failed to hardlink file` ... `incompatible hardlinks (os error 396)` แล้ว backend ขึ้น `No module named ...` | uv สร้าง link ไปที่ cache ไม่ได้ (เกิดกับโฟลเดอร์บางชนิดบน Windows) แพ็กเกจจึงติดตั้งไม่ครบ | สั่งใหม่โดยบอกให้คัดลอกไฟล์แทน: PowerShell `$env:UV_LINK_MODE='copy'; uv sync --reinstall` (ในโฟลเดอร์ `backend`) แล้วเปิด backend ใหม่ |
 | login แล้วขึ้น "ระบบขัดข้อง" หรือ "ติดต่อเซิร์ฟเวอร์ไม่ได้" (หรือเคยเข้าสู่ระบบไว้แล้วแต่ถูกพาไปหน้าเข้าสู่ระบบ) | backend ไม่ได้เปิด — หน้าเว็บตรวจบัตรกับ backend ไม่ได้ | เปิด backend ตามหัวข้อ 3.2 แล้วรีเฟรช ; ตรวจได้ที่ http://localhost:5180/dev/health |

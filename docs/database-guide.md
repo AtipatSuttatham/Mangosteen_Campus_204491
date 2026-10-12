@@ -16,7 +16,7 @@
 - **Backend**: Django 5.2 + DRF + Simple JWT, PostgreSQL. **Frontend**: React + Vite + TypeScript + Tailwind CSS (SPA — origin เดียวกับ backend). ชื่อระบบ: **Mangosteen Campus**
 - **ทิศทางข้อมูล**: frontend เรียก REST API → DRF serializer/viewset → service layer → model. **ไม่มี** business logic ใน frontend
 - **กลไกอัตโนมัติที่ต้องรู้**:
-  1. **`Auditable` / `log_action`** — เหตุการณ์สำคัญเขียน `AuditLog` อัตโนมัติ (ขอบเขตตาม §1 audit)
+  1. **`log_action()`** (`audit/services.py`) — โค้ดของเหตุการณ์สำคัญเรียกฟังก์ชันนี้เพื่อเขียน `AuditLog` ใน transaction เดียวกับการแก้ข้อมูล (ขอบเขตตาม `database.md` §10 ; ไม่มี marker `Auditable` แล้ว — v2.4)
   2. **สร้าง `GradeItem` อัตโนมัติ** — Quiz/Assignment ที่ `is_graded=True` เผยแพร่ครั้งแรก
   3. **signal sync คะแนน** — `QuizAttempt` / `Submission` ที่ `graded` → เขียน `Score`
   4. **คะแนนรวมคำนวณสด** จาก `Score` ทุกครั้งที่แสดงผล (ไม่มีตาราง cache)
