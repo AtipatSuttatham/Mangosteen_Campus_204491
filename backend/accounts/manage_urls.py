@@ -4,7 +4,12 @@
 
 from django.urls import path
 
-from accounts.manage_views import AdminUserDetailView, AdminUserListView, AdminUserStatusView
+from accounts.manage_views import (
+    AdminPasswordResetView,
+    AdminUserDetailView,
+    AdminUserListView,
+    AdminUserStatusView,
+)
 
 urlpatterns = [
     # รายชื่อผู้ใช้ (ค้นหา / กรอง / แบ่งหน้า)
@@ -21,5 +26,11 @@ urlpatterns = [
         "users/<int:pk>/activate/",
         AdminUserStatusView.as_view(is_active_after=True),
         name="admin-user-activate",
+    ),
+    # รีเซ็ตรหัสผ่าน (อุปกรณ์เดิมของผู้ใช้ออกจากระบบทันที)
+    path(
+        "users/<int:pk>/password/",
+        AdminPasswordResetView.as_view(),
+        name="admin-user-password",
     ),
 ]

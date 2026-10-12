@@ -569,3 +569,129 @@ class TestSuspendActivate:
         assert teacher_client.post(suspend_url(student)).status_code == 403
         student.refresh_from_db()
         assert student.is_active is True
+
+
+# --- รีเซ็ตรหัสผ่าน ---
+
+NEW_PASSWORD = "reset-pass-7314"
+
+
+def password_url(user: User) -> str:
+    return f"{detail_url(user)}password/"
+
+
+class TestPasswordReset:
+    def test_reset_changes_password_and_returns_204(
+        self, admin_client: APIClient, student: User
+    ) -> None:
+        response = admin_client.post(
+            password_url(student), {"new_password": NEW_PASSWORD}, format="json"
+        )
+        assert response.status_code == 204
+        assert response.content == b""
+        student.refresh_from_db()
+        assert student.check_password(NEW_PASSWORD)
+        assert not student.check_password(PASSWORD)
+
+    def test_all_devices_are_logged_out(self, admin_client: APIClient, student: User) -> None:
+        student_client = client_for(student)
+        refresh = issue_refresh_token(student)
+
+        admin_client.post(password_url(student), {"new_password": NEW_PASSWORD}, format="json")
+
+        # บัตรผ่านเดิมใช้ไม่ได้ทันที (ลายนิ้วมือ pwd ไม่ตรง)
+        assert student_client.get("/api/v1/auth/me/").status_code == 401
+        # บัตรสมาชิกเดิมแลกไม่ได้
+        refresher = APIClient()
+        refresher.cookies[settings.REFRESH_COOKIE_NAME] = str(refresh)
+        assert refresher.post("/api/v1/auth/refresh/").status_code == 401
+        # เข้าสู่ระบบด้วยรหัสใหม่ได้
+        login = APIClient().post(
+            "/api/v1/auth/login/",
+            {"identifier": "690000001", "password": NEW_PASSWORD},
+            format="json",
+        )
+        assert login.status_code == 200
+
+    def test_audit_log_masks_password(
+        self, admin_client: APIClient, admin: User, student: User
+    ) -> None:
+        admin_client.post(password_url(student), {"new_password": NEW_PASSWORD}, format="json")
+        log = AuditLog.objects.get()
+        assert log.actor == admin
+        assert log.action == AuditAction.UPDATE
+        assert log.object_id == str(student.pk)
+        assert log.changes == {"password": ["***", "***"]}
+
+    @pytest.mark.parametrize(
+        ("password", "code"),
+        [
+            ("short1", "password_too_short"),
+            ("password123", "password_too_common"),
+            ("8392017465", "password_entirely_numeric"),
+            ("somchai-example", "password_too_similar"),
+        ],
+    )
+    def test_password_rules_against_account_owner(
+        self, admin_client: APIClient, student: User, password: str, code: str
+    ) -> None:
+        response = admin_client.post(
+            password_url(student), {"new_password": password}, format="json"
+        )
+        assert response.status_code == 400
+        assert code in response.json()["fields"]["new_password"]
+        student.refresh_from_db()
+        assert student.check_password(PASSWORD)
+        assert not AuditLog.objects.exists()
+
+    def test_missing_password(self, admin_client: APIClient, student: User) -> None:
+        response = admin_client.post(password_url(student), {}, format="json")
+        assert response.json()["fields"] == {"new_password": ["required"]}
+
+    def test_can_reset_suspended_user(self, admin_client: APIClient, student: User) -> None:
+        User.objects.filter(pk=student.pk).update(is_active=False)
+        response = admin_client.post(
+            password_url(student), {"new_password": NEW_PASSWORD}, format="json"
+        )
+        assert response.status_code == 204
+
+    def test_cannot_reset_own_password(self, admin_client: APIClient, admin: User) -> None:
+        response = admin_client.post(
+            password_url(admin), {"new_password": NEW_PASSWORD}, format="json"
+        )
+        assert response.status_code == 403
+        assert response.json()["code"] == "cannot_modify_self"
+        admin.refresh_from_db()
+        assert admin.check_password(PASSWORD)
+
+    def test_unknown_user_is_404(self, admin_client: APIClient) -> None:
+        response = admin_client.post(
+            f"{USERS_URL}999999/password/", {"new_password": NEW_PASSWORD}, format="json"
+        )
+        assert response.status_code == 404
+
+    def test_non_admin_gets_403(self, student: User) -> None:
+        teacher_client = client_for(make_user("t@example.com", User.Role.TEACHER))
+        response = teacher_client.post(
+            password_url(student), {"new_password": NEW_PASSWORD}, format="json"
+        )
+        assert response.status_code == 403
+        student.refresh_from_db()
+        assert student.check_password(PASSWORD)
+
+
+# --- ความลับ: ไม่มีคำตอบใดมีรหัสผ่านหรือ hash ---
+
+
+def test_no_response_contains_password_hash(admin_client: APIClient, student: User) -> None:
+    responses = [
+        admin_client.get(USERS_URL),
+        admin_client.get(detail_url(student)),
+        admin_client.post(USERS_URL, new_user_payload(), format="json"),
+        admin_client.patch(detail_url(student), {"first_name": "สมชาย2"}, format="json"),
+        admin_client.post(suspend_url(student)),
+    ]
+    for response in responses:
+        text = response.content.decode()
+        assert "password" not in text
+        assert "pbkdf2" not in text and "argon2" not in text

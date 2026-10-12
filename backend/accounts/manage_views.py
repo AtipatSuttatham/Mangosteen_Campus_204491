@@ -16,6 +16,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from accounts.manage_serializers import (
+    AdminPasswordResetSerializer,
     AdminUserCreateSerializer,
     AdminUserFilterSerializer,
     AdminUserSerializer,
@@ -23,6 +24,7 @@ from accounts.manage_serializers import (
 )
 from accounts.models import User
 from accounts.permissions import IsAdminRole
+from accounts.tokens import revoke_all_refresh_tokens
 from audit.models import AuditAction
 from audit.services import created_changes, diff_changes, field_values, log_action
 from common.exceptions import ApiError
@@ -249,3 +251,40 @@ class AdminUserStatusView(APIView):
                     changes={"is_active": [not target_status, target_status]},
                 )
         return Response(AdminUserSerializer(user).data)
+
+
+class AdminPasswordResetView(APIView):
+    """
+    POST /api/v1/admin/users/{id}/password/  {new_password}   รีเซ็ตรหัสผ่านให้ผู้ใช้ที่ลืมรหัส
+
+    - สำเร็จ → 204 (ไม่ส่งรหัสกลับ — ผู้ดูแลระบบรู้รหัสอยู่แล้วเพราะพิมพ์/สุ่มเอง)
+      ผลกับผู้ใช้: refresh token ทุกใบขึ้นบัญชีดำ + บัตรเดิมทุกใบมีลายนิ้วมือรหัสเก่า (pwd)
+      → **ทุกอุปกรณ์ของผู้ใช้ออกจากระบบทันที** (กลไกจากขั้น 1.7)
+    - รหัสไม่ผ่านกฎ 4 ข้อ → 400 validation_error ช่อง new_password (เทียบความคล้ายกับเจ้าของบัญชี)
+    - บัญชีของตัวเอง → 403 cannot_modify_self (ใช้หน้าข้อมูลส่วนตัวซึ่งต้องกรอกรหัสเดิม)
+    - ไม่พบ → 404 not_found ; รีเซ็ตให้บัญชีที่ถูกระงับได้ (เตรียมรหัสไว้ก่อนเปิดใช้งาน)
+    - จด AuditLog {"password": ["***", "***"]} — ไม่เก็บรหัสผ่านเด็ดขาด
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminRole]
+
+    def post(self, request: Request, pk: int) -> Response:
+        if pk == request.user.pk:
+            raise cannot_modify_self_error()
+
+        with transaction.atomic():
+            user = get_object_or_404(User.objects.select_for_update(), pk=pk)
+            serializer = AdminPasswordResetSerializer(data=request.data, context={"user": user})
+            serializer.is_valid(raise_exception=True)
+
+            user.set_password(serializer.validated_data["new_password"])
+            user.save(update_fields=["password", "updated_at"])
+            revoke_all_refresh_tokens(user)
+            # ค่าในช่อง password ถูกแทนเป็น ["***", "***"] โดย log_action เสมอ
+            log_action(
+                actor=request.user,
+                action=AuditAction.UPDATE,
+                target=user,
+                changes={"password": None},
+            )
+        return Response(status=status.HTTP_204_NO_CONTENT)

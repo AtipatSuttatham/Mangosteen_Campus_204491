@@ -130,3 +130,19 @@ class AdminUserCreateSerializer(AdminUserWriteSerializer):
                 {"password": _password_errors(error).detail}
             ) from error
         return attrs
+
+
+class AdminPasswordResetSerializer(serializers.Serializer):
+    """
+    รีเซ็ตรหัสผ่าน: POST /api/v1/admin/users/{id}/password/  {new_password}
+    ต้องผ่านกฎ 4 ข้อ (ข้อ "ไม่คล้ายชื่อ/อีเมล" เทียบกับเจ้าของบัญชี) ; ต้องส่ง context={"user": เจ้าของบัญชี}
+    """
+
+    new_password = serializers.CharField(max_length=128, trim_whitespace=False)
+
+    def validate_new_password(self, value: str) -> str:
+        try:
+            validate_password(value, self.context["user"])
+        except DjangoValidationError as error:
+            raise _password_errors(error) from error
+        return value
