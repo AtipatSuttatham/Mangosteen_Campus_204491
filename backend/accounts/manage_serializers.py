@@ -146,3 +146,90 @@ class AdminPasswordResetSerializer(serializers.Serializer):
         except DjangoValidationError as error:
             raise _password_errors(error) from error
         return value
+
+
+class CsvUploadSerializer(serializers.Serializer):
+    """
+    ไฟล์ที่อัปโหลดเพื่อนำเข้าบัญชี (multipart ช่อง "file") — ขั้น 2.4
+    ไม่ส่งไฟล์ → {"file": ["required"]} ; ไฟล์ว่างผ่านตรงนี้ แล้วไปตอบ csv_empty ในตัวอ่านไฟล์
+    (ขนาด / การเข้ารหัส / หัวตาราง ตรวจใน accounts/csv_import.py)
+    """
+
+    file = serializers.FileField(allow_empty_file=True)
+
+
+# ค่าในคอลัมน์ role ที่รับ (ไม่สนตัวพิมพ์ — ผู้ใช้เลือกข้อ 2.ก ขั้น 2.4: รับทั้งอังกฤษและไทย)
+CSV_ROLE_ALIASES = {
+    "teacher": User.Role.TEACHER,
+    "ผู้สอน": User.Role.TEACHER,
+    "student": User.Role.STUDENT,
+    "ผู้เรียน": User.Role.STUDENT,
+}
+# ค่าที่หมายถึงผู้ดูแลระบบ → ผิดเสมอ (สร้างผู้ดูแลระบบจาก CSV ไม่ได้ — csv_admin_not_allowed)
+CSV_ADMIN_ALIASES = {"admin", "ผู้ดูแลระบบ"}
+
+
+def csv_role(value: str) -> str | None:
+    """แปลงค่าในคอลัมน์ role เป็นบทบาทในระบบ (teacher / student) ; ไม่รู้จัก → None"""
+    return CSV_ROLE_ALIASES.get(value.strip().lower())
+
+
+class CsvRowSerializer(AdminUserWriteSerializer):
+    """
+    ตรวจข้อมูล 1 แถวของไฟล์ CSV — กติกาเดียวกับเพิ่มบัญชีทีละคน (ชื่อห้ามว่าง, รูปแบบอีเมล, ความยาว ฯลฯ)
+    ต่างกันที่:
+    - role: รับ teacher / student / ผู้สอน / ผู้เรียน ; admin → csv_admin_not_allowed ;
+      ค่าอื่น → invalid_choice
+    - ตรวจซ้ำกับบัญชีในระบบจากชุดข้อมูลที่โหลดไว้ครั้งเดียวทั้งไฟล์ (ไม่ถามฐานข้อมูลทีละแถว — 500 แถวก็เร็ว)
+      ซ้ำในระบบ → unique ; ซ้ำกับแถวก่อนหน้าในไฟล์เดียวกัน → duplicate_in_file (จดแถวที่ซ้ำไว้ใน duplicate_of)
+
+    context ที่ต้องส่ง (ใช้ร่วมกันทุกแถวของไฟล์):
+        existing_emails / existing_ids : อีเมล / รหัสที่มีอยู่แล้วในระบบ
+        seen_emails / seen_ids         : {ค่า: เลขแถวแรกที่ใช้ค่านี้} — ตัวตรวจเติมให้เอง
+        row                            : เลขแถวของแถวนี้
+    """
+
+    # รับข้อความใด ๆ แล้วแปลงเองใน validate_role (ไม่ใช้ ChoiceField เพราะต้องรับค่าภาษาไทย)
+    role = serializers.CharField()
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # {ชื่อคอลัมน์: เลขแถวก่อนหน้าที่ใช้ค่าเดียวกัน} — ใช้ประกอบรายงาน duplicate_in_file
+        self.duplicate_of: dict[str, int] = {}
+
+    def _check_duplicate(self, column: str, value: str, existing: set, seen: dict) -> None:
+        """ซ้ำกับบัญชีในระบบ → unique ; ซ้ำกับแถวก่อนหน้าในไฟล์ → duplicate_in_file ; ไม่ซ้ำ → จดว่าแถวนี้ใช้แล้ว"""
+        if value in existing:
+            raise serializers.ValidationError("Already in use.", code="unique")
+        if value in seen:
+            self.duplicate_of[column] = seen[value]
+            raise serializers.ValidationError("Duplicated in this file.", code="duplicate_in_file")
+        seen[value] = self.context["row"]
+
+    def validate_email(self, value: str) -> str:
+        email = normalize_email(value)
+        self._check_duplicate(
+            "email", email, self.context["existing_emails"], self.context["seen_emails"]
+        )
+        return email
+
+    def validate_student_or_staff_id(self, value: str | None) -> str | None:
+        value = normalize_student_or_staff_id(value)
+        if value:
+            self._check_duplicate(
+                "student_or_staff_id",
+                value,
+                self.context["existing_ids"],
+                self.context["seen_ids"],
+            )
+        return value
+
+    def validate_role(self, value: str) -> str:
+        if value.strip().lower() in CSV_ADMIN_ALIASES:
+            raise serializers.ValidationError(
+                "Admins cannot be imported from CSV.", code="csv_admin_not_allowed"
+            )
+        role = csv_role(value)
+        if role is None:
+            raise serializers.ValidationError("Unknown role.", code="invalid_choice")
+        return role

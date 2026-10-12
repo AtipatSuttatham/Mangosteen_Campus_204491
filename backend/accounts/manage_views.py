@@ -15,12 +15,14 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from accounts.csv_import import read_csv_upload, validate_rows
 from accounts.manage_serializers import (
     AdminPasswordResetSerializer,
     AdminUserCreateSerializer,
     AdminUserFilterSerializer,
     AdminUserSerializer,
     AdminUserWriteSerializer,
+    CsvUploadSerializer,
 )
 from accounts.models import User
 from accounts.permissions import IsAdminRole
@@ -288,3 +290,28 @@ class AdminPasswordResetView(APIView):
                 changes={"password": None},
             )
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+def _uploaded_csv(request: Request):
+    """ไฟล์ CSV จากช่อง "file" ของคำขอแบบ multipart ; ไม่ส่งไฟล์ → 400 validation_error"""
+    serializer = CsvUploadSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    return serializer.validated_data["file"]
+
+
+class AdminUserImportValidateView(APIView):
+    """
+    POST /api/v1/admin/users/import/validate/   (multipart: file)   ตรวจไฟล์ CSV — **ยังไม่บันทึก**
+
+    - ตรวจได้ (ถูกหรือผิดก็ตาม) → 200 รายงาน {valid, total, by_role, errors} (ดู csv_import.validate_rows)
+    - ปัญหาระดับไฟล์ → 400 csv_unreadable / csv_too_large / csv_too_many_rows / csv_empty /
+      csv_missing_columns (+ fields บอกคอลัมน์ที่ขาด) ; ไม่ส่งไฟล์ → 400 validation_error
+    - ไม่ใช่ผู้ดูแลระบบ → 403 permission_denied
+    หน้าเว็บเรียกที่อยู่นี้ทันทีที่เลือกไฟล์ (การตัดสินใจก้อน 2 "นำเข้า CSV")
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminRole]
+
+    def post(self, request: Request) -> Response:
+        rows = read_csv_upload(_uploaded_csv(request))
+        return Response(validate_rows(rows).report)

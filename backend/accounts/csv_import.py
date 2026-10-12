@@ -4,16 +4,20 @@
 ขั้นตอนของไฟล์ 1 ไฟล์:
     read_csv_upload()   อ่านไฟล์: จำกัดขนาด → ถอดรหัสภาษา (UTF-8 / TIS-620) → แยกแถว → ตรวจหัวตาราง
                         ปัญหาระดับไฟล์ → ApiError (csv_unreadable, csv_too_large, ...) ทันที
+    validate_rows()     ตรวจทุกแถว (ยังไม่บันทึก) → รายงาน {valid, total, by_role, errors}
+                        ปัญหารายแถวไม่หยุดกลางทาง — รวบรวมทุกแถวให้ผู้ดูแลระบบแก้ได้ในรอบเดียว
 """
 
 import codecs
 import csv
 import io
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from django.conf import settings
 from django.core.files.uploadedfile import UploadedFile
 
+from accounts.manage_serializers import CsvRowSerializer, csv_role
+from accounts.models import User, normalize_email, normalize_student_or_staff_id
 from common.exceptions import ApiError
 
 # คอลัมน์ที่ไฟล์ต้องมี (ตามข้อตกลง "รหัสผ่านตอนนำเข้า CSV" ใน CLAUDE.md) — ลำดับในไฟล์เรียงแบบไหนก็ได้
@@ -126,3 +130,88 @@ def read_csv_upload(upload: UploadedFile) -> list[CsvRow]:
     if not rows:
         raise ApiError("csv_empty", "The file has no data rows.")
     return rows
+
+
+@dataclass
+class ValidationResult:
+    """ผลการตรวจทั้งไฟล์"""
+
+    # รายงานที่ส่งกลับให้หน้าเว็บ: {valid, total, by_role, errors}
+    report: dict
+    # ข้อมูลที่ตรวจแล้วของทุกแถว (ใช้ตอนนำเข้า) — มีครบเฉพาะเมื่อ report["valid"] เป็นจริง
+    # แต่ละรายการ = (เลขแถว, {email, student_or_staff_id, first_name, last_name, role})
+    rows: list[tuple[int, dict]] = field(default_factory=list)
+
+
+def _report_value(value: str) -> str:
+    """ค่าในไฟล์ที่แสดงในรายงาน (ตัดให้ไม่ยาวเกิน)"""
+    return value[:REPORT_VALUE_MAX]
+
+
+def validate_rows(rows: list[CsvRow]) -> ValidationResult:
+    """
+    ตรวจทุกแถวด้วย CsvRowSerializer (กติกาเดียวกับเพิ่มบัญชีทีละคน) — ยังไม่บันทึกอะไร
+
+    รายงาน:
+        {
+          "valid": false,                              ← ถูกทุกแถวหรือไม่
+          "total": 120,                                ← จำนวนแถวข้อมูล
+          "by_role": {"teacher": 2, "student": 118},  ← นับจากแถวที่ระบุบทบาทถูก
+          "errors": [                                  ← เรียงตามแถว แล้วตามลำดับคอลัมน์
+            {"row": 7, "column": "email", "code": "unique", "value": "a@example.com"},
+            {"row": 9, "column": "email", "code": "duplicate_in_file", "value": "b@example.com",
+             "duplicate_of": 4}                        ← มีเฉพาะ duplicate_in_file: แถวก่อนหน้าที่ใช้ค่านี้
+          ]
+        }
+    """
+    # โหลดอีเมล/รหัสที่ชนกับบัญชีในระบบด้วย query เดียวต่อชนิด (แทนการถามทีละแถว)
+    emails = {normalize_email(row.values["email"]) for row in rows}
+    ids = {normalize_student_or_staff_id(row.values["student_or_staff_id"]) for row in rows}
+    ids.discard(None)
+    context = {
+        "existing_emails": set(
+            User.objects.filter(email__in=emails).values_list("email", flat=True)
+        ),
+        "existing_ids": set(
+            User.objects.filter(student_or_staff_id__in=ids).values_list(
+                "student_or_staff_id", flat=True
+            )
+        ),
+        "seen_emails": {},
+        "seen_ids": {},
+    }
+
+    errors: list[dict] = []
+    valid_rows: list[tuple[int, dict]] = []
+    by_role = {User.Role.TEACHER.value: 0, User.Role.STUDENT.value: 0}
+
+    for row in rows:
+        serializer = CsvRowSerializer(data=row.values, context={**context, "row": row.number})
+        if serializer.is_valid():
+            valid_rows.append((row.number, dict(serializer.validated_data)))
+        else:
+            for column in COLUMNS:
+                if column not in serializer.errors:
+                    continue
+                # แต่ละช่องรายงานปัญหาแรก (พอให้แก้ ; แก้แล้วตรวจใหม่จะเห็นข้อถัดไปถ้ามี)
+                item = {
+                    "row": row.number,
+                    "column": column,
+                    "code": serializer.errors[column][0].code,
+                    "value": _report_value(row.values[column]),
+                }
+                if column in serializer.duplicate_of:
+                    item["duplicate_of"] = serializer.duplicate_of[column]
+                errors.append(item)
+
+        role = csv_role(row.values["role"])
+        if role is not None:
+            by_role[role] += 1
+
+    report = {
+        "valid": not errors,
+        "total": len(rows),
+        "by_role": by_role,
+        "errors": errors,
+    }
+    return ValidationResult(report=report, rows=valid_rows if not errors else [])
