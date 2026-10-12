@@ -28,6 +28,25 @@ describe('errorMessage', () => {
     )
   })
 
+  it('รหัสของการนำเข้า CSV (ขั้น 2.4) → ข้อความไทย', () => {
+    expect(errorMessage('csv_unreadable')).toBe(
+      'อ่านไฟล์ไม่ได้ กรุณาบันทึกจาก Excel เป็นไฟล์ CSV แล้วลองใหม่',
+    )
+    expect(errorMessage('csv_too_large')).toBe(
+      'ไฟล์มีขนาดใหญ่เกินไป กรุณาใช้ไฟล์ที่มีขนาดไม่เกิน 1 MB',
+    )
+    expect(errorMessage('csv_too_many_rows')).toBe(
+      'ไฟล์มีรายชื่อเกิน 500 แถว กรุณาแบ่งเป็นหลายไฟล์',
+    )
+    expect(errorMessage('csv_empty')).toBe(
+      'ไม่พบรายชื่อในไฟล์ กรุณาตรวจสอบว่ามีข้อมูลใต้แถวหัวตาราง',
+    )
+    expect(errorMessage('csv_missing_columns')).toBe(
+      'ไฟล์ขาดคอลัมน์ที่จำเป็น กรุณาใช้หัวตารางตามไฟล์ตัวอย่าง',
+    )
+    expect(errorMessage('csv_invalid')).toBe('ไฟล์ยังมีแถวที่ไม่ถูกต้อง กรุณาแก้ไขแล้วอัปโหลดใหม่')
+  })
+
   it('รหัสที่ยังไม่มีข้อความ → ข้อความสำรอง (ไม่แสดงรหัสดิบให้ผู้ใช้)', () => {
     expect(errorMessage('some_new_code')).toBe('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')
   })
@@ -41,6 +60,11 @@ describe('fieldErrorMessage', () => {
   it('รหัสรายช่องที่รู้จัก → ข้อความภาษาไทย', () => {
     expect(fieldErrorMessage('required')).toBe('กรุณากรอกข้อมูลช่องนี้')
     expect(fieldErrorMessage('unique')).toBe('ข้อมูลนี้มีอยู่แล้วในระบบ')
+    // รายแถวของการนำเข้า CSV (ขั้น 2.4)
+    expect(fieldErrorMessage('duplicate_in_file')).toBe('ข้อมูลนี้ซ้ำกับแถวอื่นในไฟล์เดียวกัน')
+    expect(fieldErrorMessage('csv_admin_not_allowed')).toBe(
+      'นำเข้าผู้ดูแลระบบจากไฟล์ไม่ได้ ใช้ได้เฉพาะผู้สอนหรือผู้เรียน',
+    )
   })
 
   it('รหัสรายช่องที่ยังไม่มีข้อความ → ข้อความสำรอง', () => {
