@@ -5,6 +5,7 @@ test ของ API จัดการบัญชีผู้ใช้สำห�
 """
 
 import pytest
+from django.conf import settings
 from django.db import transaction
 from rest_framework.test import APIClient
 
@@ -476,3 +477,95 @@ class TestLastActiveAdmin:
         teacher = make_user("t@example.com", User.Role.TEACHER)
         for user in (suspended, teacher):
             ensure_not_last_active_admin(user, [])
+
+
+# --- ระงับ / เปิดใช้งาน ---
+
+
+def suspend_url(user: User) -> str:
+    return f"{detail_url(user)}suspend/"
+
+
+def activate_url(user: User) -> str:
+    return f"{detail_url(user)}activate/"
+
+
+class TestSuspendActivate:
+    def test_suspend_logs_and_returns_user(
+        self, admin_client: APIClient, admin: User, student: User
+    ) -> None:
+        response = admin_client.post(suspend_url(student))
+        assert response.status_code == 200
+        assert response.json()["is_active"] is False
+        log = AuditLog.objects.get()
+        assert log.actor == admin
+        assert log.action == AuditAction.UPDATE
+        assert log.changes == {"is_active": [True, False]}
+
+    def test_suspended_user_is_locked_out_immediately(
+        self, admin_client: APIClient, student: User
+    ) -> None:
+        student_client = client_for(student)
+        refresh = issue_refresh_token(student)
+        assert student_client.get("/api/v1/auth/me/").status_code == 200
+
+        admin_client.post(suspend_url(student))
+
+        # บัตรผ่านเดิมใช้ไม่ได้ทันที
+        assert student_client.get("/api/v1/auth/me/").status_code == 401
+        # แลกบัตรใหม่ไม่ได้
+        refresher = APIClient()
+        refresher.cookies[settings.REFRESH_COOKIE_NAME] = str(refresh)
+        assert refresher.post("/api/v1/auth/refresh/").status_code == 401
+        # เข้าสู่ระบบใหม่ → บอกว่าถูกระงับ (รหัสผ่านถูก)
+        login = APIClient().post(
+            "/api/v1/auth/login/",
+            {"identifier": "somchai@example.com", "password": PASSWORD},
+            format="json",
+        )
+        assert login.json()["code"] == "account_disabled"
+
+    def test_activate_restores_access(self, admin_client: APIClient, student: User) -> None:
+        admin_client.post(suspend_url(student))
+        response = admin_client.post(activate_url(student))
+        assert response.status_code == 200
+        assert response.json()["is_active"] is True
+        assert AuditLog.objects.order_by("id").last().changes == {"is_active": [False, True]}
+        login = APIClient().post(
+            "/api/v1/auth/login/",
+            {"identifier": "somchai@example.com", "password": PASSWORD},
+            format="json",
+        )
+        assert login.status_code == 200
+
+    def test_repeating_writes_no_extra_log(self, admin_client: APIClient, student: User) -> None:
+        admin_client.post(suspend_url(student))
+        assert admin_client.post(suspend_url(student)).status_code == 200
+        assert admin_client.post(activate_url(student)).status_code == 200
+        assert admin_client.post(activate_url(student)).status_code == 200
+        assert AuditLog.objects.count() == 2
+
+    def test_cannot_suspend_or_activate_self(self, admin_client: APIClient, admin: User) -> None:
+        make_user("admin2@example.com", User.Role.ADMIN)
+        for url in (suspend_url(admin), activate_url(admin)):
+            response = admin_client.post(url)
+            assert response.status_code == 403
+            assert response.json()["code"] == "cannot_modify_self"
+        admin.refresh_from_db()
+        assert admin.is_active is True
+
+    def test_can_suspend_another_admin(self, admin_client: APIClient) -> None:
+        other = make_user("admin2@example.com", User.Role.ADMIN)
+        assert admin_client.post(suspend_url(other)).status_code == 200
+        other.refresh_from_db()
+        assert other.is_active is False
+
+    def test_unknown_user_is_404(self, admin_client: APIClient) -> None:
+        assert admin_client.post(f"{USERS_URL}999999/suspend/").status_code == 404
+        assert admin_client.post(f"{USERS_URL}999999/activate/").status_code == 404
+
+    def test_non_admin_gets_403(self, student: User) -> None:
+        teacher_client = client_for(make_user("t@example.com", User.Role.TEACHER))
+        assert teacher_client.post(suspend_url(student)).status_code == 403
+        student.refresh_from_db()
+        assert student.is_active is True

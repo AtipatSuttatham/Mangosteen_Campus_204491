@@ -207,3 +207,45 @@ class AdminUserDetailView(APIView):
                     actor=request.user, action=AuditAction.UPDATE, target=user, changes=changes
                 )
         return Response(AdminUserSerializer(user).data)
+
+
+class AdminUserStatusView(APIView):
+    """
+    POST /api/v1/admin/users/{id}/suspend/    ระงับบัญชี (is_active → False)
+    POST /api/v1/admin/users/{id}/activate/   เปิดใช้งานบัญชี (is_active → True)
+    (ไม่มี body — ที่อยู่ไหนใช้ค่าไหนกำหนดด้วย is_active_after ใน manage_urls.py)
+
+    - สำเร็จ → 200 ผู้ใช้หลังเปลี่ยน ; จด AuditLog {"is_active": [ค่าเดิม, ค่าใหม่]}
+      สถานะเป็นแบบนั้นอยู่แล้ว → 200 เหมือนกัน แต่ไม่จด (ไม่มีอะไรเปลี่ยน)
+    - บัญชีของตัวเอง → 403 cannot_modify_self
+    - ระงับผู้ดูแลระบบที่ใช้งานได้คนสุดท้าย → 409 last_active_admin
+    - ไม่พบ → 404 not_found
+    ผลกับผู้ถูกระงับ: คำขอถัดไปถูกปฏิเสธทันที (ตัวยืนยันตัวตนตรวจ is_active ทุกคำขอ)
+    และแลกบัตรใหม่ไม่ได้ — กลไกจากก้อน 1 ไม่ต้องเขียนเพิ่ม
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminRole]
+    # สถานะหลังทำรายการ: False = ระงับ, True = เปิดใช้งาน
+    is_active_after: bool = False
+
+    def post(self, request: Request, pk: int) -> Response:
+        if pk == request.user.pk:
+            raise cannot_modify_self_error()
+
+        target_status = self.is_active_after
+        with transaction.atomic():
+            # ระงับอาจลดจำนวนผู้ดูแลระบบ → ล็อกแถวผู้ดูแลระบบก่อน (ดู lock_active_admins)
+            active_admin_ids = [] if target_status else lock_active_admins()
+            user = get_object_or_404(User.objects.select_for_update(), pk=pk)
+            if user.is_active != target_status:
+                if not target_status:
+                    ensure_not_last_active_admin(user, active_admin_ids)
+                user.is_active = target_status
+                user.save(update_fields=["is_active", "updated_at"])
+                log_action(
+                    actor=request.user,
+                    action=AuditAction.UPDATE,
+                    target=user,
+                    changes={"is_active": [not target_status, target_status]},
+                )
+        return Response(AdminUserSerializer(user).data)
