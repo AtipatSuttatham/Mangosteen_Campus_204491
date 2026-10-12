@@ -5,11 +5,14 @@ test ของ API จัดการบัญชีผู้ใช้สำห�
 """
 
 import pytest
+from django.db import transaction
 from rest_framework.test import APIClient
 
+from accounts.manage_views import ensure_not_last_active_admin, lock_active_admins
 from accounts.models import User
 from accounts.tokens import issue_refresh_token
 from audit.models import AuditAction, AuditLog
+from common.exceptions import ApiError
 
 pytestmark = pytest.mark.django_db
 
@@ -312,3 +315,164 @@ class TestCreate:
         assert response.status_code == 400
         assert response.json()["fields"] == {"email": ["unique"]}
         assert not AuditLog.objects.exists()
+
+
+# --- แก้ไขบัญชี ---
+
+
+class TestUpdate:
+    def test_updates_given_fields_only(self, admin_client: APIClient, student: User) -> None:
+        response = admin_client.patch(
+            detail_url(student),
+            {"email": " Somchai.J@Example.com ", "role": "teacher"},
+            format="json",
+        )
+        assert response.status_code == 200
+        body = response.json()
+        assert body["email"] == "somchai.j@example.com"
+        assert body["role"] == "teacher"
+        # ช่องที่ไม่ได้ส่งมาคงเดิม
+        assert body["first_name"] == "สมชาย"
+        assert body["student_or_staff_id"] == "690000001"
+
+    def test_can_clear_id(self, admin_client: APIClient, student: User) -> None:
+        response = admin_client.patch(
+            detail_url(student), {"student_or_staff_id": ""}, format="json"
+        )
+        assert response.json()["student_or_staff_id"] is None
+
+    def test_ignores_status_staff_and_password_fields(
+        self, admin_client: APIClient, student: User
+    ) -> None:
+        admin_client.patch(
+            detail_url(student),
+            {"is_active": False, "is_staff": True, "password": "x-new-pass-999"},
+            format="json",
+        )
+        student.refresh_from_db()
+        assert student.is_active is True
+        assert student.is_staff is False
+        assert student.check_password(PASSWORD)
+
+    def test_keeping_own_email_is_not_duplicate(
+        self, admin_client: APIClient, student: User
+    ) -> None:
+        response = admin_client.patch(
+            detail_url(student), {"email": "SOMCHAI@example.com"}, format="json"
+        )
+        assert response.status_code == 200
+
+    def test_duplicate_email_and_id(
+        self, admin_client: APIClient, admin: User, student: User
+    ) -> None:
+        make_user("other@example.com", student_or_staff_id="690000002")
+        response = admin_client.patch(
+            detail_url(student),
+            {"email": "ADMIN@example.com", "student_or_staff_id": "690000002"},
+            format="json",
+        )
+        assert response.status_code == 400
+        assert response.json()["fields"] == {
+            "email": ["unique"],
+            "student_or_staff_id": ["unique"],
+        }
+
+    def test_blank_name_and_unknown_role(self, admin_client: APIClient, student: User) -> None:
+        response = admin_client.patch(
+            detail_url(student), {"last_name": " ", "role": "boss"}, format="json"
+        )
+        assert response.json()["fields"] == {"last_name": ["blank"], "role": ["invalid_choice"]}
+
+    def test_unknown_user_is_404(self, admin_client: APIClient) -> None:
+        response = admin_client.patch(f"{USERS_URL}999999/", {"role": "teacher"}, format="json")
+        assert response.status_code == 404
+
+    def test_audit_log_has_changed_fields_only(
+        self, admin_client: APIClient, admin: User, student: User
+    ) -> None:
+        admin_client.patch(
+            detail_url(student),
+            {"first_name": "สมชาย", "last_name": "ใจงาม", "role": "teacher"},
+            format="json",
+        )
+        log = AuditLog.objects.get()
+        assert log.actor == admin
+        assert log.action == AuditAction.UPDATE
+        assert log.object_id == str(student.pk)
+        assert log.changes == {"last_name": ["ใจดี", "ใจงาม"], "role": ["student", "teacher"]}
+
+    def test_no_change_writes_no_log(self, admin_client: APIClient, student: User) -> None:
+        response = admin_client.patch(
+            detail_url(student), {"first_name": "สมชาย", "role": "student"}, format="json"
+        )
+        assert response.status_code == 200
+        assert not AuditLog.objects.exists()
+
+
+class TestSelfEdit:
+    def test_admin_can_edit_own_name_email_and_id_with_audit(
+        self, admin_client: APIClient, admin: User
+    ) -> None:
+        response = admin_client.patch(
+            detail_url(admin),
+            {"first_name": "ผู้ดูแลใหม่", "email": "admin2@example.com", "student_or_staff_id": "S1"},
+            format="json",
+        )
+        assert response.status_code == 200
+        # ผู้ใช้เลือกข้อ 2.ก: แก้บัญชีตัวเองผ่านหน้าจัดการผู้ใช้ → จดบันทึก
+        assert AuditLog.objects.get().changes == {
+            "email": ["admin@example.com", "admin2@example.com"],
+            "student_or_staff_id": [None, "S1"],
+            "first_name": ["ผู้ดูแล", "ผู้ดูแลใหม่"],
+        }
+
+    def test_sending_own_unchanged_role_is_allowed(
+        self, admin_client: APIClient, admin: User
+    ) -> None:
+        response = admin_client.patch(
+            detail_url(admin), {"role": "admin", "last_name": "ใหม่"}, format="json"
+        )
+        assert response.status_code == 200
+
+    def test_cannot_change_own_role(self, admin_client: APIClient, admin: User) -> None:
+        make_user("admin2@example.com", User.Role.ADMIN)
+        response = admin_client.patch(
+            detail_url(admin), {"role": "teacher", "first_name": "x"}, format="json"
+        )
+        assert response.status_code == 403
+        assert response.json()["code"] == "cannot_modify_self"
+        admin.refresh_from_db()
+        # ทั้งคำขอถูกยกเลิก — ชื่อไม่เปลี่ยนด้วย
+        assert admin.role == User.Role.ADMIN and admin.first_name == "ผู้ดูแล"
+        assert not AuditLog.objects.exists()
+
+
+class TestLastActiveAdmin:
+    def test_can_demote_another_admin_when_one_remains(
+        self, admin_client: APIClient, admin: User
+    ) -> None:
+        other = make_user("admin2@example.com", User.Role.ADMIN)
+        response = admin_client.patch(detail_url(other), {"role": "teacher"}, format="json")
+        assert response.status_code == 200
+
+    def test_guard_rejects_removing_the_last_active_admin(self, admin: User) -> None:
+        # เกิดได้จริงเฉพาะตอน admin 2 คนกดพร้อมกัน — ทดสอบตัวตรวจโดยตรงกับสภาพ "เหลือคนเดียว"
+        make_user("suspended-admin@example.com", User.Role.ADMIN, is_active=False)
+        with transaction.atomic():
+            active_admin_ids = lock_active_admins()
+            assert active_admin_ids == [admin.pk]
+            with pytest.raises(ApiError) as caught:
+                ensure_not_last_active_admin(admin, active_admin_ids)
+        assert caught.value.get_codes() == "last_active_admin"
+        assert caught.value.status_code == 409
+
+    def test_guard_allows_when_another_active_admin_exists(self, admin: User) -> None:
+        make_user("admin2@example.com", User.Role.ADMIN)
+        with transaction.atomic():
+            ensure_not_last_active_admin(admin, lock_active_admins())
+
+    def test_guard_ignores_non_admins_and_suspended_admins(self, admin: User) -> None:
+        suspended = make_user("off@example.com", User.Role.ADMIN, is_active=False)
+        teacher = make_user("t@example.com", User.Role.TEACHER)
+        for user in (suspended, teacher):
+            ensure_not_last_active_admin(user, [])

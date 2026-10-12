@@ -19,11 +19,13 @@ from accounts.manage_serializers import (
     AdminUserCreateSerializer,
     AdminUserFilterSerializer,
     AdminUserSerializer,
+    AdminUserWriteSerializer,
 )
 from accounts.models import User
 from accounts.permissions import IsAdminRole
 from audit.models import AuditAction
-from audit.services import created_changes, field_values, log_action
+from audit.services import created_changes, diff_changes, field_values, log_action
+from common.exceptions import ApiError
 from common.pagination import StandardPagination
 
 # ช่องที่ผู้ดูแลระบบตั้ง/แก้ได้ — ใช้เทียบค่าก่อน-หลังเพื่อจดลง AuditLog
@@ -65,6 +67,47 @@ def _duplicate_error(email: str | None, student_or_staff_id: str | None, exclude
         fields["student_or_staff_id"] = [ErrorDetail("This ID is already in use.", code="unique")]
     # หาช่องที่ชนไม่เจอ (ไม่ควรเกิด) → ใส่ไว้ที่อีเมลซึ่งเป็นช่องหลัก
     return ValidationError(fields or {"email": [ErrorDetail("Duplicate.", code="unique")]})
+
+
+def cannot_modify_self_error() -> ApiError:
+    """ผู้ดูแลระบบระงับ / เปลี่ยนบทบาท / รีเซ็ตรหัสของตัวเองไม่ได้ (การตัดสินใจก้อน 2 "กันล็อกตัวเอง")"""
+    return ApiError(
+        "cannot_modify_self",
+        "Admins cannot suspend, change the role of, or reset the password of their own account.",
+        status_code=status.HTTP_403_FORBIDDEN,
+    )
+
+
+def lock_active_admins() -> list[int]:
+    """
+    ล็อกแถวผู้ดูแลระบบที่ใช้งานได้ทั้งหมด (SELECT ... FOR UPDATE) จนจบ transaction แล้วคืนรหัสของพวกเขา
+
+    ใช้ก่อนการกระทำที่อาจลดจำนวนผู้ดูแลระบบ (ระงับ / เปลี่ยนบทบาท) — ต้องเรียกใน transaction.atomic()
+    ทำไมต้องล็อก: admin A กับ B กดระงับอีกฝ่ายพร้อมกัน ถ้าไม่ล็อก ทั้งสองคำขอนับได้ "2 คน" แล้วผ่านทั้งคู่
+    → ไม่เหลือผู้ดูแลระบบเลย ; เมื่อล็อก คำขอที่สองต้องรอคิว แล้วนับใหม่ได้ "1 คน" จึงถูกปฏิเสธ
+    ล็อกเรียงตามรหัสเสมอ และล็อกก่อนแถวเป้าหมาย → ทุกคำขอล็อกตามลำดับเดียวกัน ไม่เกิดการรอกันเป็นวง (deadlock)
+    """
+    return list(
+        User.objects.select_for_update()
+        .filter(role=User.Role.ADMIN, is_active=True)
+        .order_by("pk")
+        .values_list("pk", flat=True)
+    )
+
+
+def ensure_not_last_active_admin(user: User, active_admin_ids: list[int]) -> None:
+    """
+    ถ้า user เป็นผู้ดูแลระบบที่ใช้งานได้ และไม่มีผู้ดูแลระบบที่ใช้งานได้คนอื่นเหลือ → 409 last_active_admin
+    (active_admin_ids มาจาก lock_active_admins() ใน transaction เดียวกัน)
+    """
+    if user.role != User.Role.ADMIN or not user.is_active:
+        return
+    if not any(pk != user.pk for pk in active_admin_ids):
+        raise ApiError(
+            "last_active_admin",
+            "At least one active admin must remain.",
+            status_code=status.HTTP_409_CONFLICT,
+        )
 
 
 class AdminUserListView(APIView):
@@ -114,13 +157,53 @@ class AdminUserListView(APIView):
 
 class AdminUserDetailView(APIView):
     """
-    GET /api/v1/admin/users/{id}/   ข้อมูลบัญชี 1 คน
+    GET   /api/v1/admin/users/{id}/   ข้อมูลบัญชี 1 คน
+    PATCH /api/v1/admin/users/{id}/   แก้ชื่อ / นามสกุล / อีเมล / รหัส / บทบาท (ส่งเฉพาะช่องที่แก้ก็ได้)
 
     - ไม่พบ → 404 not_found
+    - PATCH สำเร็จ → 200 ผู้ใช้หลังแก้ ; ข้อมูลผิด/ซ้ำ → 400 validation_error
+      เปลี่ยนบทบาทของตัวเอง → 403 cannot_modify_self (แก้ชื่อ/อีเมล/รหัสของตัวเองได้)
+      ลดบทบาทผู้ดูแลระบบที่ใช้งานได้คนสุดท้าย → 409 last_active_admin
+    - ช่อง is_active / is_staff / password ส่งมาก็ไม่มีผล (ระงับ/รีเซ็ตรหัสมีที่อยู่ของตัวเอง)
+    - จด AuditLog action=update เฉพาะช่องที่เปลี่ยนจริง — รวมกรณีผู้ดูแลระบบแก้บัญชีตัวเองผ่านหน้านี้
+      (ผู้ใช้เลือกข้อ 2.ก ; ต่างจากหน้าข้อมูลส่วนตัว UC-02 ที่ไม่จด) ; ไม่มีอะไรเปลี่ยน → ไม่จด
     """
 
     permission_classes = [IsAuthenticated, IsAdminRole]
 
     def get(self, request: Request, pk: int) -> Response:
         user = get_object_or_404(User, pk=pk)
+        return Response(AdminUserSerializer(user).data)
+
+    def patch(self, request: Request, pk: int) -> Response:
+        changing_role = "role" in request.data
+        with transaction.atomic():
+            # เปลี่ยนบทบาทอาจลดจำนวนผู้ดูแลระบบ → ล็อกแถวผู้ดูแลระบบก่อน แล้วค่อยล็อกแถวเป้าหมาย
+            active_admin_ids = lock_active_admins() if changing_role else []
+            user = get_object_or_404(User.objects.select_for_update(), pk=pk)
+
+            serializer = AdminUserWriteSerializer(user, data=request.data, partial=True)
+            serializer.is_valid(raise_exception=True)
+            new_role = serializer.validated_data.get("role", user.role)
+            if new_role != user.role:
+                if user.pk == request.user.pk:
+                    raise cannot_modify_self_error()
+                ensure_not_last_active_admin(user, active_admin_ids)
+
+            before = field_values(user, EDITABLE_FIELDS)
+            try:
+                # savepoint ย่อย: ถ้าฐานข้อมูลปฏิเสธเพราะข้อมูลซ้ำ ย้อนเฉพาะส่วนนี้แล้วตอบ error ปกติ
+                with transaction.atomic():
+                    serializer.save()
+            except IntegrityError as error:
+                data = serializer.validated_data
+                raise _duplicate_error(
+                    data.get("email"), data.get("student_or_staff_id"), exclude_pk=user.pk
+                ) from error
+
+            changes = diff_changes(before, field_values(user, EDITABLE_FIELDS))
+            if changes:
+                log_action(
+                    actor=request.user, action=AuditAction.UPDATE, target=user, changes=changes
+                )
         return Response(AdminUserSerializer(user).data)
