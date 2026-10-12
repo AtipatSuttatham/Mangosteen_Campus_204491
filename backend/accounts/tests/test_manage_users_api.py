@@ -9,6 +9,7 @@ from rest_framework.test import APIClient
 
 from accounts.models import User
 from accounts.tokens import issue_refresh_token
+from audit.models import AuditAction, AuditLog
 
 pytestmark = pytest.mark.django_db
 
@@ -168,3 +169,146 @@ class TestDetail:
         response = admin_client.get(f"{USERS_URL}999999/")
         assert response.status_code == 404
         assert response.json()["code"] == "not_found"
+
+
+# --- เพิ่มบัญชี ---
+
+
+def new_user_payload(**overrides) -> dict:
+    """ข้อมูลบัญชีใหม่ที่ถูกต้อง (ข้อมูลสมมติ)"""
+    payload = {
+        "email": "  New.Teacher@Example.com ",
+        "student_or_staff_id": " T-0001 ",
+        "first_name": "  มานี ",
+        "last_name": "มีสุข",
+        "role": "teacher",
+        "password": "temp-pass-4821",
+    }
+    payload.update(overrides)
+    return payload
+
+
+class TestCreate:
+    def test_creates_user_and_normalizes_fields(self, admin_client: APIClient, admin: User) -> None:
+        response = admin_client.post(USERS_URL, new_user_payload(), format="json")
+        assert response.status_code == 201
+        body = response.json()
+        assert body["email"] == "new.teacher@example.com"
+        assert body["student_or_staff_id"] == "T-0001"
+        assert body["first_name"] == "มานี"
+        assert body["is_active"] is True
+        assert "password" not in body
+
+        user = User.objects.get(pk=body["id"])
+        assert user.check_password("temp-pass-4821")
+        assert user.created_by == admin
+        # สร้างผ่าน API ไม่ได้สิทธิ์เข้าหน้า Django admin
+        assert user.is_staff is False and user.is_superuser is False
+
+    def test_new_user_can_log_in(self, admin_client: APIClient) -> None:
+        admin_client.post(USERS_URL, new_user_payload(), format="json")
+        response = APIClient().post(
+            "/api/v1/auth/login/",
+            {"identifier": "T-0001", "password": "temp-pass-4821"},
+            format="json",
+        )
+        assert response.status_code == 200
+
+    def test_id_is_optional(self, admin_client: APIClient) -> None:
+        for index, value in enumerate([None, "", "   "]):
+            payload = new_user_payload(email=f"noid{index}@example.com", student_or_staff_id=value)
+            response = admin_client.post(USERS_URL, payload, format="json")
+            assert response.status_code == 201
+            assert response.json()["student_or_staff_id"] is None
+        missing = new_user_payload(email="missing@example.com")
+        del missing["student_or_staff_id"]
+        assert admin_client.post(USERS_URL, missing, format="json").status_code == 201
+
+    def test_can_create_admin(self, admin_client: APIClient) -> None:
+        response = admin_client.post(USERS_URL, new_user_payload(role="admin"), format="json")
+        assert response.status_code == 201
+        assert User.objects.get(pk=response.json()["id"]).is_staff is False
+
+    def test_required_fields(self, admin_client: APIClient) -> None:
+        response = admin_client.post(USERS_URL, {}, format="json")
+        assert response.status_code == 400
+        assert response.json()["fields"] == {
+            "email": ["required"],
+            "first_name": ["required"],
+            "last_name": ["required"],
+            "role": ["required"],
+            "password": ["required"],
+        }
+
+    def test_invalid_values(self, admin_client: APIClient) -> None:
+        payload = new_user_payload(email="not-an-email", first_name="   ", role="boss")
+        fields = admin_client.post(USERS_URL, payload, format="json").json()["fields"]
+        assert fields == {
+            "email": ["invalid"],
+            "first_name": ["blank"],
+            "role": ["invalid_choice"],
+        }
+
+    def test_duplicate_email_ignores_case_and_duplicate_id(
+        self, admin_client: APIClient, student: User
+    ) -> None:
+        payload = new_user_payload(email="SOMCHAI@example.com", student_or_staff_id="690000001")
+        response = admin_client.post(USERS_URL, payload, format="json")
+        assert response.status_code == 400
+        assert response.json()["fields"] == {
+            "email": ["unique"],
+            "student_or_staff_id": ["unique"],
+        }
+
+    @pytest.mark.parametrize(
+        ("password", "code"),
+        [
+            ("short1", "password_too_short"),
+            ("password123", "password_too_common"),
+            ("8392017465", "password_entirely_numeric"),
+            ("new.teacher", "password_too_similar"),
+        ],
+    )
+    def test_password_rules(self, admin_client: APIClient, password: str, code: str) -> None:
+        response = admin_client.post(USERS_URL, new_user_payload(password=password), format="json")
+        assert response.status_code == 400
+        assert code in response.json()["fields"]["password"]
+        assert not User.objects.filter(email="new.teacher@example.com").exists()
+
+    def test_writes_audit_log_without_password(self, admin_client: APIClient, admin: User) -> None:
+        response = admin_client.post(USERS_URL, new_user_payload(), format="json")
+        log = AuditLog.objects.get()
+        assert log.actor == admin
+        assert log.action == AuditAction.CREATE
+        assert log.object_id == str(response.json()["id"])
+        assert log.changes == {
+            "email": [None, "new.teacher@example.com"],
+            "student_or_staff_id": [None, "T-0001"],
+            "first_name": [None, "มานี"],
+            "last_name": [None, "มีสุข"],
+            "role": [None, "teacher"],
+            "is_active": [None, True],
+            "password": ["***", "***"],
+        }
+        assert "temp-pass-4821" not in str(log.changes)
+
+    def test_failed_create_writes_no_log(self, admin_client: APIClient) -> None:
+        admin_client.post(USERS_URL, new_user_payload(role="boss"), format="json")
+        assert not AuditLog.objects.exists()
+
+    def test_database_duplicate_becomes_validation_error(
+        self, admin_client: APIClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        # จำลองจังหวะ "2 คำขอพร้อมกัน": ผ่านการตรวจแล้ว แต่มีบัญชีอีเมลเดียวกันถูกสร้างก่อนบันทึก
+        original = User.objects.create_user
+
+        def create_twice(**kwargs):
+            # สร้างบัญชีที่ชนกันด้วยตัวดั้งเดิม (ไม่ผ่านตัวจำลองนี้ซ้ำ)
+            original(email=kwargs["email"], password=PASSWORD, role="student")
+            return original(**kwargs)
+
+        monkeypatch.setattr(User.objects, "create_user", create_twice)
+        response = admin_client.post(USERS_URL, new_user_payload(), format="json")
+        assert response.status_code == 400
+        assert response.json()["fields"] == {"email": ["unique"]}
+        assert not AuditLog.objects.exists()

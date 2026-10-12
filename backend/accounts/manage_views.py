@@ -4,18 +4,30 @@ API จัดการบัญชีผู้ใช้สำหรับผู�
 ที่อยู่ทั้งหมดอยู่ใต้ /api/v1/admin/users/ (accounts/manage_urls.py) และใช้ได้เฉพาะผู้ดูแลระบบ
 """
 
+from django.db import IntegrityError, transaction
 from django.db.models import Q, QuerySet, Value
 from django.db.models.functions import Concat
 from django.shortcuts import get_object_or_404
+from rest_framework import status
+from rest_framework.exceptions import ErrorDetail, ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from accounts.manage_serializers import AdminUserFilterSerializer, AdminUserSerializer
+from accounts.manage_serializers import (
+    AdminUserCreateSerializer,
+    AdminUserFilterSerializer,
+    AdminUserSerializer,
+)
 from accounts.models import User
 from accounts.permissions import IsAdminRole
+from audit.models import AuditAction
+from audit.services import created_changes, field_values, log_action
 from common.pagination import StandardPagination
+
+# ช่องที่ผู้ดูแลระบบตั้ง/แก้ได้ — ใช้เทียบค่าก่อน-หลังเพื่อจดลง AuditLog
+EDITABLE_FIELDS = ["email", "student_or_staff_id", "first_name", "last_name", "role"]
 
 
 def _filter_users(params: dict) -> QuerySet[User]:
@@ -39,12 +51,30 @@ def _filter_users(params: dict) -> QuerySet[User]:
     return users
 
 
+def _duplicate_error(email: str | None, student_or_staff_id: str | None, exclude_pk=None):
+    """
+    สร้าง error "ข้อมูลซ้ำ" รายช่อง หลังฐานข้อมูลปฏิเสธเพราะกฎห้ามซ้ำ
+    (เกิดเมื่อ 2 คำขอใช้อีเมล/รหัสเดียวกันในจังหวะเดียวกัน — ผ่านการตรวจทั้งคู่ แต่ฐานข้อมูลกันไว้ได้)
+    ตอบเป็น validation_error ปกติแทน 500 ; ตรวจซ้ำว่าช่องไหนชนจริง
+    """
+    others = User.objects.exclude(pk=exclude_pk) if exclude_pk else User.objects.all()
+    fields: dict[str, list[ErrorDetail]] = {}
+    if email and others.filter(email=email).exists():
+        fields["email"] = [ErrorDetail("This email is already in use.", code="unique")]
+    if student_or_staff_id and others.filter(student_or_staff_id=student_or_staff_id).exists():
+        fields["student_or_staff_id"] = [ErrorDetail("This ID is already in use.", code="unique")]
+    # หาช่องที่ชนไม่เจอ (ไม่ควรเกิด) → ใส่ไว้ที่อีเมลซึ่งเป็นช่องหลัก
+    return ValidationError(fields or {"email": [ErrorDetail("Duplicate.", code="unique")]})
+
+
 class AdminUserListView(APIView):
     """
-    GET /api/v1/admin/users/?search=&role=&is_active=&page=   รายชื่อผู้ใช้ หน้าละ 20
+    GET  /api/v1/admin/users/?search=&role=&is_active=&page=   รายชื่อผู้ใช้ หน้าละ 20
+    POST /api/v1/admin/users/   เพิ่มบัญชี 1 คน
 
-    - สำเร็จ → 200 {count, next, previous, results: [ผู้ใช้, ...]}
-    - ตัวกรองผิด → 400 validation_error ; หน้าที่ไม่มีอยู่ → 404 not_found
+    - GET สำเร็จ → 200 {count, next, previous, results: [ผู้ใช้, ...]}
+      ตัวกรองผิด → 400 validation_error ; หน้าที่ไม่มีอยู่ → 404 not_found
+    - POST สำเร็จ → 201 ผู้ใช้ใหม่ ; ข้อมูลผิด/ซ้ำ/รหัสผ่านไม่ผ่านกฎ → 400 validation_error
     - ไม่ใช่ผู้ดูแลระบบ → 403 permission_denied
     """
 
@@ -59,6 +89,27 @@ class AdminUserListView(APIView):
             _filter_users(filters.validated_data), request, view=self
         )
         return paginator.get_paginated_response(AdminUserSerializer(page, many=True).data)
+
+    def post(self, request: Request) -> Response:
+        serializer = AdminUserCreateSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        data = dict(serializer.validated_data)
+        password = data.pop("password")
+
+        try:
+            # สร้างบัญชี + จดบันทึกใน transaction เดียว → จดไม่สำเร็จ บัญชีก็ไม่ถูกสร้าง
+            with transaction.atomic():
+                # create_user เข้ารหัสรหัสผ่าน (hash) และตั้ง is_staff=False — ไม่เข้าหน้า Django admin
+                user = User.objects.create_user(password=password, created_by=request.user, **data)
+                # สร้าง = ค่าที่ตั้งทุกช่อง ; รหัสผ่านถูกปิดเป็น "***" โดย log_action
+                changes = created_changes(field_values(user, [*EDITABLE_FIELDS, "is_active"]))
+                changes["password"] = None
+                log_action(
+                    actor=request.user, action=AuditAction.CREATE, target=user, changes=changes
+                )
+        except IntegrityError as error:
+            raise _duplicate_error(data.get("email"), data.get("student_or_staff_id")) from error
+        return Response(AdminUserSerializer(user).data, status=status.HTTP_201_CREATED)
 
 
 class AdminUserDetailView(APIView):
