@@ -278,7 +278,7 @@
 | ตัว | field ที่ให้ | ใช้ทำอะไร |
 |---|---|---|
 | `TimeStampedModel` | `created_at`, `updated_at` | ทุกตาราง inherit (ยกเว้น `AuditLog`) |
-| `Auditable` | (ไม่มี field) | marker ให้บันทึก `AuditLog` อัตโนมัติ (ขอบเขตดู `database.md` §10) |
+| ~~`Auditable`~~ | — | ยกเลิก (v2.4) — บันทึก `AuditLog` ด้วย `audit.services.log_action()` แทน (ขอบเขตดู `database.md` §10) |
 
 ---
 
