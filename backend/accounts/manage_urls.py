@@ -8,6 +8,7 @@ from accounts.manage_views import (
     AdminPasswordResetView,
     AdminUserDetailView,
     AdminUserImportValidateView,
+    AdminUserImportView,
     AdminUserListView,
     AdminUserStatusView,
 )
@@ -15,6 +16,8 @@ from accounts.manage_views import (
 urlpatterns = [
     # รายชื่อผู้ใช้ (ค้นหา / กรอง / แบ่งหน้า)
     path("users/", AdminUserListView.as_view(), name="admin-users"),
+    # นำเข้าบัญชีจาก CSV: นำเข้าจริง (ทั้งไฟล์ใน transaction เดียว)
+    path("users/import/", AdminUserImportView.as_view(), name="admin-users-import"),
     # นำเข้าบัญชีจาก CSV: ตรวจไฟล์ (ยังไม่บันทึก)
     path(
         "users/import/validate/",

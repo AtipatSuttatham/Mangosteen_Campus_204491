@@ -4,16 +4,26 @@ test ของ API นำเข้าบัญชีจาก CSV (UC-04 — ข
 ข้อมูลทั้งหมดเป็นข้อมูลสมมติ (@example.com)
 """
 
+import json
+
 import pytest
+from django.contrib.auth.hashers import identify_hasher
 from django.core.files.uploadedfile import SimpleUploadedFile
 from rest_framework.test import APIClient
 
+from accounts import csv_import, manage_views
+from accounts.hashers import TemporaryPasswordHasher
 from accounts.models import User
+from accounts.passwords import ALPHABET, LENGTH
 from accounts.tests.test_manage_users_api import client_for, make_user
+from audit.models import AuditAction, AuditLog
 
 pytestmark = pytest.mark.django_db
 
 VALIDATE_URL = "/api/v1/admin/users/import/validate/"
+IMPORT_URL = "/api/v1/admin/users/import/"
+LOGIN_URL = "/api/v1/auth/login/"
+ME_URL = "/api/v1/auth/me/"
 HEADER = "email,student_or_staff_id,first_name,last_name,role"
 
 
@@ -49,15 +59,18 @@ def validate(client: APIClient, *lines: str) -> dict:
 
 
 class TestPermissions:
-    def test_anonymous_gets_401(self) -> None:
-        assert post_file(APIClient(), VALIDATE_URL, csv_file()).status_code == 401
+    @pytest.mark.parametrize("url", [VALIDATE_URL, IMPORT_URL])
+    def test_anonymous_gets_401(self, url: str) -> None:
+        assert post_file(APIClient(), url, csv_file()).status_code == 401
 
+    @pytest.mark.parametrize("url", [VALIDATE_URL, IMPORT_URL])
     @pytest.mark.parametrize("role", [User.Role.TEACHER, User.Role.STUDENT])
-    def test_non_admin_gets_403(self, role: str) -> None:
+    def test_non_admin_gets_403(self, role: str, url: str) -> None:
         client = client_for(make_user("someone@example.com", role))
-        response = post_file(client, VALIDATE_URL, csv_file("a@example.com,,ก,ข,student"))
+        response = post_file(client, url, csv_file("a@example.com,,ก,ข,student"))
         assert response.status_code == 403
         assert response.json()["code"] == "permission_denied"
+        assert not User.objects.filter(email="a@example.com").exists()
 
 
 # --- ตรวจไฟล์: ไฟล์ถูกทั้งหมด ---
@@ -221,3 +234,197 @@ class TestValidateFileErrors:
         response = post_file(admin_client, VALIDATE_URL, SimpleUploadedFile("u.csv", content))
         assert response.status_code == 400
         assert response.json()["code"] == code
+
+
+# --- นำเข้าจริง ---
+
+VALID_LINES = (
+    "a@example.com,690000001,สมชาย,ใจดี,student",
+    "b@example.com,,สมหญิง,รักเรียน,ผู้เรียน",
+    "t@example.com,T-01,อาจารย์,ใจเย็น,teacher",
+)
+
+
+def do_import(client: APIClient, *lines: str):
+    """นำเข้าไฟล์ (หัวตารางมาตรฐาน + แถวที่ให้มา)"""
+    return post_file(client, IMPORT_URL, csv_file(*lines))
+
+
+class TestImportSuccess:
+    def test_creates_all_rows_and_returns_passwords_once(self, admin_client: APIClient) -> None:
+        response = do_import(admin_client, *VALID_LINES)
+        assert response.status_code == 201
+        assert response["Cache-Control"] == "no-store"
+        body = response.json()
+        assert body["created"] == 3
+        assert body["by_role"] == {"teacher": 1, "student": 2}
+
+        first = body["users"][0]
+        user = User.objects.get(email="a@example.com")
+        assert {key: value for key, value in first.items() if key != "password"} == {
+            "row": 2,
+            "id": user.pk,
+            "email": "a@example.com",
+            "student_or_staff_id": "690000001",
+            "first_name": "สมชาย",
+            "last_name": "ใจดี",
+            "role": "student",
+        }
+        assert [item["row"] for item in body["users"]] == [2, 3, 4]
+        assert body["users"][1]["student_or_staff_id"] is None
+        assert body["users"][1]["role"] == "student"
+        assert body["users"][2]["role"] == "teacher"
+
+    def test_created_accounts_settings(self, admin_client: APIClient, admin: User) -> None:
+        do_import(admin_client, *VALID_LINES)
+        for user in User.objects.filter(email__in=["a@example.com", "t@example.com"]):
+            assert user.is_active is True
+            assert user.is_staff is False
+            assert user.is_superuser is False
+            assert user.created_by == admin
+
+    def test_passwords_are_random_and_stored_with_temporary_hasher(
+        self, admin_client: APIClient
+    ) -> None:
+        users = do_import(admin_client, *VALID_LINES).json()["users"]
+        assert len({item["password"] for item in users}) == 3
+        for item in users:
+            password = item["password"]
+            assert len(password) == LENGTH
+            assert set(password) <= set(ALPHABET)
+            user = User.objects.get(pk=item["id"])
+            # ระบบเก็บเฉพาะค่าที่เข้ารหัสแล้ว (ไม่มีรหัสตัวจริงในฐานข้อมูล)
+            assert password not in user.password
+            assert identify_hasher(user.password).algorithm == TemporaryPasswordHasher.algorithm
+
+    def test_audit_log_per_account_without_password(
+        self, admin_client: APIClient, admin: User
+    ) -> None:
+        users = do_import(admin_client, *VALID_LINES).json()["users"]
+        logs = list(AuditLog.objects.filter(action=AuditAction.CREATE).order_by("id"))
+        assert len(logs) == 3
+        assert all(log.actor == admin for log in logs)
+        assert logs[0].object_id == str(users[0]["id"])
+        assert logs[0].changes == {
+            "email": [None, "a@example.com"],
+            "student_or_staff_id": [None, "690000001"],
+            "first_name": [None, "สมชาย"],
+            "last_name": [None, "ใจดี"],
+            "role": [None, "student"],
+            "is_active": [None, True],
+            "password": ["***", "***"],
+        }
+        # รหัสตัวจริงไม่อยู่ในบันทึกใดเลย
+        dumped = json.dumps([log.changes for log in logs], ensure_ascii=False)
+        assert not any(item["password"] in dumped for item in users)
+
+
+class TestImportRejected:
+    def test_invalid_rows_create_nothing(self, admin_client: APIClient) -> None:
+        before = User.objects.count()
+        response = do_import(admin_client, "a@example.com,,ก,ข,student", "b@example.com,,ก,ข,admin")
+        assert response.status_code == 400
+        body = response.json()
+        assert body["code"] == "csv_invalid"
+        assert body["report"] == {
+            "valid": False,
+            "total": 2,
+            "by_role": {"teacher": 0, "student": 1},
+            "errors": [
+                {"row": 3, "column": "role", "code": "csv_admin_not_allowed", "value": "admin"}
+            ],
+        }
+        assert User.objects.count() == before
+        assert not AuditLog.objects.exists()
+
+    def test_file_level_error(self, admin_client: APIClient) -> None:
+        response = post_file(admin_client, IMPORT_URL, SimpleUploadedFile("u.csv", b""))
+        assert response.status_code == 400
+        assert response.json()["code"] == "csv_empty"
+
+    def test_failure_midway_rolls_back_everything(
+        self, admin_client: APIClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """จดบันทึกแถวที่ 2 ไม่สำเร็จ → บัญชีแถวแรกที่สร้างไปแล้วต้องหายด้วย (ทั้งหมดหรือไม่เลย)"""
+        real_log_action = csv_import.log_action
+        calls = {"count": 0}
+
+        def failing_log_action(**kwargs):
+            calls["count"] += 1
+            if calls["count"] == 2:
+                raise RuntimeError("simulated failure")
+            return real_log_action(**kwargs)
+
+        monkeypatch.setattr(csv_import, "log_action", failing_log_action)
+        before = User.objects.count()
+        response = do_import(admin_client, *VALID_LINES)
+        assert response.status_code == 500
+        assert User.objects.count() == before
+        assert not AuditLog.objects.exists()
+
+    def test_duplicate_created_between_validate_and_save(
+        self, admin_client: APIClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        """
+        อีกคำขอสร้างอีเมลเดียวกันหลังตรวจผ่านแต่ก่อนบันทึก → ฐานข้อมูลปฏิเสธ
+        → ยกเลิกทั้งไฟล์ แล้วตอบ csv_invalid บอกแถวที่ชน (ไม่ใช่ 500)
+        """
+        real_validate_rows = manage_views.validate_rows
+        calls = {"count": 0}
+
+        def validate_then_race(rows):
+            result = real_validate_rows(rows)
+            calls["count"] += 1
+            if calls["count"] == 1:
+                make_user("b@example.com")
+            return result
+
+        monkeypatch.setattr(manage_views, "validate_rows", validate_then_race)
+        response = do_import(admin_client, *VALID_LINES)
+        assert response.status_code == 400
+        body = response.json()
+        assert body["code"] == "csv_invalid"
+        assert body["report"]["errors"] == [
+            {"row": 3, "column": "email", "code": "unique", "value": "b@example.com"}
+        ]
+        # แถวแรก (a@) ที่สร้างไปก่อนชนต้องถูกยกเลิกด้วย
+        assert not User.objects.filter(email="a@example.com").exists()
+        assert not AuditLog.objects.exists()
+
+
+class TestTemporaryPasswordLogin:
+    def test_first_login_upgrades_hash_and_keeps_session(self, admin_client: APIClient) -> None:
+        """
+        เข้าสู่ระบบด้วยรหัสชั่วคราวได้ → Django เปลี่ยนเป็นตัวเข้ารหัสหลักให้อัตโนมัติ
+        และบัตรที่ได้จากการเข้าสู่ระบบครั้งนั้นยังใช้ได้ (ลายนิ้วมือ pwd ตรงกับรหัสหลังเปลี่ยน)
+        """
+        item = do_import(admin_client, *VALID_LINES).json()["users"][0]
+
+        client = APIClient()
+        login = client.post(
+            LOGIN_URL, {"identifier": item["email"], "password": item["password"]}, format="json"
+        )
+        assert login.status_code == 200
+
+        user = User.objects.get(pk=item["id"])
+        assert identify_hasher(user.password).algorithm == "pbkdf2_sha256"
+        assert user.check_password(item["password"])
+
+        client.credentials(HTTP_AUTHORIZATION=f"Bearer {login.json()['access']}")
+        assert client.get(ME_URL).status_code == 200
+
+    def test_login_with_student_id(self, admin_client: APIClient) -> None:
+        item = do_import(admin_client, *VALID_LINES).json()["users"][0]
+        login = APIClient().post(
+            LOGIN_URL, {"identifier": "690000001", "password": item["password"]}, format="json"
+        )
+        assert login.status_code == 200
+
+    def test_wrong_password_does_not_upgrade(self, admin_client: APIClient) -> None:
+        item = do_import(admin_client, *VALID_LINES).json()["users"][0]
+        login = APIClient().post(
+            LOGIN_URL, {"identifier": item["email"], "password": "wrong-pass-123"}, format="json"
+        )
+        assert login.status_code == 400
+        user = User.objects.get(pk=item["id"])
+        assert identify_hasher(user.password).algorithm == TemporaryPasswordHasher.algorithm

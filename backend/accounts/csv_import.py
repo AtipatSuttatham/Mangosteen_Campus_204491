@@ -6,6 +6,8 @@
                         ปัญหาระดับไฟล์ → ApiError (csv_unreadable, csv_too_large, ...) ทันที
     validate_rows()     ตรวจทุกแถว (ยังไม่บันทึก) → รายงาน {valid, total, by_role, errors}
                         ปัญหารายแถวไม่หยุดกลางทาง — รวบรวมทุกแถวให้ผู้ดูแลระบบแก้ได้ในรอบเดียว
+    import_rows()       สร้างบัญชีทุกแถวใน transaction เดียว + สุ่มรหัสชั่วคราว + จด AuditLog
+                        (เรียกเฉพาะเมื่อ validate_rows() บอกว่าถูกทั้งไฟล์)
 """
 
 import codecs
@@ -14,10 +16,16 @@ import io
 from dataclasses import dataclass, field
 
 from django.conf import settings
+from django.contrib.auth.hashers import make_password
 from django.core.files.uploadedfile import UploadedFile
+from django.db import transaction
 
+from accounts.hashers import TemporaryPasswordHasher
 from accounts.manage_serializers import CsvRowSerializer, csv_role
 from accounts.models import User, normalize_email, normalize_student_or_staff_id
+from accounts.passwords import generate_temporary_password
+from audit.models import AuditAction
+from audit.services import created_changes, field_values, log_action
 from common.exceptions import ApiError
 
 # คอลัมน์ที่ไฟล์ต้องมี (ตามข้อตกลง "รหัสผ่านตอนนำเข้า CSV" ใน CLAUDE.md) — ลำดับในไฟล์เรียงแบบไหนก็ได้
@@ -215,3 +223,40 @@ def validate_rows(rows: list[CsvRow]) -> ValidationResult:
         "errors": errors,
     }
     return ValidationResult(report=report, rows=valid_rows if not errors else [])
+
+
+def import_rows(rows: list[tuple[int, dict]], actor: User) -> list[dict]:
+    """
+    สร้างบัญชีจากแถวที่ตรวจผ่านแล้ว (ValidationResult.rows) — **ทั้งหมดหรือไม่เลย**
+    ทุกแถว + บันทึก AuditLog อยู่ใน transaction เดียว → พลาดแถวไหน (เช่น ข้อมูลซ้ำที่เพิ่งถูกสร้าง
+    จากคำขออื่นระหว่างตรวจกับนำเข้า → IntegrityError) ทุกอย่างถูกยกเลิก ไม่มีบัญชีค้างครึ่งไฟล์
+
+    แต่ละบัญชี:
+    - รหัสผ่านชั่วคราว: สุ่ม 12 ตัว (accounts/passwords.py) แล้วเข้ารหัสแบบเบา (accounts/hashers.py)
+      → เปลี่ยนเป็นตัวเข้ารหัสหลักอัตโนมัติตอนผู้ใช้เข้าสู่ระบบครั้งแรก
+    - is_staff = False (ไม่เข้าหน้า Django admin) ; created_by = ผู้ดูแลระบบที่นำเข้า
+    - AuditLog action=create แบบเดียวกับเพิ่มทีละคน (ค่าที่ตั้ง + password เป็น "***")
+
+    คืนรายการบัญชีที่สร้าง **พร้อมรหัสผ่านตัวจริง** — ส่งกลับให้ผู้ดูแลระบบครั้งเดียว ระบบไม่เก็บไว้
+    """
+    created: list[dict] = []
+    with transaction.atomic():
+        for number, data in rows:
+            user = User(**data, created_by=actor, is_staff=False, is_superuser=False)
+            password = generate_temporary_password(user)
+            user.password = make_password(password, hasher=TemporaryPasswordHasher.algorithm)
+            user.save()
+
+            changes = created_changes(field_values(user, [*COLUMNS, "is_active"]))
+            changes["password"] = None
+            log_action(actor=actor, action=AuditAction.CREATE, target=user, changes=changes)
+
+            created.append(
+                {
+                    "row": number,
+                    "id": user.pk,
+                    **{column: getattr(user, column) for column in COLUMNS},
+                    "password": password,
+                }
+            )
+    return created

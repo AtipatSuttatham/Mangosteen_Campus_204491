@@ -120,6 +120,19 @@ AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
+# --- ตัวเข้ารหัสรหัสผ่าน ---
+# ตัวแรก = ตัวหลักที่ใช้กับรหัสทุกตัว (ค่ามาตรฐานของ Django) ; ตัวอื่นใช้อ่านรหัสที่เก็บแบบนั้นไว้
+# แล้ว Django เปลี่ยนเป็นตัวหลักให้อัตโนมัติตอนผู้ใช้เข้าสู่ระบบ
+PASSWORD_HASHERS = [
+    "django.contrib.auth.hashers.PBKDF2PasswordHasher",
+    "django.contrib.auth.hashers.PBKDF2SHA1PasswordHasher",
+    "django.contrib.auth.hashers.Argon2PasswordHasher",
+    "django.contrib.auth.hashers.BCryptSHA256PasswordHasher",
+    "django.contrib.auth.hashers.ScryptPasswordHasher",
+    # รหัสชั่วคราวจากการนำเข้า CSV (เข้ารหัสแบบเบา — เหตุผลใน accounts/hashers.py ; ขั้น 2.4)
+    "accounts.hashers.TemporaryPasswordHasher",
+]
+
 # --- ภาษาและเวลา ---
 # ภาษาเริ่มต้นของข้อความระบบฝั่ง Django (หน้าจอหลักแปลภาษาที่ฝั่ง frontend)
 LANGUAGE_CODE = "th"
