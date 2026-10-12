@@ -19,6 +19,8 @@ from common.views import api_not_found, health_check
 api_v1_patterns: list = [
     # เข้าสู่ระบบ / แลก token / ออกจากระบบ / ข้อมูลของฉัน (ก้อน 1)
     path("auth/", include("accounts.urls")),
+    # ผู้ดูแลระบบ: จัดการบัญชีผู้ใช้ (ก้อน 2)
+    path("admin/", include("accounts.manage_urls")),
 ]
 
 urlpatterns = [

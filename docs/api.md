@@ -30,6 +30,8 @@
 - ชื่อช่องข้อมูล: **snake_case ทั้งระบบ** (ผู้ใช้ตัดสินในขั้น 0.5) — ใช้ชื่อเดียวกับ field ใน [`database.md`](./database.md) ทุกตัว เช่น `is_published`, `file_url`, `max_attempts`
   - **ไม่มีตัวแปลงชื่อ** ระหว่าง backend กับ frontend — ชนิดข้อมูลใน TypeScript ใช้ชื่อ snake_case ตรงตาม JSON
   - ตัวอย่าง: `{ "id": 12, "code": "204111", "is_published": true, "join_code_enabled": false }`
+- **รายการที่แบ่งหน้า** (ขั้น 2.3 — `common/pagination.py`, ตั้งเป็นค่าเริ่มต้นของทั้งระบบ): หน้าละ **20** รายการ ขอหน้าด้วย `?page=N` (เริ่มที่ 1) ; ขอหน้าที่ไม่มีอยู่ → 404 `not_found`
+  - รูปแบบ: `{ "count": 134, "next": "…?page=3", "previous": "…?page=1", "results": [ … ] }` — `count` = จำนวนทั้งหมดทุกหน้า ; หน้าแรก `previous` = `null`, หน้าสุดท้าย `next` = `null`
 
 ## 3. รูปแบบ error กลาง
 
@@ -106,6 +108,8 @@ raise ApiError("quiz_time_over", status_code=409)
 | `account_disabled` | 403 | เข้าสู่ระบบ: รหัสผ่านถูก แต่บัญชีถูกระงับ (`is_active=False`) — บอกเฉพาะเมื่อรหัสผ่านถูก | 1 |
 | `avatar_too_large` | 400 | รูปประจำตัว: ไฟล์เกิน 2 MB หรือภาพเกิน 25 ล้านพิกเซล | 1 |
 | `avatar_invalid_type` | 400 | รูปประจำตัว: ไม่ใช่รูป / ไฟล์เสีย / ไม่ใช่ JPG-PNG-WebP (ตรวจจากเนื้อไฟล์) | 1 |
+| `cannot_modify_self` | 403 | จัดการบัญชี: ผู้ดูแลระบบระงับ / เปิดใช้งาน / เปลี่ยนบทบาท / รีเซ็ตรหัสของบัญชีตัวเอง (§7.2) | 2 |
+| `last_active_admin` | 409 | จัดการบัญชี: ระงับหรือลดบทบาทแล้วจะไม่เหลือผู้ดูแลระบบที่ใช้งานได้ (§7.2) | 2 |
 
 > token ใช้ไม่ได้ทุกแบบ (หมดอายุ / ลายเซ็นผิด / ถูกยกเลิก / บัญชีถูกระงับระหว่างใช้งาน / ออกก่อนเปลี่ยนรหัสผ่าน) ตอบ `authentication_failed` (401) รหัสเดียว — รหัสย่อยของ Simple JWT (`token_not_valid`, `user_inactive` ฯลฯ) ถูกรวมใน `api_exception_handler`
 
@@ -185,3 +189,41 @@ cookie ตั้งค่า: `HttpOnly` ; `Path=/api/v1/auth/` (ส่งเฉ
 ### 6.4 งานดูแลระบบ
 
 ตาราง token ที่หมดอายุ (`token_blacklist`) สะสมเรื่อย ๆ → ล้างด้วย `uv run python manage.py flushexpiredtokens` **ตอน deploy / ตอนเปิดเครื่อง** (ไม่ใช้งานตั้งเวลา — ข้อควรระวังข้อ 1 ใน `CLAUDE.md`)
+
+## 7. จัดการบัญชีผู้ใช้ — ผู้ดูแลระบบ (ก้อน 2 — UC-04)
+
+ทุกที่อยู่ในหัวข้อนี้ใช้ได้**เฉพาะผู้ดูแลระบบ** (`accounts/permissions.py` → `IsAdminRole`) — บทบาทอ่านจากฐานข้อมูลทุกคำขอ ไม่เชื่อค่า `role` ในบัตร → ลดบทบาทใครแล้ว คำขอถัดไปของคนนั้นได้ 403 ทันที (ไม่บังคับออกจากระบบ — ผู้ใช้เลือกแบบ ก ขั้น 2.3) ; ไม่ได้เข้าสู่ระบบ → 401 ; ไม่ใช่ผู้ดูแลระบบ → 403 `permission_denied`
+
+### 7.1 ที่อยู่
+
+| Method + ที่อยู่ | ส่งอะไร | สำเร็จ | ไม่สำเร็จ |
+|---|---|---|---|
+| `GET /api/v1/admin/users/` | query (ไม่บังคับ): `search` (ชื่อ / นามสกุล / ชื่อเต็ม / อีเมล / รหัส — ไม่สนตัวพิมพ์), `role` (`admin`/`teacher`/`student`), `is_active` (`true`/`false`), `page` | 200 รายการแบ่งหน้า (§2) ของ `admin_user` เรียงบัญชีใหม่สุดก่อน | 400 `validation_error` (ค่ากรองผิด → `invalid_choice`) / 404 `not_found` (หน้าที่ไม่มี) |
+| `GET /api/v1/admin/users/{id}/` | – | 200 `admin_user` | 404 `not_found` |
+| `POST /api/v1/admin/users/` | `{email, student_or_staff_id?, first_name, last_name, role, password}` — `student_or_staff_id` ว่าง/ไม่ส่ง = ไม่มีรหัส ; ตัดช่องว่างหัวท้าย (ยกเว้นรหัสผ่าน) ; อีเมลเก็บตัวพิมพ์เล็ก | 201 `admin_user` ; `created_by` = ผู้ดูแลระบบที่กด ; `is_staff` = false เสมอ (ไม่เข้าหน้า Django admin) | 400 `validation_error`: `unique` (อีเมลซ้ำแบบไม่สนตัวพิมพ์ / รหัสซ้ำ), `invalid`, `blank`, `required`, `invalid_choice` ; `password` → รหัสกฎ §3.2 (ความคล้ายเทียบกับบัญชีใหม่) |
+| `PATCH /api/v1/admin/users/{id}/` | `{email?, student_or_staff_id?, first_name?, last_name?, role?}` — ส่งเฉพาะช่องที่แก้ ; `is_active` / `is_staff` / `password` ส่งมาไม่มีผล | 200 `admin_user` | 400 `validation_error` (เหมือนเพิ่มบัญชี) / 403 `cannot_modify_self` (เปลี่ยนบทบาทตัวเอง) / 404 / 409 `last_active_admin` |
+| `POST /api/v1/admin/users/{id}/suspend/` | (ไม่มี body) | 200 `admin_user` (`is_active: false`) — ระงับอยู่แล้วก็ 200 | 403 `cannot_modify_self` / 404 / 409 `last_active_admin` |
+| `POST /api/v1/admin/users/{id}/activate/` | (ไม่มี body) | 200 `admin_user` (`is_active: true`) — ใช้งานได้อยู่แล้วก็ 200 | 403 `cannot_modify_self` / 404 |
+| `POST /api/v1/admin/users/{id}/password/` | `{"new_password": "..."}` (ไม่ตัดช่องว่าง) | 204 (ไม่ส่งรหัสกลับ) — refresh token ทุกใบของผู้ใช้ขึ้นบัญชีดำ + บัตรเดิมใช้ไม่ได้ (`pwd`) → **ทุกอุปกรณ์ของผู้ใช้ออกทันที** ; บัญชีที่ถูกระงับรีเซ็ตได้ | 400 `validation_error` (`new_password` → รหัสกฎ §3.2 เทียบกับเจ้าของบัญชี) / 403 `cannot_modify_self` / 404 |
+
+`admin_user` = `{id, email, student_or_staff_id, role, first_name, last_name, is_active, avatar_url, date_joined, last_login}` (`last_login` ยังไม่เคยเข้า = `null` ; ไม่มีรหัสผ่านหรือข้อมูลภายในเช่น `is_staff`)
+
+ไม่มีที่อยู่ "ลบบัญชี" — ผู้ใช้ไม่ลบจริง ใช้การระงับแทน (`docs/database.md` §1)
+
+### 7.2 กันล็อกตัวเอง
+
+- **บัญชีของตัวเอง:** ระงับ / เปิดใช้งาน / เปลี่ยนบทบาท / รีเซ็ตรหัส → 403 `cannot_modify_self` ; แก้ชื่อ / อีเมล / รหัสของตัวเองผ่าน `PATCH` **ได้** (ส่ง `role` เดิมมาด้วยก็ได้) — รีเซ็ตรหัสตัวเองไม่ได้เพราะจะเป็นทางลัดเปลี่ยนรหัสโดยไม่ต้องกรอกรหัสเดิม (ใช้ `me/password/` แทน)
+- **ผู้ดูแลระบบคนสุดท้าย:** ระงับ หรือลดบทบาทผู้ดูแลระบบที่ใช้งานได้ แล้วจะไม่เหลือคนอื่น → 409 `last_active_admin` ; เพราะแก้ตัวเองไม่ได้ กรณีนี้เกิดได้จริงเฉพาะ admin 2 คนกดใส่กันพร้อมกัน → backend ล็อกแถวผู้ดูแลระบบที่ใช้งานได้ทั้งหมด (`SELECT … FOR UPDATE` เรียงตามรหัส ก่อนล็อกแถวเป้าหมาย) ให้คำขอที่สองรอคิวแล้วนับใหม่ (`lock_active_admins()` + `ensure_not_last_active_admin()` ใน `accounts/manage_views.py`)
+
+### 7.3 สิ่งที่จดลง AuditLog
+
+ทุกรายการจดใน transaction เดียวกับการแก้ข้อมูล (จดไม่สำเร็จ = การแก้ถูกยกเลิก) ; `actor` = ผู้ดูแลระบบที่กด ; ไม่มีอะไรเปลี่ยน = ไม่จด
+
+| การกระทำ | `action` | `changes` |
+|---|---|---|
+| เพิ่มบัญชี | `create` | ค่าที่ตั้ง `{"email": [null, "..."], ..., "is_active": [null, true], "password": ["***", "***"]}` |
+| แก้ไข (รวมผู้ดูแลระบบแก้บัญชีตัวเองผ่านหน้านี้ — ผู้ใช้เลือกแบบ ก ขั้น 2.3) | `update` | เฉพาะช่องที่เปลี่ยน เช่น `{"role": ["student", "teacher"]}` |
+| ระงับ / เปิดใช้งาน | `update` | `{"is_active": [true, false]}` / `{"is_active": [false, true]}` |
+| รีเซ็ตรหัสผ่าน | `update` | `{"password": ["***", "***"]}` |
+
+> การแก้ข้อมูลตัวเองที่หน้าข้อมูลส่วนตัว (`/api/v1/auth/me/…` — UC-02) **ไม่จด**

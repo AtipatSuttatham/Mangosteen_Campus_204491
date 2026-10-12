@@ -167,6 +167,8 @@ REST_FRAMEWORK = {
     ],
     # ค่าเริ่มต้น = ต้องเข้าสู่ระบบก่อนเสมอ ; ที่อยู่ที่เปิดให้ทุกคน (เช่น login, health) ระบุ AllowAny เอง
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    # รายการที่แบ่งหน้าใช้รูปแบบเดียวกันทั้งระบบ: {count, next, previous, results} หน้าละ 20 (ขั้น 2.3)
+    "DEFAULT_PAGINATION_CLASS": "common.pagination.StandardPagination",
 }
 
 # --- Simple JWT: token สำหรับเข้าสู่ระบบ (CLAUDE.md หัวข้อ "Token", docs/api.md §6) ---

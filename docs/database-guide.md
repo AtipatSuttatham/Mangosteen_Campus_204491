@@ -288,10 +288,11 @@ is_published = False (draft)  ──► True (ผู้เรียนเห็�
 > ไม่มีหน้าสมัครใช้งาน
 
 ### W2 — ผู้ดูแลระบบจัดการบัญชี (UC-04)
-1. `POST /admin/users` → `User(role=…, student_or_staff_id=…, created_by=<admin>)` + **รหัสผ่านชั่วคราวที่ผู้ดูแลระบบตั้ง** (แจ้งผู้ใช้เอง) ; อีเมล/รหัสซ้ำ → ไม่บันทึก
+1. `POST /api/v1/admin/users/` → `User(role=…, student_or_staff_id=…, created_by=<admin>)` + **รหัสผ่านชั่วคราวที่ผู้ดูแลระบบตั้ง** (แจ้งผู้ใช้เอง) ; อีเมล/รหัสซ้ำ → ไม่บันทึก
    - **นำเข้าจาก CSV** → สร้างทีละแถวด้วยกติกาเดียวกัน ; แถวที่ผิด/ซ้ำ → รายงานกลับเป็นรายแถว
-2. แก้ไข / ระงับ (`is_active=False`) / เปิดใช้งาน / **รีเซ็ตรหัสผ่าน** (กรณีผู้ใช้ลืม)
-3. → `AuditLog(action=create|update, actor=<admin>)`
+2. แก้ไข (`PATCH …/{id}/`) / ระงับ (`…/suspend/` → `is_active=False`) / เปิดใช้งาน (`…/activate/`) / **รีเซ็ตรหัสผ่าน** (`…/password/` — กรณีผู้ใช้ลืม ; ทุกอุปกรณ์ของผู้ใช้หลุดทันที)
+   - ผู้ดูแลระบบระงับ / เปลี่ยนบทบาท / รีเซ็ตรหัสของตัวเองไม่ได้ (`cannot_modify_self`) ; ต้องเหลือผู้ดูแลระบบที่ใช้งานได้ ≥ 1 คน (`last_active_admin` — ล็อกแถวกันกดพร้อมกัน)
+3. → `AuditLog(action=create|update, actor=<admin>)` ใน transaction เดียวกัน (รายละเอียด `changes` ใน [`api.md`](./api.md) §7.3)
 
 ### W3 — สร้างรายวิชา (UC-07)
 1. ผู้สอน (หรือ admin ทำแทน) → `POST /courses` (academic_year, semester, code, name, description) → `Course(teacher=<ผู้สอน>, is_published=False, created_by=<ผู้สร้าง>)` — ผู้สอนสร้างเอง: `teacher` = ตัวเอง ; admin สร้างแทน: ต้องเลือกผู้สอนจากบัญชี `role=teacher` ; `code` ซ้ำกับวิชาอื่นในภาคเดียวกัน → แจ้งให้กำหนดใหม่
