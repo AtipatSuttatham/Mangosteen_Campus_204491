@@ -154,6 +154,12 @@ AVATAR_MAX_SIZE = 512
 # (เครื่องฟรีตอน deploy มี RAM 512 MB — ข้อควรระวังข้อ 3 ใน CLAUDE.md)
 AVATAR_MAX_PIXELS = 25_000_000
 
+# --- นำเข้าบัญชีจากไฟล์ CSV (การตัดสินใจก้อน 2 / docs/api.md §7.4) ---
+# ขนาดไฟล์สูงสุด: 1 MB
+CSV_IMPORT_MAX_BYTES = 1024 * 1024
+# จำนวนแถวข้อมูลสูงสุด (ไม่นับแถวหัวตารางและแถวว่าง)
+CSV_IMPORT_MAX_ROWS = 500
+
 # --- Django REST Framework ---
 REST_FRAMEWORK = {
     # ส่งข้อมูลกลับเป็น JSON เท่านั้น (frontend เป็น React ไม่ใช้หน้า HTML ของ DRF)

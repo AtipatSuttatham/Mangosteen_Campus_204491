@@ -42,16 +42,26 @@ class ApiError(exceptions.APIException):
     - code: รหัส error (ตัวเล็ก คั่นด้วย _) — ต้องเพิ่มข้อความไทยใน th.ts ฝั่ง frontend ด้วย
     - detail: คำอธิบายภาษาอังกฤษสำหรับนักพัฒนา (ไม่แสดงให้ผู้ใช้)
     - status_code: HTTP status (ค่าเริ่มต้น 400)
+    - extra: ข้อมูลประกอบที่ frontend ต้องใช้แสดงผล (ไม่บังคับ) — ถูกรวมเข้าไปในคำตอบ
+      เช่น ApiError("csv_missing_columns", extra={"fields": {"email": ["required"]}})
+      ห้ามใช้ชื่อ "code" / "detail" (ชื่อของรูปแบบกลาง)
     """
 
     status_code = status.HTTP_400_BAD_REQUEST
     default_detail = "The request could not be processed."
     default_code = "error"
 
-    def __init__(self, code: str, detail: str | None = None, status_code: int | None = None):
+    def __init__(
+        self,
+        code: str,
+        detail: str | None = None,
+        status_code: int | None = None,
+        extra: dict[str, Any] | None = None,
+    ):
         super().__init__(detail=detail or self.default_detail, code=code)
         if status_code is not None:
             self.status_code = status_code
+        self.extra = extra or {}
 
 
 def _flatten_field_codes(codes: Any, prefix: str = "") -> dict[str, list[str]]:
@@ -149,4 +159,9 @@ def api_exception_handler(exc: Exception, context: dict[str, Any]) -> Response:
 
     # error อื่น ๆ (ไม่ได้เข้าสู่ระบบ, ไม่มีสิทธิ์, ไม่พบ, ApiError ฯลฯ)
     response.data = {"code": _code_of(exc), "detail": _detail_of(exc)}
+    # ApiError ที่มีข้อมูลประกอบ (เช่น คอลัมน์ที่ขาด / รายงานแถวที่ผิดของ CSV) → แนบไปด้วย
+    if isinstance(exc, ApiError):
+        response.data.update(
+            {key: value for key, value in exc.extra.items() if key not in ("code", "detail")}
+        )
     return response

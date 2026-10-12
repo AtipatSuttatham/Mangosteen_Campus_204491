@@ -105,6 +105,18 @@ def test_api_error_defaults(client: APIClient) -> None:
     }
 
 
+def test_api_error_extra_data_is_attached(client: APIClient) -> None:
+    """ApiError ที่มีข้อมูลประกอบ → แนบในคำตอบ แต่ทับ code/detail ไม่ได้"""
+    response = client.get("/api-error-extra/")
+
+    assert response.status_code == 400
+    assert response.json() == {
+        "code": "csv_missing_columns",
+        "detail": "Missing columns.",
+        "fields": {"email": ["required"]},
+    }
+
+
 def test_unexpected_error_returns_500_without_internal_details(
     client: APIClient, caplog: pytest.LogCaptureFixture
 ) -> None:
