@@ -9,6 +9,7 @@
  * - บัญชีที่ถูกระงับ: ตัวอักษรของชื่อ/รหัส/บทบาทเป็นสีรอง (ตาม wireframe)
  * - ยังไม่มีคอลัมน์ "การดำเนินการ" — ปุ่มแก้ไข/รีเซ็ต/ระงับมาในขั้น 2.6 (ผู้ใช้เลือกข้อ 1.ก ขั้น 2.5)
  * - ซ่อนบนจอเล็ก (lg:table) — มือถือใช้การ์ดแทน
+ * - ความกว้างคอลัมน์คงที่ (table-fixed + colgroup) — เปลี่ยนหน้าแล้วคอลัมน์ไม่ขยับตามความยาวข้อมูล
  */
 import { useTranslation } from 'react-i18next'
 import type { AdminUser } from '../../../api/adminUsers'
@@ -29,7 +30,14 @@ export function UsersTable({ users, currentUserId }: UsersTableProps) {
   const { t } = useTranslation()
 
   return (
-    <table className="hidden w-full border-collapse lg:table">
+    <table className="hidden w-full table-fixed border-collapse lg:table">
+      {/* สัดส่วนคอลัมน์: ชื่อและอีเมล / รหัส / บทบาท / สถานะ */}
+      <colgroup>
+        <col className="w-[42%]" />
+        <col className="w-[24%]" />
+        <col className="w-[14%]" />
+        <col className="w-[20%]" />
+      </colgroup>
       <thead>
         <tr>
           <th scope="col" className={`${TH} pl-6`}>

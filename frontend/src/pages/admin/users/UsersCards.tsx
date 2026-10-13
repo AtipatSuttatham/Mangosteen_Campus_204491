@@ -7,7 +7,9 @@
  *   │ ผู้เรียน     รหัส 660510221                │
  *   └──────────────────────────────────────────┘
  *
- * - 1 คน = 1 การ์ด เรียงลงมา ; อีเมลยาวตัดขึ้นบรรทัดใหม่ได้ (ไม่ล้นจอ)
+ * - 1 คน = 1 การ์ด เรียงลงมา
+ * - อีเมลอยู่ใต้แถวชื่อ + ป้าย ใช้ความกว้างเต็มการ์ด (ป้ายยาวอย่าง "ระงับการใช้งาน" ไม่บีบอีเมลจนตัดกลางคำ) ;
+ *   อีเมลยาวมากจริง ๆ ยังตัดขึ้นบรรทัดใหม่ได้ (ไม่ล้นจอ)
  * - ยังไม่มีแถวปุ่มแก้ไข / รีเซ็ต / ระงับ ด้านล่างการ์ด — มาในขั้น 2.6 (ผู้ใช้เลือกข้อ 1.ก ขั้น 2.5)
  * - ซ่อนบนจอใหญ่ (lg:hidden) — จอใหญ่ใช้ตารางแทน
  */
@@ -29,18 +31,18 @@ export function UsersCards({ users, currentUserId }: UsersCardsProps) {
     <ul aria-label={t('adminUsers.listLabel')} className="m-0 flex list-none flex-col gap-2.5 p-0 lg:hidden">
       {users.map((user) => (
         <Card as="li" key={user.id} className="flex flex-col gap-2 p-4">
-          <div className="flex items-start justify-between gap-2.5">
-            <div className="min-w-0">
+          <div>
+            <div className="flex items-start justify-between gap-2.5">
               <UserName
                 user={user}
                 isSelf={user.id === currentUserId}
-                className={`text-base ${user.is_active ? '' : 'text-ink-muted'}`}
+                className={`min-w-0 text-base ${user.is_active ? '' : 'text-ink-muted'}`}
               />
-              <div className="text-[13.5px] leading-[1.6] [overflow-wrap:anywhere] text-ink-muted">
-                {user.email}
-              </div>
+              <UserStatusBadge isActive={user.is_active} />
             </div>
-            <UserStatusBadge isActive={user.is_active} />
+            <div className="text-[13.5px] leading-[1.6] [overflow-wrap:anywhere] text-ink-muted">
+              {user.email}
+            </div>
           </div>
           {/* ข้อมูลประกอบวางเรียงกันโดยเว้นระยะ (ตาม .stats ใน canvas — ไม่คั่นด้วยจุด) */}
           <div className="flex flex-wrap gap-x-5 gap-y-1 text-sm text-ink-muted">
