@@ -42,8 +42,9 @@ export function NavLinks({ variant, onNavigate }: NavMenuProps) {
           <li key={item.to}>
             <NavLink
               to={item.to}
-              // end: เมนู "/" ถูกเลือกเฉพาะที่หน้าแรกพอดี (ไม่ใช่ทุกหน้าที่ขึ้นต้นด้วย /)
-              end
+              // end: เมนู "/" ถูกเลือกเฉพาะที่หน้าแรกพอดี (ไม่ใช่ทุกหน้าที่ขึ้นต้นด้วย /) ;
+              // เมนูอื่นถูกเลือกในหน้าย่อยด้วย เช่น "จัดการผู้ใช้" ที่ /users/import (ขั้น 2.7)
+              end={item.to === '/'}
               onClick={onNavigate}
               // NavLink ใส่ aria-current="page" ให้เมนูของหน้าปัจจุบันเอง (โปรแกรมอ่านหน้าจออ่านว่า "หน้าปัจจุบัน")
               className={({ isActive }) =>
