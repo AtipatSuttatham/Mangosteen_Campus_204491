@@ -262,12 +262,14 @@ cookie ตั้งค่า: `HttpOnly` ; `Path=/api/v1/auth/` (ส่งเฉ
   "errors": [
     {"row": 7, "column": "email", "code": "unique", "value": "a@example.com"},
     {"row": 9, "column": "email", "code": "duplicate_in_file", "value": "b@example.com", "duplicate_of": 4}
-  ]
+  ],
+  "preview": []
 }
 ```
 
 - `row` = เลขแถวแบบ Excel (หัวตาราง = 1) ; `value` = ค่าในไฟล์ (ตัดไม่เกิน 200 ตัว) ; `code` = รหัสรายช่อง §3.2 (ข้อความไทยใน `fieldErrors`) ; แต่ละช่องรายงานปัญหาแรก
 - `by_role` นับจากแถวที่ระบุบทบาทถูก ; `duplicate_of` มีเฉพาะ `duplicate_in_file`
+- `preview` (ขั้น 2.7 — ผู้ใช้เลือกแบบ ก 2026-10-13): **5 แถวแรกที่จะนำเข้า** สำหรับตารางตัวอย่างในหน้า "พร้อมนำเข้า" — ใช้ค่าที่ตรวจแล้ว (อีเมลตัวพิมพ์เล็ก, `role` = `student`/`teacher`, ไม่มีรหัส = `null`) เช่น `{"row": 2, "email": "a@example.com", "student_or_staff_id": "690000001", "first_name": "สมชาย", "last_name": "ใจดี", "role": "student"}` ; **มีแถวผิด = `[]`** (ยังไม่มีอะไรจะนำเข้า) ; หน้าเว็บไม่ต้องอ่านไฟล์เอง (backend อ่านที่เดียว)
 
 **ผลการนำเข้า** (201):
 

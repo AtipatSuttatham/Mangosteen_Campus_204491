@@ -4,7 +4,7 @@
 ขั้นตอนของไฟล์ 1 ไฟล์:
     read_csv_upload()   อ่านไฟล์: จำกัดขนาด → ถอดรหัสภาษา (UTF-8 / TIS-620) → แยกแถว → ตรวจหัวตาราง
                         ปัญหาระดับไฟล์ → ApiError (csv_unreadable, csv_too_large, ...) ทันที
-    validate_rows()     ตรวจทุกแถว (ยังไม่บันทึก) → รายงาน {valid, total, by_role, errors}
+    validate_rows()     ตรวจทุกแถว (ยังไม่บันทึก) → รายงาน {valid, total, by_role, errors, preview}
                         ปัญหารายแถวไม่หยุดกลางทาง — รวบรวมทุกแถวให้ผู้ดูแลระบบแก้ได้ในรอบเดียว
     import_rows()       สร้างบัญชีทุกแถวใน transaction เดียว + สุ่มรหัสชั่วคราว + จด AuditLog
                         (เรียกเฉพาะเมื่อ validate_rows() บอกว่าถูกทั้งไฟล์)
@@ -32,6 +32,8 @@ from common.exceptions import ApiError
 COLUMNS = ["email", "student_or_staff_id", "first_name", "last_name", "role"]
 # ความยาวสูงสุดของ "ค่าในไฟล์" ที่ส่งกลับในรายงาน (กันคำตอบใหญ่เกินเมื่อมีช่องยาวผิดปกติ)
 REPORT_VALUE_MAX = 200
+# จำนวนแถวตัวอย่างที่ส่งกลับเมื่อไฟล์ถูกทุกแถว (ตารางในหน้า "พร้อมนำเข้า" — ขั้น 2.7)
+PREVIEW_ROWS = 5
 
 
 @dataclass
@@ -144,7 +146,7 @@ def read_csv_upload(upload: UploadedFile) -> list[CsvRow]:
 class ValidationResult:
     """ผลการตรวจทั้งไฟล์"""
 
-    # รายงานที่ส่งกลับให้หน้าเว็บ: {valid, total, by_role, errors}
+    # รายงานที่ส่งกลับให้หน้าเว็บ: {valid, total, by_role, errors, preview}
     report: dict
     # ข้อมูลที่ตรวจแล้วของทุกแถว (ใช้ตอนนำเข้า) — มีครบเฉพาะเมื่อ report["valid"] เป็นจริง
     # แต่ละรายการ = (เลขแถว, {email, student_or_staff_id, first_name, last_name, role})
@@ -169,7 +171,11 @@ def validate_rows(rows: list[CsvRow]) -> ValidationResult:
             {"row": 7, "column": "email", "code": "unique", "value": "a@example.com"},
             {"row": 9, "column": "email", "code": "duplicate_in_file", "value": "b@example.com",
              "duplicate_of": 4}                        ← มีเฉพาะ duplicate_in_file: แถวก่อนหน้าที่ใช้ค่านี้
-          ]
+          ],
+          "preview": [                                 ← (ขั้น 2.7) 5 แถวแรกที่จะนำเข้า เฉพาะเมื่อถูกทุกแถว
+            {"row": 2, "email": "a@example.com", "student_or_staff_id": "690000001",
+             "first_name": "สมชาย", "last_name": "ใจดี", "role": "student"}
+          ]                                            ← มีแถวผิด = [] (ยังไม่มีอะไรจะนำเข้า)
         }
     """
     # โหลดอีเมล/รหัสที่ชนกับบัญชีในระบบด้วย query เดียวต่อชนิด (แทนการถามทีละแถว)
@@ -221,6 +227,22 @@ def validate_rows(rows: list[CsvRow]) -> ValidationResult:
         "total": len(rows),
         "by_role": by_role,
         "errors": errors,
+        # ตัวอย่างใช้ค่าที่ตรวจแล้ว (อีเมลตัวพิมพ์เล็ก, บทบาท student/teacher) = สิ่งที่จะถูกสร้างจริง
+        "preview": (
+            [
+                {
+                    "row": number,
+                    "email": data["email"],
+                    "student_or_staff_id": data.get("student_or_staff_id"),
+                    "first_name": data["first_name"],
+                    "last_name": data["last_name"],
+                    "role": data["role"],
+                }
+                for number, data in valid_rows[:PREVIEW_ROWS]
+            ]
+            if not errors
+            else []
+        ),
     }
     return ValidationResult(report=report, rows=valid_rows if not errors else [])
 
