@@ -17,19 +17,12 @@ import { useEffect, useId, useRef, useState, type RefObject } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { createAdminUser, type AdminUser } from '../../../api/adminUsers'
-import {
-  Button,
-  Dialog,
-  DialogBody,
-  DialogFooter,
-  DialogHeader,
-  PasswordField,
-} from '../../../components/ui'
+import { Button, Dialog, DialogBody, DialogFooter, DialogHeader } from '../../../components/ui'
 import { generateTempPassword } from '../../../lib/passwords'
 import { FormGroup } from './FormGroup'
-import { CopyButton } from './CopyButton'
-import { DiceIcon, InfoIcon, KeyIcon, PlusIcon } from './icons'
+import { InfoIcon, KeyIcon, PlusIcon } from './icons'
 import { DoneMark, PasswordSlip } from './PasswordSlip'
+import { TempPasswordField } from './TempPasswordField'
 import { UserFields } from './UserFields'
 import { applySaveError, fieldMessage, type UserFormValues } from './userForm'
 
@@ -141,43 +134,24 @@ export function CreateUserDialog({ onClose }: { onClose: () => void }) {
             <UserFields register={register} errors={errors} firstFieldRef={firstFieldRef} />
 
             <FormGroup title={t('userForm.groupPassword')} icon={<KeyIcon />}>
-              <PasswordField
-                defaultVisible
+              <TempPasswordField
                 label={t('userForm.password')}
                 // มือถือ: หัวกล่องบอกชื่อแล้ว จึงซ่อนป้ายไว้ให้โปรแกรมอ่านหน้าจอ
                 labelClassName="max-lg:sr-only"
-                inputClassName="tracking-[0.06em] tabular-nums"
-                autoComplete="new-password"
-                autoCapitalize="none"
-                spellCheck={false}
-                hint={t('userForm.passwordHint')}
+                value={password}
                 error={fieldMessage(errors, 'password')}
-                actions={
-                  <>
-                    <Button
-                      variant="secondary"
-                      className="h-[46px]"
-                      // สุ่มใหม่ ; ถ้าช่องมี error อยู่ ตรวจใหม่ทันที (error หายเมื่อรหัสใช้ได้)
-                      onClick={() =>
-                        setValue('password', generateTempPassword(), {
-                          shouldValidate: errors.password !== undefined,
-                        })
-                      }
-                    >
-                      <DiceIcon />
-                      {t('userForm.generate')}
-                    </Button>
-                    <CopyButton text={password} />
-                  </>
+                // สุ่มใหม่ ; ถ้าช่องมี error อยู่ ตรวจใหม่ทันที (error หายเมื่อรหัสใช้ได้)
+                onGenerate={(next) =>
+                  setValue('password', next, { shouldValidate: errors.password !== undefined })
                 }
-                {...passwordField}
+                registration={passwordField}
               />
               <div
-              className={
-                'flex items-start gap-2.5 rounded-[10px] bg-mute-soft px-3.5 py-3 text-[13.5px] ' +
-                'leading-[1.55] text-mute lg:-mt-1.5'
-              }
-            >
+                className={
+                  'flex items-start gap-2.5 rounded-[10px] bg-mute-soft px-3.5 py-3 text-[13.5px] ' +
+                  'leading-[1.55] text-mute lg:-mt-1.5'
+                }
+              >
                 <span className="mt-0.5">
                   <InfoIcon />
                 </span>

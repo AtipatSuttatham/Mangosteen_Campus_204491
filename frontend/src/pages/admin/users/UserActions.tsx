@@ -16,16 +16,23 @@ import { Button } from '../../../components/ui'
 /** ตัวจัดการปุ่มต่าง ๆ — หน้า UsersPage เป็นคนเปิดหน้าต่าง */
 export type UserActionHandlers = {
   onEdit: (user: AdminUser) => void
+  onResetPassword: (user: AdminUser) => void
 }
 
 type UserActionsProps = UserActionHandlers & {
   user: AdminUser
-  /** บัญชีของผู้ที่เข้าสู่ระบบอยู่ — มีแค่ "แก้ไข" (ปุ่มรีเซ็ต/ระงับเพิ่มใน commit ถัดไปของขั้น 2.6) */
+  /** บัญชีของผู้ที่เข้าสู่ระบบอยู่ — มีแค่ "แก้ไข" */
   isSelf: boolean
   className?: string
 }
 
-export function UserActions({ user, onEdit, className = '' }: UserActionsProps) {
+export function UserActions({
+  user,
+  isSelf,
+  onEdit,
+  onResetPassword,
+  className = '',
+}: UserActionsProps) {
   const { t } = useTranslation()
   const name = `${user.first_name} ${user.last_name}`
 
@@ -38,6 +45,16 @@ export function UserActions({ user, onEdit, className = '' }: UserActionsProps) 
       >
         {t('adminUsers.edit')}
       </Button>
+      {/* บัญชีตัวเองรีเซ็ตรหัสไม่ได้ (ใช้หน้าข้อมูลส่วนตัว — cannot_modify_self) */}
+      {!isSelf && (
+        <Button
+          variant="text"
+          aria-label={t('adminUsers.resetPasswordLabel', { name })}
+          onClick={() => onResetPassword(user)}
+        >
+          {t('adminUsers.resetPassword')}
+        </Button>
+      )}
     </div>
   )
 }

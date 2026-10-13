@@ -198,7 +198,8 @@ describe('UsersPage — การ์ดบนมือถือ', () => {
     expect(self).toHaveTextContent('รหัส 69000001')
     expect(self).toHaveTextContent('user1@example.com')
     expect(suspended).toHaveTextContent('ระงับการใช้งาน')
-    expect(suspended).not.toHaveTextContent('รหัส')
+    // ไม่มีบรรทัด "รหัส …" (ปุ่ม "รีเซ็ตรหัสผ่าน" ก็มีคำว่า "รหัส" จึงตรวจเฉพาะ "รหัส" ตามด้วยตัวเลข)
+    expect(suspended).not.toHaveTextContent(/รหัส \d/)
   })
 })
 

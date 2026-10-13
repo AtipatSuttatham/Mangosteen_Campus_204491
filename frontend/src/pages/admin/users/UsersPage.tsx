@@ -13,7 +13,8 @@
  *
  * ข้อมูล: GET /api/v1/admin/users/ ผ่าน TanStack Query ; ตัวกรองเก็บในที่อยู่ (useUserFilters)
  * ระหว่างโหลดหน้าถัดไปยังแสดงหน้าเดิมไว้ (ไม่กระพริบ)
- * ปุ่ม "เพิ่มผู้ใช้" (ขั้น 2.6) เปิดหน้าต่าง CreateUserDialog ; ปุ่ม "แก้ไข" ในแถว/การ์ด เปิด EditUserDialog ; ปุ่ม "นำเข้าจาก CSV" ยังไม่แสดง — มาในขั้น 2.7
+ * ปุ่ม "เพิ่มผู้ใช้" (ขั้น 2.6) เปิดหน้าต่าง CreateUserDialog ; ปุ่มในแถว/การ์ด เปิด EditUserDialog /
+ * ResetPasswordDialog ; ปุ่ม "นำเข้าจาก CSV" ยังไม่แสดง — มาในขั้น 2.7
  * (ผู้ใช้เลือกข้อ 1.ก ขั้น 2.5: แสดงเฉพาะสิ่งที่ทำงานได้แล้ว)
  */
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
@@ -26,6 +27,7 @@ import { useAuth } from '../../../auth/AuthContext'
 import { Button, Pagination } from '../../../components/ui'
 import { CreateUserDialog } from './CreateUserDialog'
 import { EditUserDialog } from './EditUserDialog'
+import { ResetPasswordDialog } from './ResetPasswordDialog'
 import { PlusIcon } from './icons'
 import { UserFilterBar } from './UserFilterBar'
 import { UsersCards } from './UsersCards'
@@ -43,12 +45,13 @@ export default function UsersPage() {
   const headingRef = useRef<HTMLHeadingElement>(null)
   // หน้าต่างที่เปิดอยู่ (null = ไม่มี)
   const [dialog, setDialog] = useState<
-    { type: 'create' } | { type: 'edit'; user: AdminUser } | null
+    { type: 'create' } | { type: 'edit' | 'reset'; user: AdminUser } | null
   >(null)
   const closeDialog = () => setDialog(null)
   // ปุ่มในแต่ละแถว/การ์ด → เปิดหน้าต่างของบัญชีนั้น
   const rowActions = {
     onEdit: (user: AdminUser) => setDialog({ type: 'edit', user }),
+    onResetPassword: (user: AdminUser) => setDialog({ type: 'reset', user }),
   }
 
   const query = useQuery({
@@ -181,6 +184,7 @@ export default function UsersPage() {
           onClose={closeDialog}
         />
       )}
+      {dialog?.type === 'reset' && <ResetPasswordDialog user={dialog.user} onClose={closeDialog} />}
     </div>
   )
 }
