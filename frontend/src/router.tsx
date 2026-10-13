@@ -5,6 +5,9 @@
  *   ── หน้าที่ต้องเข้าสู่ระบบ: อยู่ในโครงหน้าจอ AppShell (sidebar / เมนูมือถือ) ตรวจการเข้าสู่ระบบที่โครงจุดเดียว
  *   /                 หน้าแรก (ทุกบทบาท)
  *   /profile          ข้อมูลส่วนตัว (ทุกบทบาท ตาม UC-02)
+ *   /users            จัดการบัญชีผู้ใช้ (เฉพาะผู้ดูแลระบบ — UC-04 ขั้น 2.5) ; บทบาทอื่น → กลับหน้าแรก
+ *                     (ไม่ใช้ /admin/... เพราะตอน deploy Django ใช้ /admin/ เป็นหน้า Django admin
+ *                      บนโดเมนเดียวกัน — รีเฟรชหน้า /admin/users จะไปโผล่หน้า Django แทน)
  *   /dev/components   ตัวอย่างคอมโพเนนต์ (เฉพาะโหมดพัฒนา)
  *   /dev/health       ทดสอบสุขภาพระบบ (เฉพาะโหมดพัฒนา)
  *   อื่น ๆ             ไม่มีหน้านี้ → พากลับหน้าแรก (หน้า "ไม่พบหน้านี้" ยังไม่มี wireframe)
@@ -16,6 +19,7 @@ import AppShell from './components/layout/AppShell'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import ProfilePage from './pages/profile/ProfilePage'
+import UsersPage from './pages/admin/users/UsersPage'
 
 // หน้าสำหรับนักพัฒนา: โหลดแยกไฟล์เมื่อเปิดหน้านั้นเท่านั้น
 // import.meta.env.DEV เป็น false ตอน build → Vite ตัดโค้ดส่วนนี้ทิ้ง ไม่อยู่ในไฟล์ที่ deploy
@@ -43,6 +47,15 @@ export function AppRoutes() {
       >
         <Route path="/" element={<HomePage />} />
         <Route path="/profile" element={<ProfilePage />} />
+        {/* หน้าของผู้ดูแลระบบ: ยามชั้นที่สองตรวจบทบาท (ซ่อนหน้าจอเท่านั้น — backend ตรวจสิทธิ์ทุกคำขอ) */}
+        <Route
+          path="/users"
+          element={
+            <RequireAuth roles={['admin']}>
+              <UsersPage />
+            </RequireAuth>
+          }
+        />
       </Route>
       {ComponentGallery && (
         <Route

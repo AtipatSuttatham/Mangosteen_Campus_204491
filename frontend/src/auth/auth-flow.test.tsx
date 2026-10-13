@@ -303,4 +303,17 @@ describe('ยามหน้าประตูตามบทบาท', () => {
       expect(screen.queryByRole('heading', { name: 'หน้าผู้ดูแลระบบ' })).not.toBeInTheDocument(),
     )
   })
+
+  it('ผู้เรียนพิมพ์ที่อยู่ /users เอง → กลับหน้าแรก ไม่เห็นหน้าจัดการผู้ใช้ (ขั้น 2.5)', async () => {
+    const { calls } = fakeBackend({ hasSession: true })
+
+    renderApp('/users')
+
+    expect(await screen.findByRole('heading', { name: /สวัสดี/ })).toBeInTheDocument()
+    expect(
+      screen.queryByRole('heading', { name: 'จัดการบัญชีผู้ใช้' }),
+    ).not.toBeInTheDocument()
+    // ไม่มีคำขอรายชื่อผู้ใช้ออกไปเลย
+    expect(calls.some((url) => url.includes('/admin/users/'))).toBe(false)
+  })
 })

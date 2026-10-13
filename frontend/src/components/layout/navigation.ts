@@ -11,7 +11,7 @@ import type { Role } from '../../api/auth'
 import type { th } from '../../i18n/locales/th'
 
 /** ชื่อไอคอนที่มีให้เลือก (วาดใน NavMenu.tsx) */
-export type NavIcon = 'overview'
+export type NavIcon = 'overview' | 'users'
 
 export type NavItem = {
   /** ที่อยู่ของหน้า */
@@ -25,6 +25,8 @@ export type NavItem = {
 
 export const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'home', icon: 'overview', roles: ['admin', 'teacher', 'student'] },
+  // จัดการบัญชีผู้ใช้ (ก้อน 2 — ขั้น 2.5) เฉพาะผู้ดูแลระบบ
+  { to: '/users', label: 'users', icon: 'users', roles: ['admin'] },
 ]
 
 /** เมนูที่บทบาทนี้เห็น (เรียงตามลำดับในรายการ) */
