@@ -182,6 +182,19 @@ describe('StatusBadge', () => {
     expect(badge).toHaveAttribute('data-tone', tone)
     expect(badge.className).toContain(expected)
   })
+  it('ขนาด sm (ขั้น 2.5 — ป้าย "คุณ") สูง 22px ; ค่าเริ่มต้นสูง 28px', () => {
+    render(
+      <>
+        <StatusBadge tone="mute" size="sm">
+          คุณ
+        </StatusBadge>
+        <StatusBadge tone="ok">ใช้งานได้</StatusBadge>
+      </>,
+    )
+
+    expect(screen.getByText('คุณ').className).toContain('h-[22px]')
+    expect(screen.getByText('ใช้งานได้').className).toContain('h-7')
+  })
 })
 
 describe('Logo', () => {

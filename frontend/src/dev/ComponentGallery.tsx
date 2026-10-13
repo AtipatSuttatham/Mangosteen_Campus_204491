@@ -31,6 +31,7 @@ const COLOR_TOKENS = [
   'surface',
   'line',
   'line-strong',
+  'line-soft',
   'track',
   'ink',
   'ink-muted',
@@ -214,6 +215,10 @@ export default function ComponentGallery() {
           <StatusBadge tone="bad">{t('devGallery.sampleNotSubmitted')}</StatusBadge>
           <StatusBadge tone="mute" icon={<EyeOffIcon />}>
             {t('devGallery.sampleUnpublished')}
+          </StatusBadge>
+          {/* ขนาดเล็ก (size="sm") — ป้าย "คุณ" ต่อท้ายชื่อในหน้ารายชื่อผู้ใช้ */}
+          <StatusBadge tone="mute" size="sm">
+            {t('adminUsers.self')}
           </StatusBadge>
         </div>
       </Section>

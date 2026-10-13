@@ -8,10 +8,13 @@
  *   - mute  เทา   เช่น "ยังไม่เผยแพร่", "ปิดแล้ว"
  *
  * ข้อความในป้ายส่งเข้ามาเป็น children (ข้อความจาก th.ts) ; ใส่ไอคอนนำหน้าได้ผ่าน icon
+ขนาด (size — ขั้น 2.5): md สูง 28px (ค่าเริ่มต้น) / sm สูง 22px ตัวอักษร 12px
+  เช่น ป้าย "คุณ" ต่อท้ายชื่อในหน้ารายชื่อผู้ใช้ (ตาม board "รายชื่อผู้ใช้")
  */
 import type { ReactNode } from 'react'
 
 export type StatusTone = 'warn' | 'ok' | 'bad' | 'mute'
+export type StatusSize = 'md' | 'sm'
 
 type StatusBadgeProps = {
   /** สีของป้าย */
@@ -20,6 +23,8 @@ type StatusBadgeProps = {
   children: ReactNode
   /** ไอคอนนำหน้า (ไม่บังคับ) — ควรเป็น svg ที่ใส่ aria-hidden */
   icon?: ReactNode
+  /** ขนาดของป้าย (ค่าเริ่มต้น md) */
+  size?: StatusSize
   className?: string
 }
 
@@ -31,13 +36,19 @@ const TONE_CLASSES: Record<StatusTone, string> = {
   mute: 'bg-mute-soft text-mute',
 }
 
+/** ความสูง / ระยะขอบ / ขนาดตัวอักษรของแต่ละขนาด */
+const SIZE_CLASSES: Record<StatusSize, string> = {
+  md: 'h-7 px-[11px] text-[13px]',
+  sm: 'h-[22px] px-2 text-[12px]',
+}
+
 /** ป้ายสถานะ */
-export function StatusBadge({ tone, children, icon, className = '' }: StatusBadgeProps) {
+export function StatusBadge({ tone, children, icon, size = 'md', className = '' }: StatusBadgeProps) {
   return (
     <span
       data-tone={tone}
       className={
-        'inline-flex h-7 items-center gap-1.5 rounded-full px-[11px] text-[13px] font-semibold ' +
+        `inline-flex items-center gap-1.5 rounded-full font-semibold ${SIZE_CLASSES[size]} ` +
         `whitespace-nowrap ${TONE_CLASSES[tone]} ${className}`
       }
     >
