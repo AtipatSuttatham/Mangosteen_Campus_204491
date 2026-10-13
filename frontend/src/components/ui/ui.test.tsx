@@ -43,6 +43,14 @@ describe('Button', () => {
     expect(screen.getByRole('button', { name: 'ระงับ' }).className).toContain('text-bad')
   })
 
+  it('แบบ danger เป็นปุ่มแดงทึบ (ขั้น 2.6)', () => {
+    render(<Button variant="danger">ระงับบัญชี</Button>)
+
+    const button = screen.getByRole('button', { name: 'ระงับบัญชี' })
+    expect(button.className).toContain('bg-bad')
+    expect(button.className).toContain('text-white')
+  })
+
   it('กดแล้วเรียก onClick ; ถ้า disabled กดไม่ได้', async () => {
     const user = userEvent.setup()
     const onSave = vi.fn()

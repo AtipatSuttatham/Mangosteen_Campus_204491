@@ -3,7 +3,7 @@
  * แยกจาก Button.tsx เพราะไฟล์ component ควร export แต่ component (กฎ react-refresh ของ ESLint)
  */
 
-export type ButtonVariant = 'primary' | 'secondary' | 'text' | 'danger-text'
+export type ButtonVariant = 'primary' | 'secondary' | 'text' | 'danger-text' | 'danger'
 
 /** ส่วนที่ทุกแบบใช้ร่วมกัน: จัดกลาง, ตัวอักษรหนา, ไม่ตัดบรรทัด, กดไม่ได้เมื่อ disabled */
 const BASE =
@@ -23,6 +23,10 @@ const VARIANT_CLASSES: Record<ButtonVariant, string> = {
     'not-disabled:hover:border-brand',
   text: 'h-10 px-2 bg-transparent text-brand text-[14.5px]',
   'danger-text': 'h-10 px-2 bg-transparent text-bad text-[14.5px]',
+  // ปุ่มแดงทึบ (ขั้น 2.6): ปุ่มยืนยันการกระทำที่ย้อนยากในหน้าต่างยืนยัน เช่น "ระงับบัญชี"
+  danger:
+    'h-[46px] px-5 rounded-control bg-bad text-white text-[15px] ' +
+    'not-disabled:hover:bg-bad-hover',
 }
 
 /**

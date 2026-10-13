@@ -73,6 +73,13 @@ export const th = {
     skipToContent: 'ข้ามไปเนื้อหาหลัก',
   },
 
+  // หน้าต่างซ้อน (components/ui/Dialog.tsx / ConfirmDialog.tsx — ขั้น 2.6)
+  dialog: {
+    // ชื่อปุ่ม ✕ (สำหรับโปรแกรมอ่านหน้าจอ)
+    close: 'ปิด',
+    cancel: 'ยกเลิก',
+  },
+
   // แถบเปลี่ยนหน้าของรายการแบบแบ่งหน้า (components/ui/Pagination.tsx — ขั้น 2.5)
   pagination: {
     // ชื่อของแถบ (สำหรับโปรแกรมอ่านหน้าจอ)
@@ -285,6 +292,19 @@ export const th = {
     sampleRoleLabel: 'บทบาท',
     sampleRoleAll: 'ทุกบทบาท',
     samplePaginationSummary: 'แสดง 1–20 จาก 248 บัญชี',
+    // ขั้น 2.6: หน้าต่างซ้อน + หน้าต่างยืนยัน (ข้อความจาก board "รีเซ็ตรหัสผ่าน" / "หน้าต่างยืนยัน")
+    dialogs: 'หน้าต่างซ้อน',
+    openDialog: 'เปิดหน้าต่าง',
+    openConfirm: 'เปิดหน้าต่างยืนยัน',
+    sampleDialogTitle: 'รีเซ็ตรหัสผ่าน',
+    sampleDialogSubtitle: 'กันต์พงษ์ วิไลรัตน์ (660510221)',
+    sampleDialogEyebrow: 'จัดการบัญชีผู้ใช้',
+    sampleDialogSave: 'รีเซ็ตรหัสผ่าน',
+    sampleConfirmTitle: 'ระงับบัญชี วิชัย ทองมา?',
+    sampleConfirmLine1: 'ผู้ใช้จะออกจากระบบทันที และเข้าสู่ระบบไม่ได้จนกว่าจะเปิดใช้งานอีกครั้ง',
+    sampleConfirmLine2: 'ข้อมูลและคะแนนของผู้ใช้ยังอยู่ครบ',
+    sampleConfirmAction: 'ระงับบัญชี',
+    sampleDanger: 'ระงับบัญชี',
   },
 
   // หน้าทดสอบสุขภาพระบบ /dev/health (เฉพาะโหมดพัฒนา)

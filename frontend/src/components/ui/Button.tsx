@@ -6,13 +6,15 @@
  *   - secondary    ปุ่มรอง: พื้นขาว ขอบเทา ตัวอักษรม่วง สูง 44px (เช่น "ยกเลิก", "จัดการรายวิชา")
  *   - text         ปุ่มตัวอักษร: ไม่มีพื้น ตัวอักษรม่วง สูง 40px (เช่น "แก้ไข", "แสดง")
  *   - danger-text  ปุ่มตัวอักษรสีแดง สำหรับการกระทำที่ย้อนยาก (เช่น "ระงับ", "ลบ")
+ *   - danger       ปุ่มแดงทึบ ตัวอักษรขาว สูง 46px — ปุ่มยืนยันในหน้าต่างยืนยัน (เช่น "ระงับบัญชี" — ขั้น 2.6)
  *
- * ใช้เหมือน <button> ปกติทุกอย่าง (onClick, type, disabled ...)
+ * ใช้เหมือน <button> ปกติทุกอย่าง (onClick, type, disabled, ref ...)
  */
-import type { ButtonHTMLAttributes } from 'react'
+import type { ComponentProps } from 'react'
 import { buttonClassName, type ButtonVariant } from './buttonStyles'
 
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
+// ComponentProps<'button'> มี ref ด้วย (React 19) — ส่ง ref ให้ปุ่มได้ เช่น โฟกัสปุ่ม "ยกเลิก" ของ ConfirmDialog
+type ButtonProps = ComponentProps<'button'> & {
   /** แบบของปุ่ม (ค่าเริ่มต้น primary) */
   variant?: ButtonVariant
 }
