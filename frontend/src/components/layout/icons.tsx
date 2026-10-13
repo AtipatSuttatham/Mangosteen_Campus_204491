@@ -55,7 +55,20 @@ function OverviewIcon() {
   )
 }
 
+/** ไอคอนหน้าจัดการผู้ใช้: คน 2 คน (ตาม board "รายชื่อผู้ใช้") */
+function UsersIcon() {
+  return (
+    <StrokeIcon size={18}>
+      <circle cx="9" cy="8" r="3.5" />
+      <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
+      <path d="M16 4.5a3.5 3.5 0 0 1 0 7" />
+      <path d="M18 14.5a6.5 6.5 0 0 1 3.5 5.5" />
+    </StrokeIcon>
+  )
+}
+
 /** ไอคอนของเมนูแต่ละชื่อ (navigation.ts อ้างถึงด้วยชื่อ) */
 export const NAV_ICONS: Record<NavIcon, () => ReactNode> = {
   overview: OverviewIcon,
+  users: UsersIcon,
 }

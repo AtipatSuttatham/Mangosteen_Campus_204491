@@ -124,8 +124,19 @@ Mangosteen_Campus_204491/
 │       │       ├── avatarFile.ts        ตรวจชนิด/ขนาดรูปในหน้าเว็บก่อนอัปโหลด (JPG/PNG/WebP ≤ 2 MB)
 │       │       ├── icons.tsx            ไอคอนกล้อง / อัปโหลด / ถังขยะ / เครื่องหมายถูก (จาก canvas)
 │       │       └── ProfilePage.test.tsx test ทั้งหน้า (เมนูรูป, อัปโหลด/ลบ, ฟอร์มทั้ง 2 ชุดทุกกรณี)
+│       │   └── admin/users/      /users จัดการบัญชีผู้ใช้ (UC-04 — ขั้น 2.5, เฉพาะผู้ดูแลระบบ) ตาม board "รายชื่อผู้ใช้" จอใหญ่ + มือถือ
+│       │       ├── UsersPage.tsx        ประกอบหน้า: หัวข้อ + จำนวนบัญชี + การ์ด (ตัวกรอง / รายการ / แบ่งหน้า) + กำลังโหลด / ไม่พบ / ผิดพลาด
+│       │       ├── useUserFilters.ts    คำค้น / บทบาท / สถานะ / หน้า เก็บใน "ที่อยู่" ของหน้า (รีเฟรช / ย้อนกลับแล้วเห็นผลเดิม)
+│       │       ├── UserFilterBar.tsx    ช่องค้นหา (ค้นหลังหยุดพิมพ์ 0.3 วินาที) + เลือกบทบาท / สถานะ
+│       │       ├── UsersTable.tsx       ตารางรายชื่อ (จอใหญ่ ≥ 1024px)
+│       │       ├── UsersCards.tsx       การ์ดรายชื่อทีละคน (จอเล็ก)
+│       │       ├── UserBits.tsx         ชื่อ + ป้าย "คุณ" และป้ายสถานะบัญชี (ใช้ร่วมกันทั้งตารางและการ์ด)
+│       │       ├── icons.tsx            ไอคอน ✓ / แม่กุญแจ ในป้ายสถานะ (จาก canvas)
+│       │       └── UsersPage.test.tsx   test ทั้งหน้า (รายชื่อ, ป้าย "คุณ", การ์ดมือถือ, ค้นหา/กรอง, แบ่งหน้า, โหลด/ผิดพลาด)
 │       ├── api/              การเรียก backend
 │       │   ├── client.ts     apiFetch(): ตัวเรียก API กลาง (/api/v1/...) แนบบัตร + แลกบัตรเมื่อได้ 401 ; ส่ง JSON หรือไฟล์ (FormData) ; โยน ApiError รูปแบบเดียวกันทุกกรณี
+│       │   ├── adminUsers.ts ชนิดข้อมูล AdminUser / Paginated + fetchAdminUsers() รายชื่อผู้ใช้ของผู้ดูแลระบบ (ขั้น 2.5)
+│       │   ├── adminUsers.test.ts  test การแปลงตัวกรองเป็น query string
 │       │   ├── auth.ts       ชนิดข้อมูล User/Role + login() / logout() / fetchMe() / updateProfile() / changePassword() / uploadAvatar() / deleteAvatar()
 │       │   ├── client.test.ts  test ของ apiFetch (สำเร็จ / error ทุกแบบ / ติดต่อไม่ได้ / ไม่ใช่ JSON)
 │       │   ├── errors.ts     errorMessage() / fieldErrorMessage() / fieldErrorsMessage() (หลายรหัส): แปลงรหัส error เป็นข้อความไทยจาก th.ts
@@ -142,8 +153,8 @@ Mangosteen_Campus_204491/
 │       │   │   ├── AppShell.tsx      โครง: sidebar ม่วง (จอใหญ่ ≥ 1024px) / แถบบน + ปุ่ม ☰ (มือถือ), ลายจาง, ลิงก์ข้ามเมนู
 │       │   │   ├── MobileDrawer.tsx  เมนูลิ้นชักบนมือถือ (dialog: โฟกัส, Tab วน, Esc/แตะพื้นมืด/✕ ปิด, ล็อก scroll)
 │       │   │   ├── NavMenu.tsx       รายการเมนู + ส่วนผู้ใช้ (รูป ชื่อ บทบาท ข้อมูลส่วนตัว ออกจากระบบ) ใช้ทั้ง sidebar และลิ้นชัก
-│       │   │   ├── navigation.ts     รายการเมนูกลาง + บทบาทที่เห็น (เพิ่มเมนูของก้อนถัดไปที่นี่)
-│       │   │   ├── icons.tsx         ไอคอนเส้น ☰ / ✕ / ภาพรวม (จาก canvas)
+│       │   │   ├── navigation.ts     รายการเมนูกลาง + บทบาทที่เห็น: ภาพรวม (ทุกบทบาท), จัดการผู้ใช้ (ผู้ดูแลระบบ — ขั้น 2.5)
+│       │   │   ├── icons.tsx         ไอคอนเส้น ☰ / ✕ / ภาพรวม / จัดการผู้ใช้ (จาก canvas)
 │       │   │   └── AppShell.test.tsx test ของโครงและเมนูลิ้นชัก
 │       │   └── ui/           คอมโพเนนต์พื้นฐาน (หน้าตาตาม canvas) — import จาก components/ui
 │       │       ├── index.ts        รวม export ทุกชิ้น
@@ -153,7 +164,10 @@ Mangosteen_Campus_204491/
 │       │       ├── TextField.tsx   ช่องกรอก + ป้ายชื่อ + ข้อความ error (ขอบแดง, role=alert) ; invalid / ปุ่มในช่อง / คำแนะนำใต้ช่อง (hint) / รับ ref
 │       │       ├── PasswordField.tsx  ช่องรหัสผ่าน + ปุ่ม "แสดง"/"ซ่อน" (ตามหน้าเข้าสู่ระบบใน canvas)
 │       │       ├── Card.tsx        การ์ดพื้นขาว ขอบ line มุม 14px
-│       │       ├── StatusBadge.tsx ป้ายสถานะวงรี: warn / ok / bad / mute
+│       │       ├── StatusBadge.tsx ป้ายสถานะวงรี: warn / ok / bad / mute ; ขนาด md / sm
+│       │       ├── Select.tsx      ช่องเลือก (dropdown) ลูกศรวาดเอง (ขั้น 2.5)
+│       │       ├── SearchInput.tsx ช่องค้นหา type=search ไม่มีป้ายในตัว (ขั้น 2.5)
+│       │       ├── Pagination.tsx  แถบ ก่อนหน้า / หน้า X จาก Y / ถัดไป + ข้อความสรุป (ขั้น 2.5 — ใช้ซ้ำได้)
 │       │       ├── Logo.tsx        ตรากลีบเลี้ยงมังคุด (+ ชื่อระบบ) — รูปทรงตาม board BrandLogo
 │       │       └── ui.test.tsx     test ของคอมโพเนนต์พื้นฐานทั้งหมด (พฤติกรรม + การเข้าถึง)
 │       │   └── brand/        ภาพประกอบของแบรนด์ (คัดลอกรูปทรงจาก canvas — aria-hidden)

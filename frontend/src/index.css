@@ -35,6 +35,8 @@
   --color-line: #e6dce2;
   /* ขอบช่องกรอกและปุ่มรอง */
   --color-line-strong: #cdbfc8;
+  /* เส้นคั่นแถวในตาราง / การ์ด (อ่อนกว่า line — ตาม td ใน board "รายชื่อผู้ใช้" ขั้น 2.5) */
+  --color-line-soft: #eee5ea;
   /* พื้นของแถบความคืบหน้า / ป้าย mute */
   --color-track: #efe7ec;
 

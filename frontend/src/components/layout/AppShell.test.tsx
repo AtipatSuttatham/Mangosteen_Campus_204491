@@ -22,11 +22,20 @@ const STUDENT: User = {
   avatar_url: null,
 }
 
+/** ผู้ดูแลระบบตัวอย่าง (ข้อมูลสมมติ) */
+const ADMIN: User = {
+  ...STUDENT,
+  id: 1,
+  email: 'admin@example.com',
+  student_or_staff_id: null,
+  role: 'admin',
+}
+
 /** วาดโครงหน้าจอที่ที่อยู่ที่กำหนด — หน้าลูกเป็นหัวข้อง่าย ๆ ให้รู้ว่าอยู่หน้าไหน */
-function renderShell(path = '/', logout = vi.fn()) {
+function renderShell(path = '/', logout = vi.fn(), currentUser: User = STUDENT) {
   const value: AuthContextValue = {
     status: 'authenticated',
-    user: STUDENT,
+    user: currentUser,
     sessionExpired: false,
     login: vi.fn(),
     logout,
@@ -203,7 +212,30 @@ describe('AppShell — ขยายจอระหว่างเปิดเม
 })
 
 describe('navItemsFor', () => {
-  it.each<Role>(['admin', 'teacher', 'student'])('%s เห็นเมนู ภาพรวม (ตอนนี้มีเมนูเดียว)', (role) => {
+  it.each<Role>(['teacher', 'student'])('%s เห็นเมนู ภาพรวม เท่านั้น', (role) => {
     expect(navItemsFor(role).map((item) => item.to)).toEqual(['/'])
+  })
+
+  it('ผู้ดูแลระบบเห็น ภาพรวม + จัดการผู้ใช้ (ขั้น 2.5)', () => {
+    expect(navItemsFor('admin').map((item) => item.to)).toEqual(['/', '/users'])
+  })
+})
+
+describe('AppShell — เมนูตามบทบาท', () => {
+  it('ผู้เรียนไม่เห็นเมนู จัดการผู้ใช้', () => {
+    renderShell('/')
+
+    expect(
+      within(sidebarNav()).queryByRole('link', { name: 'จัดการผู้ใช้' }),
+    ).not.toBeInTheDocument()
+  })
+
+  it('ผู้ดูแลระบบเห็นเมนู จัดการผู้ใช้ ชี้ไป /users', () => {
+    renderShell('/', vi.fn(), ADMIN)
+
+    expect(within(sidebarNav()).getByRole('link', { name: 'จัดการผู้ใช้' })).toHaveAttribute(
+      'href',
+      '/users',
+    )
   })
 })

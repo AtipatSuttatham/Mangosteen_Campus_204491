@@ -1,5 +1,6 @@
 /**
- * test ของคอมโพเนนต์พื้นฐาน (Button / TextField / PasswordField / Card / StatusBadge / Logo / Avatar)
+ * test ของคอมโพเนนต์พื้นฐาน (Button / TextField / PasswordField / Card / StatusBadge / Logo / Avatar
+ * / Select / SearchInput / Pagination)
  * ตรวจพฤติกรรมและการเข้าถึง (โปรแกรมอ่านหน้าจอ / แป้นพิมพ์) — หน้าตาตรวจด้วยตาที่หน้า /dev/components
  */
 import { render, screen } from '@testing-library/react'
@@ -11,7 +12,10 @@ import {
   buttonClassName,
   Card,
   Logo,
+  Pagination,
   PasswordField,
+  SearchInput,
+  Select,
   StatusBadge,
   TextField,
 } from './index'
@@ -178,6 +182,19 @@ describe('StatusBadge', () => {
     expect(badge).toHaveAttribute('data-tone', tone)
     expect(badge.className).toContain(expected)
   })
+  it('ขนาด sm (ขั้น 2.5 — ป้าย "คุณ") สูง 22px ; ค่าเริ่มต้นสูง 28px', () => {
+    render(
+      <>
+        <StatusBadge tone="mute" size="sm">
+          คุณ
+        </StatusBadge>
+        <StatusBadge tone="ok">ใช้งานได้</StatusBadge>
+      </>,
+    )
+
+    expect(screen.getByText('คุณ').className).toContain('h-[22px]')
+    expect(screen.getByText('ใช้งานได้').className).toContain('h-7')
+  })
 })
 
 describe('Logo', () => {
@@ -266,5 +283,71 @@ describe('TextField — คำแนะนำใต้ช่อง (hint)', () =
 
     expect(screen.queryByText('อย่างน้อย 8 ตัว')).not.toBeInTheDocument()
     expect(screen.getByLabelText('รหัสผ่านใหม่')).toHaveAccessibleDescription('รหัสผ่านสั้นเกินไป')
+  })
+})
+
+describe('Select (ขั้น 2.5)', () => {
+  it('เป็นช่องเลือกที่ผูกกับป้ายชื่อได้ และเลือกตัวเลือกได้', async () => {
+    const onChange = vi.fn()
+    render(
+      <>
+        <label htmlFor="role">บทบาท</label>
+        <Select id="role" defaultValue="" onChange={onChange}>
+          <option value="">ทุกบทบาท</option>
+          <option value="teacher">ผู้สอน</option>
+        </Select>
+      </>,
+    )
+
+    const select = screen.getByRole('combobox', { name: 'บทบาท' })
+    await userEvent.setup().selectOptions(select, 'teacher')
+
+    expect(select).toHaveValue('teacher')
+    expect(onChange).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('SearchInput (ขั้น 2.5)', () => {
+  it('เป็นช่องค้นหา (role searchbox) ที่ใช้ aria-label ได้', async () => {
+    render(<SearchInput aria-label="ค้นหาผู้ใช้" />)
+
+    const input = screen.getByRole('searchbox', { name: 'ค้นหาผู้ใช้' })
+    await userEvent.setup().type(input, 'สมชาย')
+
+    expect(input).toHaveValue('สมชาย')
+  })
+})
+
+describe('Pagination (ขั้น 2.5)', () => {
+  it('แสดง "หน้า X จาก Y" + ข้อความสรุป และกดถัดไป/ก่อนหน้าได้', async () => {
+    const onPageChange = vi.fn()
+    const user = userEvent.setup()
+    render(<Pagination page={2} pageCount={13} onPageChange={onPageChange} summary="สรุป" />)
+
+    const nav = screen.getByRole('navigation', { name: 'แบ่งหน้า' })
+    expect(nav).toHaveTextContent('หน้า 2 จาก 13')
+    expect(nav).toHaveTextContent('สรุป')
+
+    await user.click(screen.getByRole('button', { name: 'ถัดไป' }))
+    await user.click(screen.getByRole('button', { name: 'ก่อนหน้า' }))
+
+    expect(onPageChange.mock.calls).toEqual([[3], [1]])
+  })
+
+  it('หน้าแรกกดก่อนหน้าไม่ได้ / หน้าสุดท้ายกดถัดไปไม่ได้', () => {
+    const { rerender } = render(<Pagination page={1} pageCount={3} onPageChange={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'ก่อนหน้า' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'ถัดไป' })).toBeEnabled()
+
+    rerender(<Pagination page={3} pageCount={3} onPageChange={vi.fn()} />)
+    expect(screen.getByRole('button', { name: 'ก่อนหน้า' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: 'ถัดไป' })).toBeDisabled()
+  })
+
+  it('มีหน้าเดียว → ไม่มีปุ่ม เหลือแค่ข้อความสรุป', () => {
+    render(<Pagination page={1} pageCount={1} onPageChange={vi.fn()} summary="แสดง 1–5 จาก 5 บัญชี" />)
+
+    expect(screen.queryByRole('button')).not.toBeInTheDocument()
+    expect(screen.getByText('แสดง 1–5 จาก 5 บัญชี')).toBeInTheDocument()
   })
 })
