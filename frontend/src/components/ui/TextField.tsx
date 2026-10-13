@@ -19,6 +19,10 @@
  *   - trailing: ปุ่มที่วางไว้ด้านขวาในช่อง เช่น ปุ่ม "แสดง" ของช่องรหัสผ่าน
  * ตัวเลือกเพิ่ม (ขั้น 1.8 — ตามหน้าข้อมูลส่วนตัว):
  *   - hint: คำแนะนำสีรองใต้ช่อง เช่น กฎรหัสผ่าน — ซ่อนเมื่อมี error (error แทนที่ตำแหน่งเดียวกัน)
+ * ตัวเลือกเพิ่ม (ขั้น 2.6 — ตามช่องรหัสผ่านชั่วคราวของหน้าต่างเพิ่มผู้ใช้):
+ *   - actions: ปุ่มข้างช่อง เช่น "สุ่มรหัส" / "คัดลอก" — จอใหญ่อยู่ขวาของช่อง, มือถืออยู่ใต้ช่อง
+ *   - labelClassName: class เพิ่มของป้ายชื่อ (เช่น ซ่อนบนมือถือเมื่อหัวกล่องบอกชื่อแล้ว)
+ *   - inputClassName: class เพิ่มของช่องกรอก (เช่น ตัวอักษรรหัสผ่านเว้นระยะ)
  */
 import { useId, type ComponentProps, type ReactNode } from 'react'
 
@@ -35,6 +39,12 @@ type TextFieldProps = ComponentProps<'input'> & {
   trailing?: ReactNode
   /** คำแนะนำใต้ช่อง (ข้อความจาก th.ts) */
   hint?: string
+  /** ปุ่มข้างช่อง (จอใหญ่อยู่ขวา / มือถืออยู่ใต้ช่อง) */
+  actions?: ReactNode
+  /** class เพิ่มของป้ายชื่อ */
+  labelClassName?: string
+  /** class เพิ่มของช่องกรอก */
+  inputClassName?: string
 }
 
 /** ช่องกรอกข้อความพร้อมป้ายชื่อ และข้อความ error (ถ้ามี) */
@@ -45,6 +55,9 @@ export function TextField({
   errorDescribedBy,
   trailing,
   hint,
+  actions,
+  labelClassName = '',
+  inputClassName = '',
   id,
   className = '',
   ...props
@@ -70,25 +83,30 @@ export function TextField({
 
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
-      <label htmlFor={inputId} className="text-[15px] font-semibold text-ink">
+      <label htmlFor={inputId} className={`text-[15px] font-semibold text-ink ${labelClassName}`}>
         {label}
       </label>
-      <div className="relative">
-        <input
-          id={inputId}
-          aria-invalid={showInvalid || undefined}
-          aria-describedby={describedBy || undefined}
-          className={
-            'h-[46px] w-full rounded-control border bg-surface px-3.5 text-[15px] text-ink ' +
-            // กดที่ช่อง → กรอบม่วง 2px ห่างจากขอบ 1px (ตาม canvas)
-            'focus:outline-2 focus:outline-offset-1 focus:outline-brand ' +
-            (showInvalid ? 'border-danger' : 'border-line-strong') +
-            // เว้นที่ด้านขวาให้ปุ่มในช่อง (ตาม canvas: padding-right 72px)
-            (trailing ? ' pr-[72px]' : '')
-          }
-          {...props}
-        />
-        {trailing && <div className="absolute top-[3px] right-1">{trailing}</div>}
+      {/* ช่องกรอก + ปุ่มข้างช่อง (ถ้ามี): มือถือเรียงลง / จอใหญ่อยู่แถวเดียวกัน */}
+      <div className={actions ? 'flex flex-col gap-2 lg:flex-row' : undefined}>
+        <div className={actions ? 'relative grow' : 'relative'}>
+          <input
+            id={inputId}
+            aria-invalid={showInvalid || undefined}
+            aria-describedby={describedBy || undefined}
+            className={
+              'h-[46px] w-full rounded-control border bg-surface px-3.5 text-[15px] text-ink ' +
+              // กดที่ช่อง → กรอบม่วง 2px ห่างจากขอบ 1px (ตาม canvas)
+              'focus:outline-2 focus:outline-offset-1 focus:outline-brand ' +
+              (showInvalid ? 'border-danger' : 'border-line-strong') +
+              // เว้นที่ด้านขวาให้ปุ่มในช่อง (ตาม canvas: padding-right 72px)
+              (trailing ? ' pr-[72px]' : '') +
+              (inputClassName ? ` ${inputClassName}` : '')
+            }
+            {...props}
+          />
+          {trailing && <div className="absolute top-[3px] right-1">{trailing}</div>}
+        </div>
+        {actions && <div className="flex gap-2">{actions}</div>}
       </div>
       {showHint && (
         <p id={hintId} className="m-0 text-[13.5px] leading-[1.55] text-ink-muted">

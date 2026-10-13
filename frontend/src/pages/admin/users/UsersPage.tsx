@@ -13,17 +13,19 @@
  *
  * ข้อมูล: GET /api/v1/admin/users/ ผ่าน TanStack Query ; ตัวกรองเก็บในที่อยู่ (useUserFilters)
  * ระหว่างโหลดหน้าถัดไปยังแสดงหน้าเดิมไว้ (ไม่กระพริบ)
- * ปุ่ม "เพิ่มผู้ใช้" / "นำเข้าจาก CSV" และปุ่มในแต่ละแถว ยังไม่แสดง — มาในขั้น 2.6 / 2.7
+ * ปุ่ม "เพิ่มผู้ใช้" (ขั้น 2.6) เปิดหน้าต่าง CreateUserDialog ; ปุ่ม "นำเข้าจาก CSV" ยังไม่แสดง — มาในขั้น 2.7
  * (ผู้ใช้เลือกข้อ 1.ก ขั้น 2.5: แสดงเฉพาะสิ่งที่ทำงานได้แล้ว)
  */
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ADMIN_USERS_PAGE_SIZE, fetchAdminUsers } from '../../../api/adminUsers'
 import { ApiError } from '../../../api/client'
 import { errorMessage } from '../../../api/errors'
 import { useAuth } from '../../../auth/AuthContext'
 import { Button, Pagination } from '../../../components/ui'
+import { CreateUserDialog } from './CreateUserDialog'
+import { PlusIcon } from './icons'
 import { UserFilterBar } from './UserFilterBar'
 import { UsersCards } from './UsersCards'
 import { UsersTable } from './UsersTable'
@@ -38,6 +40,9 @@ export default function UsersPage() {
   const { filters, isFiltered, changeFilters, changePage, clearFilters } = useUserFilters()
   // หัวข้อของหน้า — เลื่อนกลับมาที่นี่หลังเปลี่ยนหน้า (บนมือถือปุ่มเปลี่ยนหน้าอยู่ท้ายรายการ)
   const headingRef = useRef<HTMLHeadingElement>(null)
+  // หน้าต่างที่เปิดอยู่ (null = ไม่มี)
+  const [dialog, setDialog] = useState<{ type: 'create' } | null>(null)
+  const closeDialog = () => setDialog(null)
 
   const query = useQuery({
     queryKey: ['admin-users', filters],
@@ -64,20 +69,30 @@ export default function UsersPage() {
 
   return (
     <div className="flex flex-col gap-4 lg:gap-[18px]">
-      <div className="flex flex-col gap-1 lg:gap-0">
-        <h1
-          ref={headingRef}
-          className="m-0 scroll-mt-20 font-display text-[26px] leading-[1.35] font-semibold lg:text-[32px]"
-        >
-          {t('adminUsers.title')}
-        </h1>
-        {/* จำนวนบัญชี: ไม่กรอง = "ทั้งหมด N บัญชี" ; กรองอยู่ = "พบ N บัญชี" (กันเข้าใจผิดว่าระบบมีแค่นั้น) */}
-        <p className="m-0 min-h-[1.6em] text-sm leading-[1.6] text-ink-muted" aria-live="polite">
-          {data &&
-            t(isFiltered ? 'adminUsers.found' : 'adminUsers.total', {
-              total: formatCount(data.count),
-            })}
-        </p>
+      {/* หัวหน้า: จอใหญ่ = หัวข้อซ้าย ปุ่มขวา ; มือถือ = ปุ่มอยู่ใต้หัวข้อ (ตาม board) */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-1 lg:gap-0">
+          <h1
+            ref={headingRef}
+            className="m-0 scroll-mt-20 font-display text-[26px] leading-[1.35] font-semibold lg:text-[32px]"
+          >
+            {t('adminUsers.title')}
+          </h1>
+          {/* จำนวนบัญชี: ไม่กรอง = "ทั้งหมด N บัญชี" ; กรองอยู่ = "พบ N บัญชี" (กันเข้าใจผิดว่าระบบมีแค่นั้น) */}
+          <p className="m-0 min-h-[1.6em] text-sm leading-[1.6] text-ink-muted" aria-live="polite">
+            {data &&
+              t(isFiltered ? 'adminUsers.found' : 'adminUsers.total', {
+                total: formatCount(data.count),
+              })}
+          </p>
+        </div>
+        {/* มือถือ: ปุ่มครึ่งแถว (อีกครึ่งเป็นที่ของ "นำเข้า CSV" ในขั้น 2.7) */}
+        <div className="grid grid-cols-2 gap-2 lg:flex lg:gap-2.5">
+          <Button onClick={() => setDialog({ type: 'create' })} className="px-3 lg:px-5">
+            <PlusIcon />
+            {t('adminUsers.addUser')}
+          </Button>
+        </div>
       </div>
 
       {/* จอใหญ่: ทั้งหมดอยู่ในการ์ดเดียว ; มือถือ: ตัวกรอง / รายการ / แถบเปลี่ยนหน้า วางเรียงกันเฉย ๆ */}
@@ -142,6 +157,8 @@ export default function UsersPage() {
           />
         )}
       </section>
+
+      {dialog?.type === 'create' && <CreateUserDialog onClose={closeDialog} />}
     </div>
   )
 }

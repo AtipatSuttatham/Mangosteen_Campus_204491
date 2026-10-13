@@ -138,8 +138,8 @@ describe('UsersPage — รายชื่อ', () => {
     expect(rows[1]).toHaveTextContent('ใช้งานได้')
     expect(rows[2]).toHaveTextContent('T1024')
     expect(rows[2]).toHaveTextContent('ผู้สอน')
-    // ยังไม่มีปุ่มทำรายการ (มาในขั้น 2.6 / 2.7 — ผู้ใช้เลือกข้อ 1.ก)
-    expect(screen.queryByRole('button', { name: /เพิ่มผู้ใช้|นำเข้า|แก้ไข|ระงับ/ })).toBeNull()
+    // ปุ่ม "นำเข้าจาก CSV" ยังไม่แสดง (มาในขั้น 2.7 — ผู้ใช้เลือกข้อ 1.ก ขั้น 2.5)
+    expect(screen.queryByRole('button', { name: /นำเข้า/ })).not.toBeInTheDocument()
   })
 
   it('ขอหน้าแรกโดยไม่มีตัวกรอง', async () => {

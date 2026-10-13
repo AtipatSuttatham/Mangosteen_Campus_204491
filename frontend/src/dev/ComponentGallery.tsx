@@ -212,6 +212,26 @@ export default function ComponentGallery() {
           />
           <Button className="w-full">{t('devGallery.sampleLogin')}</Button>
         </Card>
+        {/* ช่องรหัสผ่านชั่วคราว (ขั้น 2.6): เปิดมาเห็นรหัส + ปุ่มข้างช่อง (จอใหญ่อยู่ขวา / มือถืออยู่ใต้ช่อง) */}
+        <Card className="flex max-w-[600px] flex-col p-7">
+          <PasswordField
+            defaultVisible
+            label={t('devGallery.sampleTempPasswordLabel')}
+            defaultValue="hT7kPq4wNx9e"
+            inputClassName="tracking-[0.06em] tabular-nums"
+            hint={t('devGallery.sampleNewPasswordHint')}
+            actions={
+              <>
+                <Button variant="secondary" className="h-[46px]">
+                  {t('devGallery.sampleGenerate')}
+                </Button>
+                <Button variant="secondary" className="h-[46px]">
+                  {t('devGallery.sampleCopy')}
+                </Button>
+              </>
+            }
+          />
+        </Card>
       </Section>
 
       {/* ช่องค้นหา + ช่องเลือก: แถบตัวกรองของหน้า "รายชื่อผู้ใช้" (ขั้น 2.5) — ป้ายชื่อผูกด้วย <label> */}
