@@ -3,7 +3,7 @@
  * แทนที่ฟังก์ชันเรียก API และการดาวน์โหลดไฟล์ด้วยตัวปลอม (ไม่เรียก backend จริง ไม่สร้างไฟล์จริง)
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { fireEvent, render, screen, within } from '@testing-library/react'
+import { act, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
@@ -11,6 +11,7 @@ import * as adminUsersApi from '../../../../api/adminUsers'
 import type { CsvReport, CsvRowError, ImportResult } from '../../../../api/adminUsers'
 import { ApiError } from '../../../../api/client'
 import * as csvFiles from '../../../../lib/csvFiles'
+import { requestLeave } from '../../../../lib/useLeaveGuard'
 import CsvImportPage from './CsvImportPage'
 import { csvProblemText } from './csvProblem'
 
@@ -274,5 +275,86 @@ describe('csvProblemText', () => {
     expect(
       csvProblemText({ row: 4, column: 'student_or_staff_id', code: 'duplicate_in_file', value: '1', duplicate_of: 2 }),
     ).toBe('รหัสซ้ำกับแถว 2 ในไฟล์นี้')
+  })
+})
+
+describe('ตัวเฝ้าประตู: ยังไม่ดาวน์โหลดไฟล์รหัสผ่าน (ข้อ 2.ก)', () => {
+  /** ไปจนถึงขั้นที่ 3 (นำเข้าแล้ว ยังไม่ดาวน์โหลด) */
+  async function reachDone() {
+    validateUserImport.mockResolvedValue(READY)
+    importUsers.mockResolvedValue(RESULT)
+    const rendered = renderPage()
+    await choose(rendered.user, csvFile())
+    await rendered.user.click(await screen.findByRole('button', { name: 'นำเข้า 7 บัญชี' }))
+    await screen.findByRole('heading', { name: 'สร้างบัญชีแล้ว 2 บัญชี' })
+    return rendered
+  }
+
+  it('กดลิงก์ออก → ถามยืนยัน (โฟกัส "อยู่ต่อ") ; อยู่ต่อ = ยังอยู่หน้าเดิม ; ออกจากหน้านี้ = ไปตามลิงก์', async () => {
+    const { user } = await reachDone()
+
+    await user.click(screen.getByRole('link', { name: 'จัดการบัญชีผู้ใช้' }))
+    const dialog = screen.getByRole('alertdialog', { name: 'ออกโดยยังไม่ดาวน์โหลดไฟล์รหัสผ่าน?' })
+    expect(within(dialog).getByRole('button', { name: 'อยู่ต่อ' })).toHaveFocus()
+
+    await user.click(within(dialog).getByRole('button', { name: 'อยู่ต่อ' }))
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'สร้างบัญชีแล้ว 2 บัญชี' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('link', { name: 'กลับไปจัดการบัญชีผู้ใช้' }))
+    await user.click(screen.getByRole('button', { name: 'ออกจากหน้านี้' }))
+    expect(await screen.findByRole('heading', { name: 'หน้ารายชื่อผู้ใช้' })).toBeInTheDocument()
+  })
+
+  it('ปุ่มย้อนกลับของเบราว์เซอร์ก็ถูกถามยืนยัน', async () => {
+    const { router } = await reachDone()
+
+    await act(() => router.navigate(-1))
+
+    expect(screen.getByRole('alertdialog', { name: 'ออกโดยยังไม่ดาวน์โหลดไฟล์รหัสผ่าน?' })).toBeInTheDocument()
+  })
+
+  it('ออกจากระบบ (requestLeave) → ถามก่อน และออกจริงเมื่อยืนยันเท่านั้น', async () => {
+    const { user } = await reachDone()
+    const logout = vi.fn()
+
+    act(() => requestLeave(logout))
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument()
+    expect(logout).not.toHaveBeenCalled()
+
+    await user.click(screen.getByRole('button', { name: 'ออกจากหน้านี้' }))
+    expect(logout).toHaveBeenCalledOnce()
+  })
+
+  it('ปิดแท็บ / รีเฟรช → ให้เบราว์เซอร์ถาม (beforeunload)', async () => {
+    await reachDone()
+
+    const event = new Event('beforeunload', { cancelable: true })
+    window.dispatchEvent(event)
+
+    expect(event.defaultPrevented).toBe(true)
+  })
+
+  it('ดาวน์โหลดแล้ว → ออกได้ทันทีไม่ถาม (ทั้งลิงก์และออกจากระบบ)', async () => {
+    const { user } = await reachDone()
+    await user.click(screen.getByRole('button', { name: 'ดาวน์โหลดไฟล์รหัสผ่าน' }))
+    const logout = vi.fn()
+
+    act(() => requestLeave(logout))
+    expect(logout).toHaveBeenCalledOnce()
+
+    await user.click(screen.getByRole('link', { name: 'จัดการบัญชีผู้ใช้' }))
+    expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'หน้ารายชื่อผู้ใช้' })).toBeInTheDocument()
+  })
+
+  it('ก่อนนำเข้า (ยังไม่มีรหัสผ่าน) ไม่เฝ้าประตู', async () => {
+    const { user } = renderPage()
+    const logout = vi.fn()
+
+    act(() => requestLeave(logout))
+    expect(logout).toHaveBeenCalledOnce()
+    await user.click(screen.getByRole('link', { name: 'จัดการบัญชีผู้ใช้' }))
+    expect(await screen.findByRole('heading', { name: 'หน้ารายชื่อผู้ใช้' })).toBeInTheDocument()
   })
 })

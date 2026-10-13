@@ -14,6 +14,8 @@
  *        → ส่ง**ไฟล์เดิมซ้ำ**ไป POST import/ (server ตรวจใหม่แล้วสร้างทั้งไฟล์)
  *        มีคนเพิ่มข้อมูลซ้ำแทรกระหว่างตรวจกับนำเข้า (csv_invalid) → กลับไปตารางปัญหาพร้อมข้อความ
  *   ③ ผลการนำเข้า + ดาวน์โหลดไฟล์รหัสผ่าน (รหัสอยู่ในหน่วยความจำของหน้านี้เท่านั้น)
+ *        ยังไม่ดาวน์โหลดแล้วจะออก (เมนู / ย้อนกลับ / ลิงก์ / ออกจากระบบ / ปิดแท็บ) → ถามยืนยันก่อน
+ *        (useLeaveGuard — ผู้ใช้เลือกข้อ 2.ก)
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -28,7 +30,9 @@ import {
 } from '../../../../api/adminUsers'
 import { ApiError } from '../../../../api/client'
 import { errorMessage } from '../../../../api/errors'
+import { ConfirmDialog } from '../../../../components/ui'
 import { downloadCsv, passwordCsv, passwordFileName } from '../../../../lib/csvFiles'
+import { useLeaveGuard } from '../../../../lib/useLeaveGuard'
 import { BackIcon } from '../icons'
 import { DoneStep } from './DoneStep'
 import { ImportStepper } from './ImportStepper'
@@ -51,6 +55,8 @@ export default function CsvImportPage() {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const [state, setState] = useState<PageState>({ step: 'upload', checkingName: null })
+  // นำเข้าแล้วแต่ยังไม่ดาวน์โหลดไฟล์รหัสผ่าน = ออกแล้วรหัสหาย → เฝ้าประตู
+  const leave = useLeaveGuard(state.step === 'done' && !state.downloaded)
 
   /** ① ได้ไฟล์ → ตรวจในหน้าเว็บก่อน แล้วส่งให้ backend ตรวจ */
   async function checkFile(file: File) {
@@ -146,6 +152,18 @@ export default function CsvImportPage() {
           result={state.result}
           downloaded={state.downloaded}
           onDownload={downloadPasswords}
+        />
+      )}
+
+      {/* จะออกก่อนดาวน์โหลด → ถามยืนยัน (โฟกัส "อยู่ต่อ" ก่อน) */}
+      {leave.asking && (
+        <ConfirmDialog
+          title={t('csvImport.leaveTitle')}
+          description={[t('csvImport.downloadWarningBody')]}
+          confirmLabel={t('csvImport.leaveConfirm')}
+          cancelLabel={t('csvImport.leaveStay')}
+          onConfirm={leave.proceed}
+          onCancel={leave.stay}
         />
       )}
     </div>
