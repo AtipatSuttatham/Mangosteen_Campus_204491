@@ -58,6 +58,8 @@
   --color-ok-soft: #e4efdd;
   --color-bad: #a2231a;
   --color-bad-soft: #fbe4e2;
+  /* ปุ่มแดงทึบ (Button แบบ danger) ตอนเอาเมาส์ชี้ — ตาม .btnd:hover ใน board "หน้าต่างยืนยัน" (ขั้น 2.6) */
+  --color-bad-hover: #7f1b14;
   --color-mute: #5f4c59;
   --color-mute-soft: #efe7ec;
 
@@ -67,11 +69,19 @@
   /* การ์ด */
   --radius-card: 14px;
 
+  /* --- เงา (ขั้น 2.6 — ตาม .dlg และแถบปุ่มล่างจอของ board มือถือ) --- */
+  /* หน้าต่างกลางจอ (Dialog / ConfirmDialog) */
+  --shadow-dialog: 0 18px 48px rgb(42 26 46 / 0.28);
+  /* แถบปุ่มที่ติดล่างจอของหน้าต่างเต็มจอบนมือถือ (เงาขึ้นด้านบน) */
+  --shadow-sheet-footer: 0 -6px 18px rgb(42 26 46 / 0.06);
+
   /* --- ภาพเคลื่อนไหว (ใช้คู่กับ motion-safe: — เครื่องที่ตั้ง "ลดภาพเคลื่อนไหว" จะไม่เห็น) --- */
   /* เมนูลิ้นชักบนมือถือเลื่อนออกจากซ้าย */
   --animate-drawer-in: drawer-in 200ms ease-out;
-  /* พื้นหลังมืดด้านหลังเมนูลิ้นชักค่อย ๆ ปรากฏ */
+  /* พื้นหลังมืดด้านหลังเมนูลิ้นชัก / หน้าต่างซ้อน ค่อย ๆ ปรากฏ */
   --animate-fade-in: fade-in 200ms ease-out;
+  /* หน้าต่างซ้อน (Dialog) ค่อย ๆ ปรากฏพร้อมเลื่อนขึ้นเล็กน้อย — ตอบสนองการกดเปิดของผู้ใช้ */
+  --animate-dialog-in: dialog-in 180ms ease-out;
 
   @keyframes drawer-in {
     from {
@@ -81,6 +91,12 @@
   @keyframes fade-in {
     from {
       opacity: 0;
+    }
+  }
+  @keyframes dialog-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
     }
   }
 }

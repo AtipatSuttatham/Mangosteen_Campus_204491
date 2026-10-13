@@ -13,17 +13,29 @@
  *
  * ข้อมูล: GET /api/v1/admin/users/ ผ่าน TanStack Query ; ตัวกรองเก็บในที่อยู่ (useUserFilters)
  * ระหว่างโหลดหน้าถัดไปยังแสดงหน้าเดิมไว้ (ไม่กระพริบ)
- * ปุ่ม "เพิ่มผู้ใช้" / "นำเข้าจาก CSV" และปุ่มในแต่ละแถว ยังไม่แสดง — มาในขั้น 2.6 / 2.7
+ * ขั้น 2.6: ปุ่ม "เพิ่มผู้ใช้" เปิด CreateUserDialog ; ปุ่มในแถว/การ์ด เปิด EditUserDialog /
+ * ResetPasswordDialog / SuspendUserDialog (ยืนยันก่อน) หรือเปิดใช้งานทันที ;
+ * หลังแก้ไข/ระงับ/เปิดใช้งาน มีแถบข้อความใต้หัวหน้า (ตาม board "รายชื่อผู้ใช้ — ข้อความหลังระงับ") ; ปุ่ม "นำเข้าจาก CSV" ยังไม่แสดง — มาในขั้น 2.7
  * (ผู้ใช้เลือกข้อ 1.ก ขั้น 2.5: แสดงเฉพาะสิ่งที่ทำงานได้แล้ว)
  */
-import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { useEffect, useRef, type ReactNode } from 'react'
+import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { ADMIN_USERS_PAGE_SIZE, fetchAdminUsers } from '../../../api/adminUsers'
+import {
+  activateAdminUser,
+  ADMIN_USERS_PAGE_SIZE,
+  fetchAdminUsers,
+  type AdminUser,
+} from '../../../api/adminUsers'
 import { ApiError } from '../../../api/client'
 import { errorMessage } from '../../../api/errors'
 import { useAuth } from '../../../auth/AuthContext'
 import { Button, Pagination } from '../../../components/ui'
+import { CreateUserDialog } from './CreateUserDialog'
+import { EditUserDialog } from './EditUserDialog'
+import { ResetPasswordDialog } from './ResetPasswordDialog'
+import { SuspendUserDialog } from './SuspendUserDialog'
+import { CheckIcon, PlusIcon } from './icons'
 import { UserFilterBar } from './UserFilterBar'
 import { UsersCards } from './UsersCards'
 import { UsersTable } from './UsersTable'
@@ -38,6 +50,43 @@ export default function UsersPage() {
   const { filters, isFiltered, changeFilters, changePage, clearFilters } = useUserFilters()
   // หัวข้อของหน้า — เลื่อนกลับมาที่นี่หลังเปลี่ยนหน้า (บนมือถือปุ่มเปลี่ยนหน้าอยู่ท้ายรายการ)
   const headingRef = useRef<HTMLHeadingElement>(null)
+  const queryClient = useQueryClient()
+  // หน้าต่างที่เปิดอยู่ (null = ไม่มี)
+  const [dialog, setDialog] = useState<
+    { type: 'create' } | { type: 'edit' | 'reset' | 'suspend'; user: AdminUser } | null
+  >(null)
+  const closeDialog = () => setDialog(null)
+  // แถบข้อความใต้หัวหน้าหลังทำรายการ เช่น "ระงับบัญชี … แล้ว" (ตาม board) — อยู่จนกว่าจะมีข้อความใหม่
+  const [notice, setNotice] = useState<{ tone: 'ok' | 'bad'; text: string } | null>(null)
+  // บัญชีที่กำลังเปิดใช้งาน (ปุ่มของแถวนั้นกดไม่ได้ระหว่างรอ)
+  const [activatingId, setActivatingId] = useState<number | null>(null)
+
+  const fullName = (user: AdminUser) => `${user.first_name} ${user.last_name}`
+
+  /** เปิดใช้งานบัญชีที่ถูกระงับ — ทำทันทีไม่ถามยืนยัน (การตัดสินใจก้อน 2) */
+  async function activate(user: AdminUser) {
+    setActivatingId(user.id)
+    setNotice(null)
+    try {
+      await activateAdminUser(user.id)
+      await queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      setNotice({ tone: 'ok', text: t('adminUsers.activated', { name: fullName(user) }) })
+    } catch (caught) {
+      const reason = errorMessage(caught instanceof ApiError ? caught.code : 'unknown')
+      setNotice({ tone: 'bad', text: t('adminUsers.activateFailed', { name: fullName(user), reason }) })
+    } finally {
+      setActivatingId(null)
+    }
+  }
+
+  // ปุ่มในแต่ละแถว/การ์ด → เปิดหน้าต่างของบัญชีนั้น / เปิดใช้งานทันที
+  const rowActions = {
+    onEdit: (user: AdminUser) => setDialog({ type: 'edit', user }),
+    onResetPassword: (user: AdminUser) => setDialog({ type: 'reset', user }),
+    onSuspend: (user: AdminUser) => setDialog({ type: 'suspend', user }),
+    onActivate: (user: AdminUser) => void activate(user),
+    activatingId,
+  }
 
   const query = useQuery({
     queryKey: ['admin-users', filters],
@@ -64,21 +113,45 @@ export default function UsersPage() {
 
   return (
     <div className="flex flex-col gap-4 lg:gap-[18px]">
-      <div className="flex flex-col gap-1 lg:gap-0">
-        <h1
-          ref={headingRef}
-          className="m-0 scroll-mt-20 font-display text-[26px] leading-[1.35] font-semibold lg:text-[32px]"
-        >
-          {t('adminUsers.title')}
-        </h1>
-        {/* จำนวนบัญชี: ไม่กรอง = "ทั้งหมด N บัญชี" ; กรองอยู่ = "พบ N บัญชี" (กันเข้าใจผิดว่าระบบมีแค่นั้น) */}
-        <p className="m-0 min-h-[1.6em] text-sm leading-[1.6] text-ink-muted" aria-live="polite">
-          {data &&
-            t(isFiltered ? 'adminUsers.found' : 'adminUsers.total', {
-              total: formatCount(data.count),
-            })}
-        </p>
+      {/* หัวหน้า: จอใหญ่ = หัวข้อซ้าย ปุ่มขวา ; มือถือ = ปุ่มอยู่ใต้หัวข้อ (ตาม board) */}
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-1 lg:gap-0">
+          <h1
+            ref={headingRef}
+            className="m-0 scroll-mt-20 font-display text-[26px] leading-[1.35] font-semibold lg:text-[32px]"
+          >
+            {t('adminUsers.title')}
+          </h1>
+          {/* จำนวนบัญชี: ไม่กรอง = "ทั้งหมด N บัญชี" ; กรองอยู่ = "พบ N บัญชี" (กันเข้าใจผิดว่าระบบมีแค่นั้น) */}
+          <p className="m-0 min-h-[1.6em] text-sm leading-[1.6] text-ink-muted" aria-live="polite">
+            {data &&
+              t(isFiltered ? 'adminUsers.found' : 'adminUsers.total', {
+                total: formatCount(data.count),
+              })}
+          </p>
+        </div>
+        {/* มือถือ: ปุ่มครึ่งแถว (อีกครึ่งเป็นที่ของ "นำเข้า CSV" ในขั้น 2.7) */}
+        <div className="grid grid-cols-2 gap-2 lg:flex lg:gap-2.5">
+          <Button onClick={() => setDialog({ type: 'create' })} className="px-3 lg:px-5">
+            <PlusIcon />
+            {t('adminUsers.addUser')}
+          </Button>
+        </div>
       </div>
+
+      {/* ข้อความหลังทำรายการ: สำเร็จ = แถบเขียว ✓ (role=status) ; ไม่สำเร็จ = แถบแดง (role=alert) */}
+      {notice && (
+        <div
+          role={notice.tone === 'ok' ? 'status' : 'alert'}
+          className={
+            'flex items-center gap-2.5 rounded-[10px] px-3.5 py-2.5 text-sm leading-[1.55] font-semibold ' +
+            (notice.tone === 'ok' ? 'bg-ok-soft text-ok' : 'bg-bad-soft text-bad')
+          }
+        >
+          {notice.tone === 'ok' && <CheckIcon />}
+          {notice.text}
+        </div>
+      )}
 
       {/* จอใหญ่: ทั้งหมดอยู่ในการ์ดเดียว ; มือถือ: ตัวกรอง / รายการ / แถบเปลี่ยนหน้า วางเรียงกันเฉย ๆ */}
       <section
@@ -123,8 +196,16 @@ export default function UsersPage() {
             className={isFetching ? 'opacity-60 motion-safe:transition-opacity' : ''}
           >
             {/* จอใหญ่ = ตาราง ; จอเล็ก = การ์ด (สลับที่ 1024px — จุดเดียวกับ sidebar ↔ เมนูมือถือ) */}
-            <UsersTable users={data.results} currentUserId={currentUser?.id ?? 0} />
-            <UsersCards users={data.results} currentUserId={currentUser?.id ?? 0} />
+            <UsersTable
+              users={data.results}
+              currentUserId={currentUser?.id ?? 0}
+              actions={rowActions}
+            />
+            <UsersCards
+              users={data.results}
+              currentUserId={currentUser?.id ?? 0}
+              actions={rowActions}
+            />
           </div>
         )}
 
@@ -142,6 +223,27 @@ export default function UsersPage() {
           />
         )}
       </section>
+
+      {dialog?.type === 'create' && <CreateUserDialog onClose={closeDialog} />}
+      {dialog?.type === 'edit' && (
+        <EditUserDialog
+          user={dialog.user}
+          isSelf={dialog.user.id === currentUser?.id}
+          onClose={closeDialog}
+          onSaved={(user) => setNotice({ tone: 'ok', text: t('adminUsers.saved', { name: fullName(user) }) })}
+        />
+      )}
+      {dialog?.type === 'reset' && <ResetPasswordDialog user={dialog.user} onClose={closeDialog} />}
+      {dialog?.type === 'suspend' && (
+        <SuspendUserDialog
+          user={dialog.user}
+          onClose={closeDialog}
+          onSuspended={(user) => {
+            closeDialog()
+            setNotice({ tone: 'ok', text: t('adminUsers.suspended', { name: fullName(user) }) })
+          }}
+        />
+      )}
     </div>
   )
 }

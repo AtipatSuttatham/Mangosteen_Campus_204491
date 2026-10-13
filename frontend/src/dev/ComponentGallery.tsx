@@ -6,13 +6,18 @@
  *
  * ตัวอย่างใช้ข้อความและข้อมูลจริงจาก wireframe (หน้าเข้าสู่ระบบ, หน้ารายวิชาของฉัน)
  */
-import { useState, type ReactNode } from 'react'
+import { useId, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Avatar,
   Button,
   buttonClassName,
   Card,
+  ConfirmDialog,
+  Dialog,
+  DialogBody,
+  DialogFooter,
+  DialogHeader,
   Logo,
   Pagination,
   PasswordField,
@@ -43,6 +48,7 @@ const COLOR_TOKENS = [
   'ok-soft',
   'bad',
   'bad-soft',
+  'bad-hover',
   'mute',
   'mute-soft',
 ] as const
@@ -63,6 +69,56 @@ const SAMPLE_USERS = [
 function PaginationSample({ summary }: { summary: string }) {
   const [page, setPage] = useState(1)
   return <Pagination page={page} pageCount={13} onPageChange={setPage} summary={summary} />
+}
+
+/** ตัวอย่างหน้าต่างซ้อน: ปุ่มเปิดหน้าต่างแบบฟอร์ม (มือถือเต็มจอ) และหน้าต่างยืนยัน — กดเปิด/ปิดได้จริง */
+function DialogSamples() {
+  const { t } = useTranslation()
+  const titleId = useId()
+  const [open, setOpen] = useState<'dialog' | 'confirm' | null>(null)
+  const close = () => setOpen(null)
+  return (
+    <div className="flex flex-wrap items-center gap-3">
+      <Button variant="secondary" onClick={() => setOpen('dialog')}>
+        {t('devGallery.openDialog')}
+      </Button>
+      <Button variant="secondary" onClick={() => setOpen('confirm')}>
+        {t('devGallery.openConfirm')}
+      </Button>
+      {open === 'dialog' && (
+        <Dialog labelledBy={titleId} onClose={close} size="sm">
+          <DialogHeader
+            titleId={titleId}
+            title={t('devGallery.sampleDialogTitle')}
+            subtitle={t('devGallery.sampleDialogSubtitle')}
+            eyebrow={t('devGallery.sampleDialogEyebrow')}
+            onClose={close}
+          />
+          <DialogBody>
+            <PasswordField
+              label={t('devGallery.sampleNewPasswordLabel')}
+              hint={t('devGallery.sampleNewPasswordHint')}
+            />
+          </DialogBody>
+          <DialogFooter>
+            <Button variant="secondary" onClick={close}>
+              {t('dialog.cancel')}
+            </Button>
+            <Button onClick={close}>{t('devGallery.sampleDialogSave')}</Button>
+          </DialogFooter>
+        </Dialog>
+      )}
+      {open === 'confirm' && (
+        <ConfirmDialog
+          title={t('devGallery.sampleConfirmTitle')}
+          description={[t('devGallery.sampleConfirmLine1'), t('devGallery.sampleConfirmLine2')]}
+          confirmLabel={t('devGallery.sampleConfirmAction')}
+          onConfirm={close}
+          onCancel={close}
+        />
+      )}
+    </div>
+  )
 }
 
 /** หัวข้อของแต่ละกลุ่มตัวอย่าง (ขนาด/น้ำหนักเดียวกับหัวข้อรองใน canvas) */
@@ -129,6 +185,8 @@ export default function ComponentGallery() {
           <Button variant="secondary">{t('devGallery.sampleCancel')}</Button>
           <Button variant="text">{t('devGallery.sampleEdit')}</Button>
           <Button variant="danger-text">{t('devGallery.sampleSuspend')}</Button>
+          {/* ปุ่มแดงทึบ (ขั้น 2.6) — ปุ่มยืนยันในหน้าต่างยืนยัน */}
+          <Button variant="danger">{t('devGallery.sampleDanger')}</Button>
           <Button disabled>{t('devGallery.disabled')}</Button>
           <Button variant="secondary" disabled>
             {t('devGallery.disabled')}
@@ -153,6 +211,26 @@ export default function ComponentGallery() {
             hint={t('devGallery.sampleNewPasswordHint')}
           />
           <Button className="w-full">{t('devGallery.sampleLogin')}</Button>
+        </Card>
+        {/* ช่องรหัสผ่านชั่วคราว (ขั้น 2.6): เปิดมาเห็นรหัส + ปุ่มข้างช่อง (จอใหญ่อยู่ขวา / มือถืออยู่ใต้ช่อง) */}
+        <Card className="flex max-w-[600px] flex-col p-7">
+          <PasswordField
+            defaultVisible
+            label={t('devGallery.sampleTempPasswordLabel')}
+            defaultValue="hT7kPq4wNx9e"
+            inputClassName="tracking-[0.06em] tabular-nums"
+            hint={t('devGallery.sampleNewPasswordHint')}
+            actions={
+              <>
+                <Button variant="secondary" className="h-[46px]">
+                  {t('devGallery.sampleGenerate')}
+                </Button>
+                <Button variant="secondary" className="h-[46px]">
+                  {t('devGallery.sampleCopy')}
+                </Button>
+              </>
+            }
+          />
         </Card>
       </Section>
 
@@ -184,6 +262,11 @@ export default function ComponentGallery() {
         <Card className="px-4 py-3 lg:pl-6">
           <PaginationSample summary={t('devGallery.samplePaginationSummary')} />
         </Card>
+      </Section>
+
+      {/* หน้าต่างซ้อน (ขั้น 2.6): กดเปิดดูได้ — ย่อหน้าต่างเบราว์เซอร์ให้แคบกว่า 1024px เพื่อดูแบบเต็มจอของมือถือ */}
+      <Section title={t('devGallery.dialogs')}>
+        <DialogSamples />
       </Section>
 
       {/* การ์ด: แถวรายวิชาเหมือนหน้า "รายวิชาของฉัน" */}

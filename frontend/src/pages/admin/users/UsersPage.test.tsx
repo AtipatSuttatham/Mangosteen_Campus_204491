@@ -131,6 +131,8 @@ describe('UsersPage — รายชื่อ', () => {
       'รหัสนักศึกษา/พนักงาน',
       'บทบาท',
       'สถานะ',
+      // คอลัมน์ปุ่ม (ขั้น 2.6) — หัวคอลัมน์ซ่อนไว้ให้โปรแกรมอ่านหน้าจอ
+      'การดำเนินการ',
     ])
     expect(rows[1]).toHaveTextContent('ธนพล ใจดี')
     expect(rows[1]).toHaveTextContent('s670510118@example.com')
@@ -138,8 +140,8 @@ describe('UsersPage — รายชื่อ', () => {
     expect(rows[1]).toHaveTextContent('ใช้งานได้')
     expect(rows[2]).toHaveTextContent('T1024')
     expect(rows[2]).toHaveTextContent('ผู้สอน')
-    // ยังไม่มีปุ่มทำรายการ (มาในขั้น 2.6 / 2.7 — ผู้ใช้เลือกข้อ 1.ก)
-    expect(screen.queryByRole('button', { name: /เพิ่มผู้ใช้|นำเข้า|แก้ไข|ระงับ/ })).toBeNull()
+    // ปุ่ม "นำเข้าจาก CSV" ยังไม่แสดง (มาในขั้น 2.7 — ผู้ใช้เลือกข้อ 1.ก ขั้น 2.5)
+    expect(screen.queryByRole('button', { name: /นำเข้า/ })).not.toBeInTheDocument()
   })
 
   it('ขอหน้าแรกโดยไม่มีตัวกรอง', async () => {
@@ -196,7 +198,8 @@ describe('UsersPage — การ์ดบนมือถือ', () => {
     expect(self).toHaveTextContent('รหัส 69000001')
     expect(self).toHaveTextContent('user1@example.com')
     expect(suspended).toHaveTextContent('ระงับการใช้งาน')
-    expect(suspended).not.toHaveTextContent('รหัส')
+    // ไม่มีบรรทัด "รหัส …" (ปุ่ม "รีเซ็ตรหัสผ่าน" ก็มีคำว่า "รหัส" จึงตรวจเฉพาะ "รหัส" ตามด้วยตัวเลข)
+    expect(suspended).not.toHaveTextContent(/รหัส \d/)
   })
 })
 

@@ -13,13 +13,16 @@ import { useState, type ComponentProps } from 'react'
 import { useTranslation } from 'react-i18next'
 import { TextField } from './TextField'
 
-type PasswordFieldProps = Omit<ComponentProps<typeof TextField>, 'type' | 'trailing'>
+type PasswordFieldProps = Omit<ComponentProps<typeof TextField>, 'type' | 'trailing'> & {
+  /** เปิดมาแสดงรหัสเป็นตัวอักษรเลย (เช่น รหัสผ่านชั่วคราวที่ผู้ดูแลระบบต้องเห็นเพื่อแจ้งผู้ใช้ — ขั้น 2.6) */
+  defaultVisible?: boolean
+}
 
 /** ช่องรหัสผ่านที่กดดูรหัสได้ */
-export function PasswordField({ label, ...props }: PasswordFieldProps) {
+export function PasswordField({ label, defaultVisible = false, ...props }: PasswordFieldProps) {
   const { t } = useTranslation()
-  // true = แสดงรหัสเป็นตัวอักษร ; false = ซ่อนเป็นจุด (ค่าเริ่มต้น)
-  const [visible, setVisible] = useState(false)
+  // true = แสดงรหัสเป็นตัวอักษร ; false = ซ่อนเป็นจุด (ค่าเริ่มต้น ยกเว้นส่ง defaultVisible)
+  const [visible, setVisible] = useState(defaultVisible)
 
   return (
     <TextField

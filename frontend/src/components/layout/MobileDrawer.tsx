@@ -18,7 +18,7 @@
  */
 import { useEffect, useRef, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Logo } from '../ui'
+import { Logo, useFocusTrap } from '../ui'
 import { CloseIcon } from './icons'
 import { NavLinks, UserPanel } from './NavMenu'
 
@@ -28,18 +28,14 @@ export const MOBILE_MENU_ID = 'mobile-menu'
 /** ขนาดจอที่เปลี่ยนเป็น sidebar (ตรงกับ lg: ของ Tailwind และหน้าเข้าสู่ระบบ) */
 const DESKTOP_QUERY = '(min-width: 1024px)'
 
-/** สิ่งที่กด/โฟกัสได้ในเมนู (ใช้วน Tab) */
-const FOCUSABLE = 'a[href], button:not([disabled])'
-
 export function MobileDrawer({ onClose }: { onClose: () => void }) {
   const { t } = useTranslation()
   const panelRef = useRef<HTMLDivElement>(null)
   const closeButtonRef = useRef<HTMLButtonElement>(null)
 
-  // เปิดแล้วโฟกัสที่ปุ่ม ✕ — ผู้ใช้แป้นพิมพ์/โปรแกรมอ่านหน้าจอรู้ทันทีว่าอยู่ในเมนู
-  useEffect(() => {
-    closeButtonRef.current?.focus()
-  }, [])
+  // เปิดแล้วโฟกัสที่ปุ่ม ✕ — ผู้ใช้แป้นพิมพ์/โปรแกรมอ่านหน้าจอรู้ทันทีว่าอยู่ในเมนู ; Tab วนอยู่ในเมนู
+  // (ปิดแล้ว AppShell คืนโฟกัสให้ปุ่ม ☰ เอง จึงไม่ให้ตัววนโฟกัสคืนซ้ำ)
+  const trapTab = useFocusTrap(panelRef, { initialFocusRef: closeButtonRef, restoreFocus: false })
 
   // ล็อกการเลื่อนหน้าด้านหลังระหว่างเปิดเมนู แล้วคืนค่าเดิมเมื่อปิด
   useEffect(() => {
@@ -61,24 +57,14 @@ export function MobileDrawer({ onClose }: { onClose: () => void }) {
     return () => query.removeEventListener('change', handleChange)
   }, [onClose])
 
-  /** แป้นพิมพ์ในเมนู: Esc = ปิด ; Tab ที่ตัวสุดท้าย / Shift+Tab ที่ตัวแรก = วนกลับ */
+  /** แป้นพิมพ์ในเมนู: Esc = ปิด ; Tab = วนอยู่ในเมนู (useFocusTrap) */
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {
     if (event.key === 'Escape') {
       event.stopPropagation()
       onClose()
       return
     }
-    if (event.key !== 'Tab' || !panelRef.current) return
-    const items = [...panelRef.current.querySelectorAll<HTMLElement>(FOCUSABLE)]
-    const first = items[0]
-    const last = items[items.length - 1]
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault()
-      last?.focus()
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault()
-      first?.focus()
-    }
+    trapTab(event)
   }
 
   return (

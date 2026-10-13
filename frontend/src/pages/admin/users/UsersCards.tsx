@@ -10,27 +10,30 @@
  * - 1 คน = 1 การ์ด เรียงลงมา
  * - อีเมลอยู่ใต้แถวชื่อ + ป้าย ใช้ความกว้างเต็มการ์ด (ป้ายยาวอย่าง "ระงับการใช้งาน" ไม่บีบอีเมลจนตัดกลางคำ) ;
  *   อีเมลยาวมากจริง ๆ ยังตัดขึ้นบรรทัดใหม่ได้ (ไม่ล้นจอ)
- * - ยังไม่มีแถวปุ่มแก้ไข / รีเซ็ต / ระงับ ด้านล่างการ์ด — มาในขั้น 2.6 (ผู้ใช้เลือกข้อ 1.ก ขั้น 2.5)
+ * - แถวปุ่มทำรายการท้ายการ์ด คั่นด้วยเส้นบาง (UserActions — ขั้น 2.6)
  * - ซ่อนบนจอใหญ่ (lg:hidden) — จอใหญ่ใช้ตารางแทน
  */
 import { useTranslation } from 'react-i18next'
 import type { AdminUser } from '../../../api/adminUsers'
 import { Card } from '../../../components/ui'
+import { UserActions, type UserActionHandlers } from './UserActions'
 import { UserName, UserStatusBadge } from './UserBits'
 
 type UsersCardsProps = {
   users: AdminUser[]
-  /** รหัสบัญชีของผู้ที่เข้าสู่ระบบอยู่ (ใช้ติดป้าย "คุณ") */
+  /** รหัสบัญชีของผู้ที่เข้าสู่ระบบอยู่ (ใช้ติดป้าย "คุณ" และซ่อนปุ่มที่ทำกับตัวเองไม่ได้) */
   currentUserId: number
+  /** ตัวจัดการปุ่มของแต่ละการ์ด */
+  actions: UserActionHandlers
 }
 
-export function UsersCards({ users, currentUserId }: UsersCardsProps) {
+export function UsersCards({ users, currentUserId, actions }: UsersCardsProps) {
   const { t } = useTranslation()
 
   return (
     <ul aria-label={t('adminUsers.listLabel')} className="m-0 flex list-none flex-col gap-2.5 p-0 lg:hidden">
       {users.map((user) => (
-        <Card as="li" key={user.id} className="flex flex-col gap-2 p-4">
+        <Card as="li" key={user.id} className="flex flex-col gap-2 px-4 pt-4 pb-2">
           <div>
             <div className="flex items-start justify-between gap-2.5">
               <UserName
@@ -51,6 +54,13 @@ export function UsersCards({ users, currentUserId }: UsersCardsProps) {
               <span>{t('adminUsers.idShort', { id: user.student_or_staff_id })}</span>
             )}
           </div>
+          {/* แถวปุ่มท้ายการ์ด (ตาม board มือถือ: เส้นคั่นบาง ปุ่มชิดซ้าย) */}
+          <UserActions
+            user={user}
+            isSelf={user.id === currentUserId}
+            {...actions}
+            className="-ml-1.5 border-t border-line-soft pt-1"
+          />
         </Card>
       ))}
     </ul>
