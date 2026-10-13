@@ -127,6 +127,7 @@ export const th = {
     range: 'แสดง {{from}}–{{to}} จาก {{total}} บัญชี',
     // ปุ่มหัวหน้า (ขั้น 2.6)
     addUser: 'เพิ่มผู้ใช้',
+    importCsv: 'นำเข้าจาก CSV',
     // คอลัมน์ปุ่มในตาราง (หัวคอลัมน์ซ่อนไว้ให้โปรแกรมอ่านหน้าจอ) และปุ่มของแต่ละแถว (ขั้น 2.6)
     columnActions: 'การดำเนินการ',
     edit: 'แก้ไข',
@@ -150,6 +151,97 @@ export const th = {
     activated: 'เปิดใช้งานบัญชี {{name}} แล้ว',
     saved: 'บันทึกข้อมูลของ {{name}} แล้ว',
     activateFailed: 'เปิดใช้งานบัญชี {{name}} ไม่สำเร็จ: {{reason}}',
+  },
+
+  // หน้านำเข้าผู้ใช้จาก CSV /users/import (pages/admin/users/import — ขั้น 2.7 ตาม board "นำเข้า CSV")
+  csvImport: {
+    back: 'จัดการบัญชีผู้ใช้',
+    title: 'นำเข้าผู้ใช้จาก CSV',
+    // แถบขั้นตอน 1-2-3
+    stepsLabel: 'ขั้นตอนการนำเข้า',
+    stepChoose: 'เลือกไฟล์',
+    stepReview: 'ตรวจข้อมูล',
+    stepPasswords: 'รับรหัสผ่าน',
+    // ต่อท้ายชื่อขั้นที่ผ่านแล้ว (สำหรับโปรแกรมอ่านหน้าจอ — ตาเห็นเป็นเครื่องหมายถูก)
+    stepDone: '(เสร็จแล้ว)',
+    // ① เลือกไฟล์
+    chooseTitle: 'เลือกไฟล์',
+    dropHere: 'ลากไฟล์ CSV มาวางที่นี่',
+    or: 'หรือ',
+    chooseFile: 'เลือกไฟล์',
+    limits: 'ไฟล์ .csv ไม่เกิน 1 MB และไม่เกิน 500 แถว',
+    checkNow: 'เลือกแล้วระบบตรวจให้ทันที',
+    checking: 'กำลังตรวจไฟล์ {{name}}…',
+    notCsv: 'เลือกไฟล์นามสกุล .csv (ใน Excel ใช้ "บันทึกเป็น" แล้วเลือกชนิด CSV)',
+    columnsTitle: 'ไฟล์ต้องมี 5 คอลัมน์นี้',
+    columnEmail: 'อีเมล ห้ามซ้ำกับบัญชีที่มีอยู่',
+    columnId: 'รหัสนักศึกษาหรือรหัสพนักงาน ห้ามซ้ำ',
+    columnFirstName: 'ชื่อ',
+    columnLastName: 'นามสกุล',
+    columnRole: 'student (ผู้เรียน) หรือ teacher (ผู้สอน)',
+    noteAdmin: 'ผู้ดูแลระบบนำเข้าจากไฟล์ไม่ได้ ให้สร้างทีละคน',
+    noteEncoding: 'บันทึกจาก Excel เป็น CSV UTF-8 หรือ CSV ธรรมดาก็ได้ อ่านภาษาไทยได้ทั้งคู่',
+    downloadSample: 'ดาวน์โหลดไฟล์ตัวอย่าง',
+    sampleFileName: 'ตัวอย่างนำเข้าผู้ใช้.csv',
+    // ② ตรวจข้อมูล — หัวส่วน
+    rowCount: '{{total}} แถว',
+    // ป้ายเลขแถวบนการ์ด (มือถือ)
+    rowLabel: 'แถว {{row}}',
+    errorsTitle: 'พบปัญหา {{count}} แถว ยังไม่มีบัญชีใดถูกสร้าง',
+    errorsHint: 'แก้แถวเหล่านี้ในไฟล์ แล้วเลือกไฟล์ใหม่อีกครั้ง',
+    errorsRowNote: 'เลขแถวตรงกับเลขแถวใน Excel',
+    errorsTableLabel: 'แถวที่มีปัญหา',
+    columnHeadRow: 'แถว',
+    columnHeadColumn: 'คอลัมน์',
+    columnHeadProblem: 'ปัญหา',
+    columnHeadValue: 'ค่าในไฟล์',
+    emptyValue: '(ว่าง)',
+    cancel: 'ยกเลิก',
+    chooseAgain: 'เลือกไฟล์ใหม่',
+    readyTitle: 'ข้อมูลถูกต้องทุกแถว พร้อมนำเข้า',
+    statTotal: 'บัญชีทั้งหมด',
+    statStudents: 'ผู้เรียน',
+    statTeachers: 'ผู้สอน',
+    previewTableLabel: 'ตัวอย่างบัญชีที่จะนำเข้า',
+    columnHeadName: 'ชื่อ-นามสกุล',
+    columnHeadEmail: 'อีเมล',
+    columnHeadId: 'รหัส',
+    columnHeadRole: 'บทบาท',
+    moreRows: 'และอีก {{count}} แถว',
+    readyHint: 'ระบบสุ่มรหัสผ่านชั่วคราวให้ทุกบัญชี และสร้างครบทุกแถวพร้อมกัน',
+    importButton: 'นำเข้า {{count}} บัญชี',
+    importing: 'กำลังนำเข้า…',
+    // มีคนเพิ่มบัญชีซ้ำระหว่างตรวจกับนำเข้า (backend ตอบ csv_invalid พร้อมรายงานใหม่)
+    changedSinceCheck: 'ข้อมูลในระบบเปลี่ยนระหว่างตรวจกับนำเข้า จึงยังไม่สร้างบัญชีใด',
+    // ③ รับรหัสผ่าน (ตาม board "นำเข้า CSV ③ ดาวน์โหลดไฟล์รหัสผ่าน")
+    doneTitle: 'สร้างบัญชีแล้ว {{count}} บัญชี',
+    doneSummary: 'ผู้เรียน {{students}} คน ผู้สอน {{teachers}} คน จากไฟล์ {{name}}',
+    downloadWarningTitle: 'ดาวน์โหลดไฟล์รหัสผ่านก่อนออกจากหน้านี้',
+    downloadWarningBody: 'ระบบไม่เก็บรหัสผ่านไว้ ถ้าออกจากหน้านี้แล้ว ต้องรีเซ็ตรหัสผ่านให้ทีละคน',
+    downloadedTitle: 'ดาวน์โหลดไฟล์รหัสผ่านแล้ว',
+    downloadedBody: 'เก็บไฟล์ไว้ในที่ปลอดภัย และลบทิ้งหลังแจ้งรหัสให้ผู้ใช้ครบแล้ว',
+    downloadPasswords: 'ดาวน์โหลดไฟล์รหัสผ่าน',
+    downloadAgain: 'ดาวน์โหลดอีกครั้ง',
+    backToUsers: 'กลับไปจัดการบัญชีผู้ใช้',
+    // <code>…</code> = ชื่อคอลัมน์ในกล่องม่วงอ่อน
+    passwordFileHint:
+      'ไฟล์ CSV ที่ได้มีคอลัมน์เดิมทั้ง 5 คอลัมน์ และเพิ่มคอลัมน์ <code>password</code> เปิดใน Excel ได้ทันที เก็บไฟล์ไว้ในที่ปลอดภัย และลบทิ้งหลังแจ้งรหัสให้ผู้ใช้ครบแล้ว',
+    // ต่อท้ายชื่อไฟล์รหัสผ่าน: <ชื่อไฟล์เดิม>-รหัสผ่าน.csv
+    passwordFileSuffix: 'รหัสผ่าน',
+    // ปัญหารายช่อง (ตาม board "พบปัญหา") — {{row}} = แถวที่ซ้ำ ; ไม่ตรงข้อใดใช้ข้อความรายช่องกลาง (fieldErrors)
+    problem: {
+      emailUnique: 'อีเมลนี้มีผู้ใช้แล้ว',
+      idUnique: 'รหัสนี้มีผู้ใช้แล้ว',
+      emailDuplicate: 'อีเมลซ้ำกับแถว {{row}} ในไฟล์นี้',
+      idDuplicate: 'รหัสซ้ำกับแถว {{row}} ในไฟล์นี้',
+      emailBlank: 'ไม่ได้กรอกอีเมล',
+      firstNameBlank: 'ไม่ได้กรอกชื่อ',
+      lastNameBlank: 'ไม่ได้กรอกนามสกุล',
+      roleBlank: 'ไม่ได้ระบุบทบาท',
+      emailInvalid: 'รูปแบบอีเมลไม่ถูกต้อง',
+      roleInvalid: 'บทบาทต้องเป็น student หรือ teacher',
+      adminNotAllowed: 'บัญชีผู้ดูแลระบบนำเข้าจากไฟล์ไม่ได้',
+    },
   },
 
   // หน้าต่างเพิ่ม / แก้ไขผู้ใช้ และหน้า "สร้างบัญชีแล้ว" (pages/admin/users — ขั้น 2.6)

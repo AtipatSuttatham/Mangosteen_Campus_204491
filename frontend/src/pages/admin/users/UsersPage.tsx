@@ -15,12 +15,13 @@
  * ระหว่างโหลดหน้าถัดไปยังแสดงหน้าเดิมไว้ (ไม่กระพริบ)
  * ขั้น 2.6: ปุ่ม "เพิ่มผู้ใช้" เปิด CreateUserDialog ; ปุ่มในแถว/การ์ด เปิด EditUserDialog /
  * ResetPasswordDialog / SuspendUserDialog (ยืนยันก่อน) หรือเปิดใช้งานทันที ;
- * หลังแก้ไข/ระงับ/เปิดใช้งาน มีแถบข้อความใต้หัวหน้า (ตาม board "รายชื่อผู้ใช้ — ข้อความหลังระงับ") ; ปุ่ม "นำเข้าจาก CSV" ยังไม่แสดง — มาในขั้น 2.7
- * (ผู้ใช้เลือกข้อ 1.ก ขั้น 2.5: แสดงเฉพาะสิ่งที่ทำงานได้แล้ว)
+ * หลังแก้ไข/ระงับ/เปิดใช้งาน มีแถบข้อความใต้หัวหน้า (ตาม board "รายชื่อผู้ใช้ — ข้อความหลังระงับ")
+ * ขั้น 2.7: ปุ่ม "นำเข้าจาก CSV" ไปหน้า /users/import
  */
 import { keepPreviousData, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router'
 import {
   activateAdminUser,
   ADMIN_USERS_PAGE_SIZE,
@@ -30,12 +31,12 @@ import {
 import { ApiError } from '../../../api/client'
 import { errorMessage } from '../../../api/errors'
 import { useAuth } from '../../../auth/AuthContext'
-import { Button, Pagination } from '../../../components/ui'
+import { Button, buttonClassName, Pagination } from '../../../components/ui'
 import { CreateUserDialog } from './CreateUserDialog'
 import { EditUserDialog } from './EditUserDialog'
 import { ResetPasswordDialog } from './ResetPasswordDialog'
 import { SuspendUserDialog } from './SuspendUserDialog'
-import { CheckIcon, PlusIcon } from './icons'
+import { CheckIcon, PlusIcon, UploadIcon } from './icons'
 import { UserFilterBar } from './UserFilterBar'
 import { UsersCards } from './UsersCards'
 import { UsersTable } from './UsersTable'
@@ -130,12 +131,20 @@ export default function UsersPage() {
               })}
           </p>
         </div>
-        {/* มือถือ: ปุ่มครึ่งแถว (อีกครึ่งเป็นที่ของ "นำเข้า CSV" ในขั้น 2.7) */}
+        {/* จอใหญ่: [นำเข้าจาก CSV] [เพิ่มผู้ใช้] ; มือถือ: ครึ่งแถวละปุ่ม เพิ่มผู้ใช้อยู่ซ้าย (ตาม board) */}
         <div className="grid grid-cols-2 gap-2 lg:flex lg:gap-2.5">
-          <Button onClick={() => setDialog({ type: 'create' })} className="px-3 lg:px-5">
+          <Button onClick={() => setDialog({ type: 'create' })} className="px-3 lg:order-2 lg:px-5">
             <PlusIcon />
             {t('adminUsers.addUser')}
           </Button>
+          {/* ลิงก์ไปหน้านำเข้า (หน้าตาเหมือนปุ่มรอง ; มือถือสูงเท่าปุ่มหลัก) — ขั้น 2.7 */}
+          <Link
+            to="/users/import"
+            className={`${buttonClassName('secondary')} h-[46px] px-3 lg:order-1 lg:h-11 lg:px-[18px]`}
+          >
+            <UploadIcon />
+            {t('adminUsers.importCsv')}
+          </Link>
         </div>
       </div>
 

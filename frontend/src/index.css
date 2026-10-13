@@ -29,6 +29,8 @@
   --color-canvas: #f5eff3;
   /* พื้นการ์ด / ช่องกรอก */
   --color-surface: #ffffff;
+  /* พื้นช่องลากวางไฟล์ (อ่อนกว่า canvas — ตาม board "นำเข้า CSV ① เลือกไฟล์" ขั้น 2.7) */
+  --color-canvas-soft: #fbf8fa;
 
   /* --- เส้นขอบ --- */
   /* ขอบการ์ด */
