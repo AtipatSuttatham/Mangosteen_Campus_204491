@@ -82,7 +82,8 @@ function renderPage() {
       { path: '/users/import', element: <CsvImportPage /> },
       { path: '/users', element: <h1>หน้ารายชื่อผู้ใช้</h1> },
     ],
-    { initialEntries: ['/users/import'] },
+    // มีหน้า /users อยู่ก่อนในประวัติ (เหมือนผู้ใช้กดปุ่ม "นำเข้าจาก CSV" มา) — ปุ่มย้อนกลับจึงมีที่ให้กลับจริง
+    { initialEntries: ['/users', '/users/import'], initialIndex: 1 },
   )
   render(
     <QueryClientProvider client={new QueryClient()}>
@@ -306,12 +307,19 @@ describe('ตัวเฝ้าประตู: ยังไม่ดาวน�
     expect(await screen.findByRole('heading', { name: 'หน้ารายชื่อผู้ใช้' })).toBeInTheDocument()
   })
 
-  it('ปุ่มย้อนกลับของเบราว์เซอร์ก็ถูกถามยืนยัน', async () => {
-    const { router } = await reachDone()
+  it('ปุ่มย้อนกลับของเบราว์เซอร์ → ถามยืนยัน ; อยู่ต่อ = ยังอยู่หน้าเดิม ; ออกจากหน้านี้ = กลับหน้าก่อนหน้า', async () => {
+    const { user, router } = await reachDone()
 
     await act(() => router.navigate(-1))
+    const dialog = screen.getByRole('alertdialog', { name: 'ออกโดยยังไม่ดาวน์โหลดไฟล์รหัสผ่าน?' })
+    await user.click(within(dialog).getByRole('button', { name: 'อยู่ต่อ' }))
+    expect(router.state.location.pathname).toBe('/users/import')
+    expect(screen.getByRole('heading', { name: 'สร้างบัญชีแล้ว 2 บัญชี' })).toBeInTheDocument()
 
-    expect(screen.getByRole('alertdialog', { name: 'ออกโดยยังไม่ดาวน์โหลดไฟล์รหัสผ่าน?' })).toBeInTheDocument()
+    await act(() => router.navigate(-1))
+    await user.click(screen.getByRole('button', { name: 'ออกจากหน้านี้' }))
+    expect(await screen.findByRole('heading', { name: 'หน้ารายชื่อผู้ใช้' })).toBeInTheDocument()
+    expect(router.state.location.pathname).toBe('/users')
   })
 
   it('ออกจากระบบ (requestLeave) → ถามก่อน และออกจริงเมื่อยืนยันเท่านั้น', async () => {
