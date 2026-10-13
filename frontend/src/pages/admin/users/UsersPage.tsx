@@ -7,7 +7,7 @@
  *   ทั้งหมด 248 บัญชี
  *   ┌ การ์ด (จอใหญ่) ─────────────────────────────────────────────────────┐
  *   │ [ค้นหาชื่อ รหัส หรืออีเมล]  บทบาท [ทุกบทบาท ⌄]  สถานะ [ทุกสถานะ ⌄]   │  ← ตัวกรอง (UserFilterBar)
- *   │ ตาราง (UsersTable)                                                   │  ← มือถือ: การ์ดทีละคน
+ *   │ ตาราง (UsersTable)                                                   │  ← มือถือ: การ์ดทีละคน (UsersCards)
  *   │ แสดง 1–20 จาก 248 บัญชี        [‹ ก่อนหน้า] หน้า 1 จาก 13 [ถัดไป ›] │  ← Pagination
  *   └──────────────────────────────────────────────────────────────────────┘
  *
@@ -25,6 +25,7 @@ import { errorMessage } from '../../../api/errors'
 import { useAuth } from '../../../auth/AuthContext'
 import { Button, Pagination } from '../../../components/ui'
 import { UserFilterBar } from './UserFilterBar'
+import { UsersCards } from './UsersCards'
 import { UsersTable } from './UsersTable'
 import { useUserFilters } from './useUserFilters'
 
@@ -121,7 +122,9 @@ export default function UsersPage() {
             aria-busy={isFetching || undefined}
             className={isFetching ? 'opacity-60 motion-safe:transition-opacity' : ''}
           >
+            {/* จอใหญ่ = ตาราง ; จอเล็ก = การ์ด (สลับที่ 1024px — จุดเดียวกับ sidebar ↔ เมนูมือถือ) */}
             <UsersTable users={data.results} currentUserId={currentUser?.id ?? 0} />
+            <UsersCards users={data.results} currentUserId={currentUser?.id ?? 0} />
           </div>
         )}
 

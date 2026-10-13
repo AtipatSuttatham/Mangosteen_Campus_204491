@@ -174,6 +174,32 @@ describe('UsersPage — รายชื่อ', () => {
   })
 })
 
+describe('UsersPage — การ์ดบนมือถือ', () => {
+  it('1 คน = 1 การ์ด: ชื่อ + ป้าย "คุณ", อีเมล, สถานะ, บทบาท และ "รหัส …" (ไม่มีรหัส = ไม่แสดง)', async () => {
+    fetchAdminUsers.mockResolvedValue(
+      page([
+        makeUser(ADMIN.id, { first_name: 'สุดา', last_name: 'แก้วมณี', role: 'admin' }),
+        makeUser(5, {
+          first_name: 'วิชัย',
+          last_name: 'ทองมา',
+          student_or_staff_id: null,
+          is_active: false,
+        }),
+      ]),
+    )
+    renderPage()
+
+    const list = await screen.findByRole('list', { name: 'รายชื่อผู้ใช้' })
+    const [self, suspended] = within(list).getAllByRole('listitem')
+    expect(within(must(self)).getByText('คุณ')).toBeInTheDocument()
+    expect(self).toHaveTextContent('ผู้ดูแลระบบ')
+    expect(self).toHaveTextContent('รหัส 69000001')
+    expect(self).toHaveTextContent('user1@example.com')
+    expect(suspended).toHaveTextContent('ระงับการใช้งาน')
+    expect(suspended).not.toHaveTextContent('รหัส')
+  })
+})
+
 describe('UsersPage — ค้นหา / กรอง', () => {
   it('พิมพ์ค้นหา → รอหยุดพิมพ์แล้วค้นครั้งเดียว + เก็บคำค้นในที่อยู่ + จำนวนเปลี่ยนเป็น "พบ"', async () => {
     fetchAdminUsers.mockResolvedValue(page([makeUser(2)], 248))
