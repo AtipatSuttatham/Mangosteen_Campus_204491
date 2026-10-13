@@ -29,20 +29,29 @@ export type FieldErrors = Record<string, string[]>
  * - code: รหัส error สำหรับแปลเป็นข้อความไทย
  * - fields: รหัส error รายช่อง (มีเฉพาะ validation_error)
  * - detail: คำอธิบายภาษาอังกฤษสำหรับนักพัฒนา — ห้ามแสดงให้ผู้ใช้
+ * - body: คำตอบ error ทั้งก้อนจาก backend (ข้อมูลประกอบที่แนบมา เช่น report ของ csv_invalid — ขั้น 2.7)
  */
 export class ApiError extends Error {
   readonly status: number
   readonly code: string
   readonly fields: FieldErrors
   readonly detail: string
+  readonly body: unknown
 
-  constructor(status: number, code: string, fields: FieldErrors = {}, detail = '') {
+  constructor(
+    status: number,
+    code: string,
+    fields: FieldErrors = {},
+    detail = '',
+    body: unknown = undefined,
+  ) {
     super(`API error ${status}: ${code}`)
     this.name = 'ApiError'
     this.status = status
     this.code = code
     this.fields = fields
     this.detail = detail
+    this.body = body
   }
 }
 
@@ -158,6 +167,7 @@ export async function apiFetch<T = unknown>(
       data.code,
       toFieldErrors(data.fields),
       typeof data.detail === 'string' ? data.detail : '',
+      data,
     )
   }
   // ได้คำตอบที่ไม่ใช่รูปแบบกลาง (เช่น หน้า HTML จาก proxy) → เดารหัสจาก HTTP status

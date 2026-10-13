@@ -7,10 +7,14 @@ import {
   activateAdminUser,
   adminUsersQuery,
   createAdminUser,
+  csvInvalidReport,
+  importUsers,
   resetAdminUserPassword,
   suspendAdminUser,
   updateAdminUser,
+  validateUserImport,
 } from './adminUsers'
+import { ApiError } from './client'
 
 describe('adminUsersQuery', () => {
   it('ไม่มีตัวกรอง → ไม่มี query string', () => {
@@ -113,5 +117,42 @@ describe('ฟังก์ชันจัดการบัญชี (ขั้�
       method: 'POST',
       body: { new_password: 'Wm4rXc8tLp3a' },
     })
+  })
+})
+
+describe('นำเข้า CSV (ขั้น 2.7)', () => {
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  const file = new File(['email,student_or_staff_id,first_name,last_name,role'], 'นักศึกษา.csv', {
+    type: 'text/csv',
+  })
+
+  it('ตรวจไฟล์ / นำเข้า: POST แบบ multipart ช่อง "file" ไปที่อยู่ของแต่ละขั้น', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(() => Promise.resolve(new Response('{}', { status: 200 })))
+
+    await validateUserImport(file)
+    await importUsers(file)
+
+    const [validate, doImport] = fetchMock.mock.calls
+    expect(validate?.[0]).toBe('/api/v1/admin/users/import/validate/')
+    expect(doImport?.[0]).toBe('/api/v1/admin/users/import/')
+    for (const call of [validate, doImport]) {
+      const body = call?.[1]?.body
+      expect(body).toBeInstanceOf(FormData)
+      expect((body as FormData).get('file')).toBe(file)
+    }
+  })
+
+  it('csvInvalidReport: ดึงรายงานจาก error csv_invalid ; error อื่น = null', () => {
+    const report = { valid: false, total: 1, by_role: { teacher: 0, student: 1 }, errors: [], preview: [] }
+    const invalid = new ApiError(400, 'csv_invalid', {}, '', { code: 'csv_invalid', report })
+
+    expect(csvInvalidReport(invalid)).toEqual(report)
+    expect(csvInvalidReport(new ApiError(400, 'csv_empty'))).toBeNull()
+    expect(csvInvalidReport(new Error('x'))).toBeNull()
   })
 })
