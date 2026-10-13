@@ -131,6 +131,8 @@ describe('UsersPage — รายชื่อ', () => {
       'รหัสนักศึกษา/พนักงาน',
       'บทบาท',
       'สถานะ',
+      // คอลัมน์ปุ่ม (ขั้น 2.6) — หัวคอลัมน์ซ่อนไว้ให้โปรแกรมอ่านหน้าจอ
+      'การดำเนินการ',
     ])
     expect(rows[1]).toHaveTextContent('ธนพล ใจดี')
     expect(rows[1]).toHaveTextContent('s670510118@example.com')
