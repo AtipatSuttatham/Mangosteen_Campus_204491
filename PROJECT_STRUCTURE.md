@@ -124,19 +124,33 @@ Mangosteen_Campus_204491/
 │       │       ├── avatarFile.ts        ตรวจชนิด/ขนาดรูปในหน้าเว็บก่อนอัปโหลด (JPG/PNG/WebP ≤ 2 MB)
 │       │       ├── icons.tsx            ไอคอนกล้อง / อัปโหลด / ถังขยะ / เครื่องหมายถูก (จาก canvas)
 │       │       └── ProfilePage.test.tsx test ทั้งหน้า (เมนูรูป, อัปโหลด/ลบ, ฟอร์มทั้ง 2 ชุดทุกกรณี)
-│       │   └── admin/users/      /users จัดการบัญชีผู้ใช้ (UC-04 — ขั้น 2.5, เฉพาะผู้ดูแลระบบ) ตาม board "รายชื่อผู้ใช้" จอใหญ่ + มือถือ
-│       │       ├── UsersPage.tsx        ประกอบหน้า: หัวข้อ + จำนวนบัญชี + การ์ด (ตัวกรอง / รายการ / แบ่งหน้า) + กำลังโหลด / ไม่พบ / ผิดพลาด
+│       │   └── admin/users/      /users จัดการบัญชีผู้ใช้ (UC-04 — ขั้น 2.5–2.6, เฉพาะผู้ดูแลระบบ) ตาม board ก้อน 2 จอใหญ่ + มือถือ
+│       │       ├── UsersPage.tsx        ประกอบหน้า: หัวข้อ + ปุ่มเพิ่มผู้ใช้ + แถบข้อความหลังทำรายการ + การ์ด (ตัวกรอง / รายการ / แบ่งหน้า) + หน้าต่างที่เปิดอยู่ + เปิดใช้งานทันที
 │       │       ├── useUserFilters.ts    คำค้น / บทบาท / สถานะ / หน้า เก็บใน "ที่อยู่" ของหน้า (รีเฟรช / ย้อนกลับแล้วเห็นผลเดิม)
 │       │       ├── UserFilterBar.tsx    ช่องค้นหา (ค้นหลังหยุดพิมพ์ 0.3 วินาที) + เลือกบทบาท / สถานะ
 │       │       ├── UsersTable.tsx       ตารางรายชื่อ (จอใหญ่ ≥ 1024px)
 │       │       ├── UsersCards.tsx       การ์ดรายชื่อทีละคน (จอเล็ก)
 │       │       ├── UserBits.tsx         ชื่อ + ป้าย "คุณ" และป้ายสถานะบัญชี (ใช้ร่วมกันทั้งตารางและการ์ด)
-│       │       ├── icons.tsx            ไอคอน ✓ / แม่กุญแจ ในป้ายสถานะ (จาก canvas)
-│       │       └── UsersPage.test.tsx   test ทั้งหน้า (รายชื่อ, ป้าย "คุณ", การ์ดมือถือ, ค้นหา/กรอง, แบ่งหน้า, โหลด/ผิดพลาด)
+│       │       ├── UserActions.tsx      ปุ่ม แก้ไข · รีเซ็ตรหัสผ่าน │ ระงับ / เปิดใช้งาน ของแต่ละแถว/การ์ด (แถวตัวเองมีแค่แก้ไข) (ขั้น 2.6)
+│       │       ├── CreateUserDialog.tsx หน้าต่างเพิ่มผู้ใช้ → หน้า "สร้างบัญชีแล้ว" (เพิ่มอีกคน / เสร็จ) (ขั้น 2.6)
+│       │       ├── EditUserDialog.tsx   หน้าต่างแก้ไข: ส่งเฉพาะช่องที่เปลี่ยน ; บัญชีตัวเองบทบาทล็อก (ขั้น 2.6)
+│       │       ├── ResetPasswordDialog.tsx  หน้าต่างรีเซ็ตรหัสผ่าน → หน้า "รีเซ็ตรหัสผ่านแล้ว" (ขั้น 2.6)
+│       │       ├── SuspendUserDialog.tsx    หน้าต่างยืนยันการระงับ (ConfirmDialog) (ขั้น 2.6)
+│       │       ├── UserFields.tsx       ช่องชื่อ / อีเมล / รหัส / บทบาท (หรือบทบาทล็อก) ใช้ร่วมกันระหว่างเพิ่มและแก้ไข
+│       │       ├── TempPasswordField.tsx  ช่องรหัสผ่านชั่วคราว + ปุ่มสุ่มรหัส / คัดลอก (เพิ่มผู้ใช้ + รีเซ็ต)
+│       │       ├── PasswordSlip.tsx     ใบข้อมูลเข้าสู่ระบบ (อีเมล / รหัส / รหัสผ่านตัวใหญ่ + คัดลอก) + กล่องเตือน ของหน้า "…แล้ว"
+│       │       ├── FormGroup.tsx        กล่องจัดกลุ่มช่องกรอกบนมือถือ (จอใหญ่ไม่มีกล่อง)
+│       │       ├── CopyButton.tsx       ปุ่มคัดลอกไปคลิปบอร์ด → "คัดลอกแล้ว" 2 วินาที
+│       │       ├── userForm.ts          ชนิดข้อมูลฟอร์ม + ข้อความใต้ช่อง + แปลง error จาก backend
+│       │       ├── icons.tsx            ไอคอนป้ายสถานะ + ไอคอนปุ่ม/หน้าต่าง (เพิ่ม สุ่ม คัดลอก ✓ บัตร โล่ กุญแจ ⓘ ⚠ แม่กุญแจ — จาก canvas)
+│       │       ├── testUtils.tsx        ข้อมูลสมมติ + วาดหน้า /users สำหรับ test (ใช้เฉพาะใน test)
+│       │       ├── UsersPage.test.tsx   test ทั้งหน้า (รายชื่อ, ป้าย "คุณ", การ์ดมือถือ, ค้นหา/กรอง, แบ่งหน้า, โหลด/ผิดพลาด)
+│       │       ├── CreateUserDialog.test.tsx / EditUserDialog.test.tsx / ResetPasswordDialog.test.tsx
+│       │       └── SuspendUserDialog.test.tsx   test ของหน้าต่างแต่ละแบบ + ปุ่มในแถว + แถบข้อความ (ขั้น 2.6)
 │       ├── api/              การเรียก backend
 │       │   ├── client.ts     apiFetch(): ตัวเรียก API กลาง (/api/v1/...) แนบบัตร + แลกบัตรเมื่อได้ 401 ; ส่ง JSON หรือไฟล์ (FormData) ; โยน ApiError รูปแบบเดียวกันทุกกรณี
-│       │   ├── adminUsers.ts ชนิดข้อมูล AdminUser / Paginated + fetchAdminUsers() รายชื่อผู้ใช้ของผู้ดูแลระบบ (ขั้น 2.5)
-│       │   ├── adminUsers.test.ts  test การแปลงตัวกรองเป็น query string
+│       │   ├── adminUsers.ts ชนิดข้อมูล AdminUser / Paginated + fetchAdminUsers() รายชื่อ (ขั้น 2.5) + create / update / suspend / activate / resetPassword (ขั้น 2.6)
+│       │   ├── adminUsers.test.ts  test การแปลงตัวกรองเป็น query string + method/ที่อยู่/ข้อมูลที่ส่งของฟังก์ชันขั้น 2.6
 │       │   ├── auth.ts       ชนิดข้อมูล User/Role + login() / logout() / fetchMe() / updateProfile() / changePassword() / uploadAvatar() / deleteAvatar()
 │       │   ├── client.test.ts  test ของ apiFetch (สำเร็จ / error ทุกแบบ / ติดต่อไม่ได้ / ไม่ใช่ JSON)
 │       │   ├── errors.ts     errorMessage() / fieldErrorMessage() / fieldErrorsMessage() (หลายรหัส): แปลงรหัส error เป็นข้อความไทยจาก th.ts
@@ -158,11 +172,15 @@ Mangosteen_Campus_204491/
 │       │   │   └── AppShell.test.tsx test ของโครงและเมนูลิ้นชัก
 │       │   └── ui/           คอมโพเนนต์พื้นฐาน (หน้าตาตาม canvas) — import จาก components/ui
 │       │       ├── index.ts        รวม export ทุกชิ้น
-│       │       ├── Button.tsx      ปุ่ม: primary / secondary / text / danger-text
+│       │       ├── Button.tsx      ปุ่ม: primary / secondary / text / danger-text / danger (แดงทึบ — ขั้น 2.6) ; รับ ref
 │       │       ├── buttonStyles.ts class หน้าตาปุ่ม + buttonClassName() ให้ลิงก์หน้าตาเหมือนปุ่ม
 │       │       ├── Avatar.tsx      รูปประจำตัววงกลม (มีรูป → รูป ; ไม่มี → ตัวอักษรย่อ) ; แบบ plain / ring (แถบบัตรประจำตัว)
-│       │       ├── TextField.tsx   ช่องกรอก + ป้ายชื่อ + ข้อความ error (ขอบแดง, role=alert) ; invalid / ปุ่มในช่อง / คำแนะนำใต้ช่อง (hint) / รับ ref
-│       │       ├── PasswordField.tsx  ช่องรหัสผ่าน + ปุ่ม "แสดง"/"ซ่อน" (ตามหน้าเข้าสู่ระบบใน canvas)
+│       │       ├── TextField.tsx   ช่องกรอก + ป้ายชื่อ + ข้อความ error (ขอบแดง, role=alert) ; invalid / ปุ่มในช่อง / คำแนะนำใต้ช่อง (hint) / ปุ่มข้างช่อง (actions — ขั้น 2.6) / รับ ref
+│       │       ├── PasswordField.tsx  ช่องรหัสผ่าน + ปุ่ม "แสดง"/"ซ่อน" (ตามหน้าเข้าสู่ระบบใน canvas) ; defaultVisible = เปิดมาเห็นรหัส
+│       │       ├── Dialog.tsx      หน้าต่างซ้อน + DialogHeader / DialogBody / DialogFooter: จอใหญ่กลางจอ, มือถือเต็มจอหัวม่วง ; โฟกัส/Tab วน/Esc/ล็อก scroll (ขั้น 2.6)
+│       │       ├── ConfirmDialog.tsx  หน้าต่างยืนยัน (alertdialog) โฟกัส "ยกเลิก" ก่อน, สถานะกำลังทำ, ข้อความ error (ขั้น 2.6 — ใช้ซ้ำได้)
+│       │       ├── useFocusTrap.ts ให้ Tab วนอยู่ในหน้าต่าง + โฟกัสเริ่มต้น + คืนโฟกัส (Dialog + เมนูลิ้นชัก)
+│       │       ├── Dialog.test.tsx test ของ Dialog / ConfirmDialog
 │       │       ├── Card.tsx        การ์ดพื้นขาว ขอบ line มุม 14px
 │       │       ├── StatusBadge.tsx ป้ายสถานะวงรี: warn / ok / bad / mute ; ขนาด md / sm
 │       │       ├── Select.tsx      ช่องเลือก (dropdown) ลูกศรวาดเอง (ขั้น 2.5)
@@ -181,7 +199,9 @@ Mangosteen_Campus_204491/
 │       │   ├── datetime.ts   formatDateTime(): "25 ก.ค. 2569 23:59" ; formatLongDate(): "วันอาทิตย์ที่ 11 ตุลาคม 2569" (เวลาไทยเสมอ)
 │       │   ├── datetime.test.ts  test ของการแสดงวันที่ (พ.ศ., ข้ามวัน, ข้ามปี, เติม 0, แบบเต็ม)
 │       │   ├── names.ts      initials(): ตัวอักษรย่อจากชื่อ (ข้ามสระหน้า เ แ โ ใ ไ)
-│       │   └── names.test.ts test ของตัวอักษรย่อ
+│       │   ├── names.test.ts test ของตัวอักษรย่อ
+│       │   ├── passwords.ts  generateTempPassword(): สุ่มรหัสชั่วคราว 12 ตัวด้วย crypto (ชุดตัวอักษรเดียวกับ backend) (ขั้น 2.6)
+│       │   └── passwords.test.ts  test ของตัวสุ่มรหัส
 │       └── test/
 │           └── setup.ts      ไฟล์เตรียมความพร้อมที่ Vitest รันก่อน test ทุกไฟล์
 │

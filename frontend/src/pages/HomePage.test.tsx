@@ -98,7 +98,7 @@ describe('HomePage', () => {
     expect(screen.getByText('ผู้ดูแลระบบ')).toBeInTheDocument()
     expect(screen.queryByText(/^รหัส/)).not.toBeInTheDocument()
     expect(
-      screen.getByRole('heading', { level: 2, name: 'ยังไม่มีเครื่องมือจัดการ' }),
+      screen.getByRole('heading', { level: 2, name: 'จัดการบัญชีผู้ใช้ได้แล้ว' }),
     ).toBeInTheDocument()
   })
 })
