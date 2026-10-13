@@ -3,7 +3,7 @@
  * ไม่เรียก backend จริง: แทนที่ fetch ด้วย "backend ปลอม" ที่ตอบตามที่อยู่
  */
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import type { ReactElement } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
@@ -86,9 +86,14 @@ class FakeChannel {
     this.posted.push(data)
   }
   close() {}
-  /** จำลองข้อความที่มาจากแท็บอื่น */
+  /**
+   * จำลองข้อความที่มาจากแท็บอื่น — ห่อด้วย act() ให้ React ทำงานที่ตามมาให้เสร็จก่อนตรวจผล
+   * (data router จัดการเปลี่ยนหน้าเป็นงานรอคิว ; นอก act() เครื่อง CI ที่ช้าอาจทำไม่ทันเวลารอ)
+   */
   receive(data: unknown) {
-    this.onmessage?.(new MessageEvent('message', { data }))
+    act(() => {
+      this.onmessage?.(new MessageEvent('message', { data }))
+    })
   }
 }
 
