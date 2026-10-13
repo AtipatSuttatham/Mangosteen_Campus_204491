@@ -134,6 +134,22 @@ export const th = {
     editLabel: 'แก้ไข {{name}}',
     resetPassword: 'รีเซ็ตรหัสผ่าน',
     resetPasswordLabel: 'รีเซ็ตรหัสผ่าน {{name}}',
+    suspend: 'ระงับ',
+    suspendLabel: 'ระงับ {{name}}',
+    activate: 'เปิดใช้งาน',
+    activateLabel: 'เปิดใช้งาน {{name}}',
+    activating: 'กำลังเปิดใช้งาน…',
+    // หน้าต่างยืนยันการระงับ (ตาม board "หน้าต่างยืนยัน — ระงับบัญชี")
+    suspendTitle: 'ระงับบัญชี {{name}}?',
+    suspendEffect: 'ผู้ใช้จะออกจากระบบทันที และเข้าสู่ระบบไม่ได้จนกว่าจะเปิดใช้งานอีกครั้ง',
+    suspendKeepsData: 'ข้อมูลและคะแนนของผู้ใช้ยังอยู่ครบ',
+    suspendConfirm: 'ระงับบัญชี',
+    suspending: 'กำลังระงับ…',
+    // แถบข้อความใต้หัวหน้าหลังทำรายการ (ตาม board "รายชื่อผู้ใช้ — ข้อความหลังระงับ")
+    suspended: 'ระงับบัญชี {{name}} แล้ว',
+    activated: 'เปิดใช้งานบัญชี {{name}} แล้ว',
+    saved: 'บันทึกข้อมูลของ {{name}} แล้ว',
+    activateFailed: 'เปิดใช้งานบัญชี {{name}} ไม่สำเร็จ: {{reason}}',
   },
 
   // หน้าต่างเพิ่ม / แก้ไขผู้ใช้ และหน้า "สร้างบัญชีแล้ว" (pages/admin/users — ขั้น 2.6)

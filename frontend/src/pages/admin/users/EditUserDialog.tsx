@@ -8,7 +8,7 @@
  *
  * - ส่งไป backend เฉพาะช่องที่เปลี่ยนจริง (PATCH) → AuditLog จดเฉพาะช่องที่เปลี่ยน
  *   ยังไม่แก้อะไร → ปุ่ม "บันทึก" กดไม่ได้
- * - บันทึกสำเร็จ → ปิดหน้าต่าง + รายชื่อโหลดใหม่ ; แก้บัญชีตัวเอง → ชื่อใน sidebar/ทุกแท็บเปลี่ยนทันที
+ * - บันทึกสำเร็จ → ปิดหน้าต่าง + รายชื่อโหลดใหม่ + แถบข้อความใต้หัวหน้า (onSaved) ; แก้บัญชีตัวเอง → ชื่อใน sidebar/ทุกแท็บเปลี่ยนทันที
  * - backend ปฏิเสธรายช่อง → ข้อความใต้ช่อง ; อื่น ๆ (เช่น last_active_admin) → ข้อความเหนือปุ่ม
  */
 import { useQueryClient } from '@tanstack/react-query'
@@ -29,9 +29,11 @@ type EditUserDialogProps = {
   /** เป็นบัญชีของผู้ดูแลระบบที่เข้าสู่ระบบอยู่ (บทบาทล็อก) */
   isSelf: boolean
   onClose: () => void
+  /** บันทึกสำเร็จ (หน้าแสดงข้อความ "บันทึกข้อมูลของ … แล้ว") */
+  onSaved?: (user: AdminUser) => void
 }
 
-export function EditUserDialog({ user, isSelf, onClose }: EditUserDialogProps) {
+export function EditUserDialog({ user, isSelf, onClose, onSaved }: EditUserDialogProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const { updateUser } = useAuth()
@@ -92,6 +94,7 @@ export function EditUserDialog({ user, isSelf, onClose }: EditUserDialogProps) {
           avatar_url: updated.avatar_url,
         })
       }
+      onSaved?.(updated)
       onClose()
     } catch (caught) {
       setFormError(applySaveError(caught, setError))

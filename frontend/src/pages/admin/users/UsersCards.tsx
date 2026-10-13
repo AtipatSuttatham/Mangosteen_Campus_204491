@@ -59,7 +59,7 @@ export function UsersCards({ users, currentUserId, actions }: UsersCardsProps) {
             user={user}
             isSelf={user.id === currentUserId}
             {...actions}
-            className="-ml-2 border-t border-line-soft pt-1"
+            className="-ml-1.5 border-t border-line-soft pt-1"
           />
         </Card>
       ))}

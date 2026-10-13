@@ -16,10 +16,10 @@ import type { AdminUser } from '../../../api/adminUsers'
 import { UserActions, type UserActionHandlers } from './UserActions'
 import { UserName, UserStatusBadge } from './UserBits'
 
-/** หัวตาราง (ตาม th ใน canvas: 14px ตัวหนา สีรอง) */
-const TH = 'border-b border-line px-4 py-3 text-left text-sm font-semibold whitespace-nowrap text-ink-muted'
+/** หัวตาราง (ตาม th ใน canvas: 14px ตัวหนา สีรอง) — ขอบใน 12px (แคบกว่า canvas เล็กน้อย ให้ปุ่ม 3 ปุ่มอยู่แถวเดียวที่จอ 1280px) */
+const TH = 'border-b border-line px-3 py-3 text-left text-sm font-semibold whitespace-nowrap text-ink-muted'
 /** ช่องข้อมูล (ตาม td ใน canvas: 15px เส้นคั่นแถวสีอ่อน) */
-const TD = 'border-b border-line-soft px-4 py-3 align-middle text-[15px]'
+const TD = 'border-b border-line-soft px-3 py-3 align-middle text-[15px]'
 
 type UsersTableProps = {
   users: AdminUser[]
@@ -36,11 +36,11 @@ export function UsersTable({ users, currentUserId, actions }: UsersTableProps) {
     <table className="hidden w-full table-fixed border-collapse lg:table">
       {/* สัดส่วนคอลัมน์: ชื่อและอีเมล / รหัส / บทบาท / สถานะ / ปุ่ม */}
       <colgroup>
-        <col className="w-[25%]" />
-        <col className="w-[20%]" />
-        <col className="w-[11%]" />
-        <col className="w-[18%]" />
-        <col className="w-[26%]" />
+        <col className="w-[24%]" />
+        <col className="w-[17%]" />
+        <col className="w-[12%]" />
+        <col className="w-[17%]" />
+        <col className="w-[30%]" />
       </colgroup>
       <thead>
         <tr>
