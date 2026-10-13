@@ -73,6 +73,15 @@ export const th = {
     skipToContent: 'ข้ามไปเนื้อหาหลัก',
   },
 
+  // แถบเปลี่ยนหน้าของรายการแบบแบ่งหน้า (components/ui/Pagination.tsx — ขั้น 2.5)
+  pagination: {
+    // ชื่อของแถบ (สำหรับโปรแกรมอ่านหน้าจอ)
+    label: 'แบ่งหน้า',
+    previous: 'ก่อนหน้า',
+    next: 'ถัดไป',
+    pageOf: 'หน้า {{page}} จาก {{total}}',
+  },
+
   // หน้าจัดการบัญชีผู้ใช้ /users (ผู้ดูแลระบบ — ขั้น 2.5) ตาม board "รายชื่อผู้ใช้"
   adminUsers: {
     title: 'จัดการบัญชีผู้ใช้',
@@ -235,6 +244,14 @@ export const th = {
     avatars: 'รูปประจำตัว (ตัวอักษรย่อ)',
     sampleNewPasswordLabel: 'รหัสผ่านใหม่',
     sampleNewPasswordHint: 'อย่างน้อย 8 ตัว ไม่ใช่ตัวเลขล้วนหรือรหัสที่เดาง่าย',
+    // ขั้น 2.5: ช่องค้นหา / ช่องเลือก / แถบเปลี่ยนหน้า (ข้อความจาก board "รายชื่อผู้ใช้")
+    filters: 'ช่องค้นหาและช่องเลือก',
+    pagination: 'แถบเปลี่ยนหน้า',
+    sampleSearchLabel: 'ค้นหาผู้ใช้',
+    sampleSearchPlaceholder: 'ค้นหาชื่อ รหัส หรืออีเมล',
+    sampleRoleLabel: 'บทบาท',
+    sampleRoleAll: 'ทุกบทบาท',
+    samplePaginationSummary: 'แสดง 1–20 จาก 248 บัญชี',
   },
 
   // หน้าทดสอบสุขภาพระบบ /dev/health (เฉพาะโหมดพัฒนา)

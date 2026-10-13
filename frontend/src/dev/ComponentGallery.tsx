@@ -6,7 +6,7 @@
  *
  * ตัวอย่างใช้ข้อความและข้อมูลจริงจาก wireframe (หน้าเข้าสู่ระบบ, หน้ารายวิชาของฉัน)
  */
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
   Avatar,
@@ -14,7 +14,10 @@ import {
   buttonClassName,
   Card,
   Logo,
+  Pagination,
   PasswordField,
+  SearchInput,
+  Select,
   StatusBadge,
   TextField,
 } from '../components/ui'
@@ -54,6 +57,12 @@ const SAMPLE_USERS = [
   SAMPLE_STUDENT,
   { first_name: 'เอกชัย', last_name: 'ใจดี', email: 'teacher@example.com', avatar_url: null },
 ]
+
+/** แถบเปลี่ยนหน้าตัวอย่างที่กดเปลี่ยนหน้าได้ (จำหน้าปัจจุบันไว้ในหน้านี้เท่านั้น) */
+function PaginationSample({ summary }: { summary: string }) {
+  const [page, setPage] = useState(1)
+  return <Pagination page={page} pageCount={13} onPageChange={setPage} summary={summary} />
+}
 
 /** หัวข้อของแต่ละกลุ่มตัวอย่าง (ขนาด/น้ำหนักเดียวกับหัวข้อรองใน canvas) */
 function Section({ title, children }: { title: string; children: ReactNode }) {
@@ -143,6 +152,36 @@ export default function ComponentGallery() {
             hint={t('devGallery.sampleNewPasswordHint')}
           />
           <Button className="w-full">{t('devGallery.sampleLogin')}</Button>
+        </Card>
+      </Section>
+
+      {/* ช่องค้นหา + ช่องเลือก: แถบตัวกรองของหน้า "รายชื่อผู้ใช้" (ขั้น 2.5) — ป้ายชื่อผูกด้วย <label> */}
+      <Section title={t('devGallery.filters')}>
+        <Card className="flex flex-wrap items-center gap-3 px-6 py-4">
+          <label htmlFor="gallery-search" className="sr-only">
+            {t('devGallery.sampleSearchLabel')}
+          </label>
+          <SearchInput
+            id="gallery-search"
+            placeholder={t('devGallery.sampleSearchPlaceholder')}
+            className="w-[300px] lg:h-[42px]"
+          />
+          <label htmlFor="gallery-role" className="text-sm text-ink-muted">
+            {t('devGallery.sampleRoleLabel')}
+          </label>
+          <Select id="gallery-role" className="lg:h-[42px]">
+            <option>{t('devGallery.sampleRoleAll')}</option>
+            <option>{t('roles.admin')}</option>
+            <option>{t('roles.teacher')}</option>
+            <option>{t('roles.student')}</option>
+          </Select>
+        </Card>
+      </Section>
+
+      {/* แถบเปลี่ยนหน้า: กดได้จริง (ตัวอย่าง 13 หน้า) — มือถือไม่มีข้อความสรุปด้านซ้าย */}
+      <Section title={t('devGallery.pagination')}>
+        <Card className="px-4 py-3 lg:pl-6">
+          <PaginationSample summary={t('devGallery.samplePaginationSummary')} />
         </Card>
       </Section>
 
