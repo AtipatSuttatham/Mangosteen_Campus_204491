@@ -13,6 +13,7 @@
 import { useTranslation } from 'react-i18next'
 import { NavLink } from 'react-router'
 import { useAuth } from '../../auth/AuthContext'
+import { requestLeave } from '../../lib/useLeaveGuard'
 import { Avatar } from '../ui'
 import { NAV_ICONS } from './icons'
 import { navItemsFor } from './navigation'
@@ -41,8 +42,9 @@ export function NavLinks({ variant, onNavigate }: NavMenuProps) {
           <li key={item.to}>
             <NavLink
               to={item.to}
-              // end: เมนู "/" ถูกเลือกเฉพาะที่หน้าแรกพอดี (ไม่ใช่ทุกหน้าที่ขึ้นต้นด้วย /)
-              end
+              // end: เมนู "/" ถูกเลือกเฉพาะที่หน้าแรกพอดี (ไม่ใช่ทุกหน้าที่ขึ้นต้นด้วย /) ;
+              // เมนูอื่นถูกเลือกในหน้าย่อยด้วย เช่น "จัดการผู้ใช้" ที่ /users/import (ขั้น 2.7)
+              end={item.to === '/'}
               onClick={onNavigate}
               // NavLink ใส่ aria-current="page" ให้เมนูของหน้าปัจจุบันเอง (โปรแกรมอ่านหน้าจออ่านว่า "หน้าปัจจุบัน")
               className={({ isActive }) =>
@@ -101,10 +103,11 @@ export function UserPanel({ variant, onNavigate }: NavMenuProps) {
       >
         {t('nav.profile')}
       </NavLink>
-      {/* ออกจากระบบทันที (ไม่ถามยืนยัน) — ทุกแท็บของเว็บนี้ไปหน้าเข้าสู่ระบบด้วย (ขั้น 1.4) */}
+      {/* ออกจากระบบทันที (ไม่ถามยืนยัน) — ทุกแท็บของเว็บนี้ไปหน้าเข้าสู่ระบบด้วย (ขั้น 1.4)
+          ยกเว้นหน้าที่มีงานค้าง (เช่น ยังไม่ดาวน์โหลดไฟล์รหัสผ่าน — ขั้น 2.7) ถามยืนยันก่อน (requestLeave) */}
       <button
         type="button"
-        onClick={() => void logout()}
+        onClick={() => requestLeave(() => void logout())}
         className={`${linkClass} cursor-pointer border-0 bg-transparent p-0 text-left text-on-brand-muted`}
       >
         {t('nav.logout')}

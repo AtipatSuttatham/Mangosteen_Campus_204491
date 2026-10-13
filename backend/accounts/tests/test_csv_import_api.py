@@ -89,7 +89,53 @@ class TestValidateOk:
             "total": 3,
             "by_role": {"teacher": 1, "student": 2},
             "errors": [],
+            # ขั้น 2.7: ตัวอย่างใช้ค่าที่ตรวจแล้ว (บทบาท "ผู้เรียน" / "Teacher" → student / teacher)
+            "preview": [
+                {
+                    "row": 2,
+                    "email": "a@example.com",
+                    "student_or_staff_id": "690000001",
+                    "first_name": "สมชาย",
+                    "last_name": "ใจดี",
+                    "role": "student",
+                },
+                {
+                    "row": 3,
+                    "email": "b@example.com",
+                    "student_or_staff_id": "690000002",
+                    "first_name": "สมหญิง",
+                    "last_name": "รักเรียน",
+                    "role": "student",
+                },
+                {
+                    "row": 4,
+                    "email": "t@example.com",
+                    "student_or_staff_id": "T-01",
+                    "first_name": "อาจารย์",
+                    "last_name": "ใจเย็น",
+                    "role": "teacher",
+                },
+            ],
         }
+
+    def test_preview_has_first_five_rows_with_normalized_values(
+        self, admin_client: APIClient
+    ) -> None:
+        # 7 แถว (มีแถวว่างคั่น) → ตัวอย่างแค่ 5 แถวแรก ; เลขแถวนับแบบ Excel (แถวว่างยังนับ)
+        lines = [f"User{n}@Example.com,,ชื่อ{n},สกุล{n},student" for n in range(1, 8)]
+        report = validate(admin_client, lines[0], "", *lines[1:])
+        preview = report["preview"]
+        assert [item["row"] for item in preview] == [2, 4, 5, 6, 7]
+        # อีเมลเก็บตัวพิมพ์เล็ก ; ไม่มีรหัส = null
+        assert preview[0]["email"] == "user1@example.com"
+        assert preview[0]["student_or_staff_id"] is None
+
+    def test_preview_empty_when_any_row_invalid(self, admin_client: APIClient) -> None:
+        report = validate(
+            admin_client, "a@example.com,,สมชาย,ใจดี,student", "b@example.com,,ก,ข,admin"
+        )
+        assert report["valid"] is False
+        assert report["preview"] == []
 
     def test_validate_does_not_create_anything(self, admin_client: APIClient) -> None:
         before = User.objects.count()
@@ -333,6 +379,7 @@ class TestImportRejected:
             "errors": [
                 {"row": 3, "column": "role", "code": "csv_admin_not_allowed", "value": "admin"}
             ],
+            "preview": [],
         }
         assert User.objects.count() == before
         assert not AuditLog.objects.exists()

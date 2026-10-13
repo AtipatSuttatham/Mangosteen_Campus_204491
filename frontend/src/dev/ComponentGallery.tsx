@@ -33,6 +33,7 @@ const COLOR_TOKENS = [
   'brand-hover',
   'accent',
   'canvas',
+  'canvas-soft',
   'surface',
   'line',
   'line-strong',

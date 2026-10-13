@@ -2,16 +2,17 @@
  * โครงนอกสุดของแอป — ครอบทุกหน้าด้วยของที่ใช้ร่วมกัน (ลำดับมีผล: ตัวในใช้ตัวนอกได้)
  *
  *   QueryClientProvider  ระบบดึง/แคชข้อมูลจาก API (TanStack Query)
- *   BrowserRouter        ระบบหลายหน้าตามที่อยู่ (React Router)
  *   AuthProvider         "สมอง" ของการเข้าสู่ระบบ (ใช้ QueryClient ล้างแคชตอนออกจากระบบ)
- *   AppRoutes            แผนที่ของหน้าทั้งหมด (router.tsx)
+ *   RouterProvider       ระบบหลายหน้าตามที่อยู่ (React Router แบบ data router — router.tsx)
+ *                        อยู่ข้างใน AuthProvider → ทุกหน้า/ยามหน้าประตูใช้ "สมอง" ได้ ;
+ *                        AuthProvider ไม่ได้ใช้ของของ router จึงอยู่ด้านนอกได้
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { useState } from 'react'
-import { BrowserRouter } from 'react-router'
+import { RouterProvider } from 'react-router'
 import { AuthProvider } from './auth/AuthProvider'
 import { ApiError } from './api/client'
-import { AppRoutes } from './router'
+import { createAppRouter } from './router'
 
 /** ตั้งค่าเริ่มต้นของการดึงข้อมูล */
 function createQueryClient(): QueryClient {
@@ -33,14 +34,14 @@ function createQueryClient(): QueryClient {
 export default function Root() {
   // สร้าง QueryClient ครั้งเดียวต่อการเปิดแอป
   const [queryClient] = useState(createQueryClient)
+  // สร้าง router ครั้งเดียวต่อการเปิดแอป
+  const [router] = useState(createAppRouter)
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-      </BrowserRouter>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
     </QueryClientProvider>
   )
 }

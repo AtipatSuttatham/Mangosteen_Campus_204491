@@ -3,13 +3,14 @@
  * ไม่เรียก backend จริง: แทนที่ fetch ด้วย "backend ปลอม" ที่ตอบตามที่อยู่
  */
 import { QueryClient, QueryClientProvider, useQuery } from '@tanstack/react-query'
-import { render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
+import type { ReactElement } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MemoryRouter, Route, Routes } from 'react-router'
+import { createMemoryRouter, Route, RouterProvider, Routes } from 'react-router'
 import { fetchMe } from '../api/auth'
 import LoginPage from '../pages/LoginPage'
-import { AppRoutes } from '../router'
+import { appRoutes } from '../router'
 import { AUTH_CHANNEL_NAME, AuthProvider } from './AuthProvider'
 import { RequireAuth } from './guards'
 import { setAccessToken } from './session'
@@ -85,9 +86,14 @@ class FakeChannel {
     this.posted.push(data)
   }
   close() {}
-  /** จำลองข้อความที่มาจากแท็บอื่น */
+  /**
+   * จำลองข้อความที่มาจากแท็บอื่น — ห่อด้วย act() ให้ React ทำงานที่ตามมาให้เสร็จก่อนตรวจผล
+   * (data router จัดการเปลี่ยนหน้าเป็นงานรอคิว ; นอก act() เครื่อง CI ที่ช้าอาจทำไม่ทันเวลารอ)
+   */
   receive(data: unknown) {
-    this.onmessage?.(new MessageEvent('message', { data }))
+    act(() => {
+      this.onmessage?.(new MessageEvent('message', { data }))
+    })
   }
 }
 
@@ -97,14 +103,20 @@ function FetchMePage() {
   return <p>{data?.email}</p>
 }
 
-/** วาดแอปที่ที่อยู่ที่กำหนด (ใช้ router จริงของแอป) */
-function renderApp(path: string, routes = <AppRoutes />) {
+/**
+ * วาดแอปที่ที่อยู่ที่กำหนด (ใช้แผนที่หน้าจริงของแอป ใน router แบบหน่วยความจำ — โครงเดียวกับ Root.tsx)
+ * ส่ง <Routes> ของ test เองได้ (เช่น หน้าทดสอบที่เรียก API) — วางเป็นหน้าเดียวที่รับทุกที่อยู่
+ */
+function renderApp(path: string, routes?: ReactElement) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+  const router = createMemoryRouter(routes ? [{ path: '*', element: routes }] : appRoutes, {
+    initialEntries: [path],
+  })
   return render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter initialEntries={[path]}>
-        <AuthProvider>{routes}</AuthProvider>
-      </MemoryRouter>
+      <AuthProvider>
+        <RouterProvider router={router} />
+      </AuthProvider>
     </QueryClientProvider>,
   )
 }

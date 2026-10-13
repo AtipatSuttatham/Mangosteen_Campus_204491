@@ -26,6 +26,8 @@ type ConfirmDialogProps = {
   description: ReactNode[]
   /** ข้อความปุ่มยืนยัน เช่น "ระงับบัญชี" */
   confirmLabel: string
+  /** ข้อความปุ่มยกเลิก (ค่าเริ่มต้น "ยกเลิก") เช่น "อยู่ต่อ" */
+  cancelLabel?: string
   /** ข้อความบนปุ่มยืนยันระหว่างกำลังทำ เช่น "กำลังระงับ…" */
   pendingLabel?: string
   /** danger = ปุ่มแดงทึบ (ค่าเริ่มต้น) ; primary = ปุ่มม่วง */
@@ -43,6 +45,7 @@ export function ConfirmDialog({
   title,
   description,
   confirmLabel,
+  cancelLabel,
   pendingLabel,
   tone = 'danger',
   pending = false,
@@ -98,7 +101,7 @@ export function ConfirmDialog({
             }}
             aria-disabled={pending || undefined}
           >
-            {t('dialog.cancel')}
+            {cancelLabel ?? t('dialog.cancel')}
           </Button>
           <Button variant={tone} onClick={onConfirm} disabled={pending}>
             {pending && pendingLabel ? pendingLabel : confirmLabel}

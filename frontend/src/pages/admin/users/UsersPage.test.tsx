@@ -140,8 +140,8 @@ describe('UsersPage — รายชื่อ', () => {
     expect(rows[1]).toHaveTextContent('ใช้งานได้')
     expect(rows[2]).toHaveTextContent('T1024')
     expect(rows[2]).toHaveTextContent('ผู้สอน')
-    // ปุ่ม "นำเข้าจาก CSV" ยังไม่แสดง (มาในขั้น 2.7 — ผู้ใช้เลือกข้อ 1.ก ขั้น 2.5)
-    expect(screen.queryByRole('button', { name: /นำเข้า/ })).not.toBeInTheDocument()
+    // ปุ่ม "นำเข้าจาก CSV" (ขั้น 2.7) เป็นลิงก์ไปหน้านำเข้า
+    expect(screen.getByRole('link', { name: 'นำเข้าจาก CSV' })).toHaveAttribute('href', '/users/import')
   })
 
   it('ขอหน้าแรกโดยไม่มีตัวกรอง', async () => {

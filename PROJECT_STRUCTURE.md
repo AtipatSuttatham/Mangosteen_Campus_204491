@@ -101,8 +101,8 @@ Mangosteen_Campus_204491/
 │   │   └── favicon.svg       ไอคอนบนแท็บเบราว์เซอร์: ตรากลีบเลี้ยงมังคุด (รูปทรงเดียวกับ Logo.tsx)
 │   └── src/                  โค้ดของแอป
 │       ├── main.tsx          จุดเริ่มต้น: เปิดระบบข้อความ แล้ววาด <Root /> ลงในหน้า HTML
-│       ├── Root.tsx          โครงนอกสุด: QueryClientProvider → BrowserRouter → AuthProvider → AppRoutes
-│       ├── router.tsx        แผนที่ของหน้าทั้งหมด (/login, /, /profile, /dev/...) + ยามหน้าประตู ; ที่อยู่อื่น → หน้าแรก
+│       ├── Root.tsx          โครงนอกสุด: QueryClientProvider → AuthProvider → RouterProvider (data router — ขั้น 2.7)
+│       ├── router.tsx        แผนที่ของหน้าทั้งหมด appRoutes (/login, /, /profile, /users, /users/import, /dev/...) + ยามหน้าประตู ; ที่อยู่อื่น → หน้าแรก ; createAppRouter()
 │       ├── index.css         CSS หลัก: โหลด Tailwind + ธีมของระบบ (@theme: สี 20 ค่า, ฟอนต์, มุมโค้ง, ภาพเคลื่อนไหวเมนูลิ้นชัก — ตรงกับ canvas)
 │       ├── auth/             ระบบเข้าสู่ระบบฝั่งหน้าเว็บ (docs/api.md §6.3)
 │       │   ├── session.ts    ที่เก็บ access token (ในหน่วยความจำ) + ตัวแลกบัตรครั้งเดียวต่อรอบ (กันหลายแท็บด้วย Web Locks)
@@ -124,7 +124,7 @@ Mangosteen_Campus_204491/
 │       │       ├── avatarFile.ts        ตรวจชนิด/ขนาดรูปในหน้าเว็บก่อนอัปโหลด (JPG/PNG/WebP ≤ 2 MB)
 │       │       ├── icons.tsx            ไอคอนกล้อง / อัปโหลด / ถังขยะ / เครื่องหมายถูก (จาก canvas)
 │       │       └── ProfilePage.test.tsx test ทั้งหน้า (เมนูรูป, อัปโหลด/ลบ, ฟอร์มทั้ง 2 ชุดทุกกรณี)
-│       │   └── admin/users/      /users จัดการบัญชีผู้ใช้ (UC-04 — ขั้น 2.5–2.6, เฉพาะผู้ดูแลระบบ) ตาม board ก้อน 2 จอใหญ่ + มือถือ
+│       │   └── admin/users/      /users จัดการบัญชีผู้ใช้ (UC-04 — ขั้น 2.5–2.7, เฉพาะผู้ดูแลระบบ) ตาม board ก้อน 2 จอใหญ่ + มือถือ
 │       │       ├── UsersPage.tsx        ประกอบหน้า: หัวข้อ + ปุ่มเพิ่มผู้ใช้ + แถบข้อความหลังทำรายการ + การ์ด (ตัวกรอง / รายการ / แบ่งหน้า) + หน้าต่างที่เปิดอยู่ + เปิดใช้งานทันที
 │       │       ├── useUserFilters.ts    คำค้น / บทบาท / สถานะ / หน้า เก็บใน "ที่อยู่" ของหน้า (รีเฟรช / ย้อนกลับแล้วเห็นผลเดิม)
 │       │       ├── UserFilterBar.tsx    ช่องค้นหา (ค้นหลังหยุดพิมพ์ 0.3 วินาที) + เลือกบทบาท / สถานะ
@@ -146,10 +146,18 @@ Mangosteen_Campus_204491/
 │       │       ├── testUtils.tsx        ข้อมูลสมมติ + วาดหน้า /users สำหรับ test (ใช้เฉพาะใน test)
 │       │       ├── UsersPage.test.tsx   test ทั้งหน้า (รายชื่อ, ป้าย "คุณ", การ์ดมือถือ, ค้นหา/กรอง, แบ่งหน้า, โหลด/ผิดพลาด)
 │       │       ├── CreateUserDialog.test.tsx / EditUserDialog.test.tsx / ResetPasswordDialog.test.tsx
-│       │       └── SuspendUserDialog.test.tsx   test ของหน้าต่างแต่ละแบบ + ปุ่มในแถว + แถบข้อความ (ขั้น 2.6)
+│       │       ├── SuspendUserDialog.test.tsx   test ของหน้าต่างแต่ละแบบ + ปุ่มในแถว + แถบข้อความ (ขั้น 2.6)
+│       │       └── import/           /users/import นำเข้าผู้ใช้จาก CSV 3 ขั้น (ขั้น 2.7) ตาม board "นำเข้า CSV"
+│       │           ├── CsvImportPage.tsx    ประกอบหน้า + ลำดับขั้น (เลือก → ตรวจ → นำเข้า → ดาวน์โหลด) + ถามก่อนออกจากหน้า
+│       │           ├── ImportStepper.tsx    แถบขั้นตอน 1-2-3 (ผ่านแล้ว ✓ / ปัจจุบัน / ยังไม่ถึง)
+│       │           ├── UploadStep.tsx       ① ช่องลากวาง + ปุ่มเลือกไฟล์ + ตาราง 5 คอลัมน์ + ไฟล์ตัวอย่าง
+│       │           ├── ReviewStep.tsx       ② ตารางปัญหา หรือ สรุป + ตัวอย่าง 5 แถว + ปุ่มนำเข้า (มือถือเป็นการ์ด)
+│       │           ├── DoneStep.tsx         ③ สร้างบัญชีแล้ว N บัญชี + ดาวน์โหลดไฟล์รหัสผ่าน
+│       │           ├── csvProblem.ts        แปลงปัญหารายช่องเป็นข้อความไทยตาม board
+│       │           └── CsvImportPage.test.tsx  test ทั้ง 3 ขั้น + ตัวเฝ้าประตู
 │       ├── api/              การเรียก backend
-│       │   ├── client.ts     apiFetch(): ตัวเรียก API กลาง (/api/v1/...) แนบบัตร + แลกบัตรเมื่อได้ 401 ; ส่ง JSON หรือไฟล์ (FormData) ; โยน ApiError รูปแบบเดียวกันทุกกรณี
-│       │   ├── adminUsers.ts ชนิดข้อมูล AdminUser / Paginated + fetchAdminUsers() รายชื่อ (ขั้น 2.5) + create / update / suspend / activate / resetPassword (ขั้น 2.6)
+│       │   ├── client.ts     apiFetch(): ตัวเรียก API กลาง (/api/v1/...) แนบบัตร + แลกบัตรเมื่อได้ 401 ; ส่ง JSON หรือไฟล์ (FormData) ; โยน ApiError รูปแบบเดียวกันทุกกรณี (เก็บคำตอบ error ทั้งก้อนใน body)
+│       │   ├── adminUsers.ts ชนิดข้อมูล AdminUser / Paginated + fetchAdminUsers() รายชื่อ (ขั้น 2.5) + create / update / suspend / activate / resetPassword (ขั้น 2.6) + validateUserImport / importUsers / csvInvalidReport (ขั้น 2.7)
 │       │   ├── adminUsers.test.ts  test การแปลงตัวกรองเป็น query string + method/ที่อยู่/ข้อมูลที่ส่งของฟังก์ชันขั้น 2.6
 │       │   ├── auth.ts       ชนิดข้อมูล User/Role + login() / logout() / fetchMe() / updateProfile() / changePassword() / uploadAvatar() / deleteAvatar()
 │       │   ├── client.test.ts  test ของ apiFetch (สำเร็จ / error ทุกแบบ / ติดต่อไม่ได้ / ไม่ใช่ JSON)
@@ -201,7 +209,10 @@ Mangosteen_Campus_204491/
 │       │   ├── names.ts      initials(): ตัวอักษรย่อจากชื่อ (ข้ามสระหน้า เ แ โ ใ ไ)
 │       │   ├── names.test.ts test ของตัวอักษรย่อ
 │       │   ├── passwords.ts  generateTempPassword(): สุ่มรหัสชั่วคราว 12 ตัวด้วย crypto (ชุดตัวอักษรเดียวกับ backend) (ขั้น 2.6)
-│       │   └── passwords.test.ts  test ของตัวสุ่มรหัส
+│       │   ├── passwords.test.ts  test ของตัวสุ่มรหัส
+│       │   ├── csvFiles.ts   สร้างไฟล์ CSV ในหน้าเว็บ: ไฟล์ตัวอย่าง / ไฟล์รหัสผ่าน (UTF-8 BOM, กันสูตร Excel) / ดาวน์โหลด (ขั้น 2.7)
+│       │   ├── csvFiles.test.ts  test ของการสร้างไฟล์ + กันสูตร Excel
+│       │   └── useLeaveGuard.ts  ถามยืนยันก่อนออกจากหน้าที่มีงานค้าง: useBlocker + beforeunload + requestLeave (ปุ่มออกจากระบบ) (ขั้น 2.7)
 │       └── test/
 │           └── setup.ts      ไฟล์เตรียมความพร้อมที่ Vitest รันก่อน test ทุกไฟล์
 │
