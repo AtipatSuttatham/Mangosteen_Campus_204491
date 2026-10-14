@@ -75,6 +75,24 @@ Mangosteen_Campus_204491/
 │   │   └── tests/
 │   │       ├── test_services.py  test log_action + ตัวช่วย (ปิดรหัสผ่าน, ผู้กระทำนิรนาม, แก้/ลบบันทึกไม่ได้ ฯลฯ)
 │   │       └── test_admin.py     test หน้า /admin/ (เปิดได้, ภาษาไทยอ่านได้, เพิ่ม/แก้/ลบไม่ได้)
+│   ├── academics/            app รายวิชา Course (ก้อน 3)
+│   │   ├── models.py         ตาราง Course (ปี/ภาค/รหัสวิชา/ผู้สอน/รหัสเข้าร่วม/เผยแพร่/ปิด) + กฎในฐานข้อมูล (รหัสวิชาไม่ซ้ำในภาค, ภาค 1–3, ปี 2500–2700, รูปแบบรหัสเข้าร่วม)
+│   │   ├── join_codes.py     สุ่มรหัสเข้าร่วม 8 ตัว (secrets, ไม่มีตัวสับสน 0 O 1 I L, ซ้ำแล้วสุ่มใหม่) + จัดรูปรหัสที่ผู้เรียนกรอกเป็นตัวพิมพ์ใหญ่
+│   │   ├── admin.py          หน้า /admin/ ดูรายวิชาได้อย่างเดียว (แก้ต้องผ่าน API ที่จด AuditLog)
+│   │   ├── apps.py           ข้อมูลประจำ app
+│   │   ├── migrations/       ไฟล์สร้างตาราง Course (Django สร้างให้)
+│   │   └── tests/
+│   │       ├── test_models.py      test ตาราง Course (ค่าเริ่มต้น, constraint ทุกข้อ, PROTECT ผู้สอน, ลำดับ)
+│   │       ├── test_join_codes.py  test ตัวสุ่มรหัสเข้าร่วม (ตัวอักษรที่ใช้, ตรงกับกฎในฐานข้อมูล, สุ่มใหม่เมื่อซ้ำ)
+│   │       └── test_admin.py       test หน้า /admin/ (เปิดได้, เพิ่ม/แก้/ลบไม่ได้)
+│   ├── enrollment/           app การลงทะเบียนของผู้เรียนในรายวิชา Enrollment (ก้อน 3)
+│   │   ├── models.py         ตาราง Enrollment (รายวิชา/ผู้เรียน/สถานะ กำลังเรียน-ถูกถอน/ผู้เพิ่ม/เวลา) + กฎ 1 ระเบียนต่อผู้เรียนต่อวิชา, ถูกถอน ⇔ มีเวลาถอน
+│   │   ├── admin.py          หน้า /admin/ ดูการลงทะเบียนได้อย่างเดียว
+│   │   ├── apps.py           ข้อมูลประจำ app
+│   │   ├── migrations/       ไฟล์สร้างตาราง Enrollment (Django สร้างให้)
+│   │   └── tests/
+│   │       ├── test_models.py  test ตาราง Enrollment (ห้ามซ้ำ, ถอนแล้วเพิ่มกลับใช้ระเบียนเดิม, constraint สถานะ, PROTECT/CASCADE)
+│   │       └── test_admin.py   test หน้า /admin/ (เปิดได้, เพิ่ม/แก้/ลบไม่ได้)
 │   └── common/               app ของใช้ร่วมกันทุก app
 │       ├── models.py         TimeStampedModel — ต้นแบบที่เพิ่ม created_at / updated_at ให้ทุกตาราง
 │       ├── views.py          GET /api/health/ (ตรวจสุขภาพระบบ) + 404 แบบ JSON ของที่อยู่ API ที่ไม่มีจริง
