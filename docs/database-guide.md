@@ -80,7 +80,7 @@ Quiz/Assignment --เผยแพร่ (is_graded)--> GradeItem --(ผู้เ
 - **หน้าที่**: รายวิชา 1 ตัวใน 1 ภาคการศึกษา (ปีการศึกษา + ภาคเรียนเก็บในแถวนี้) — วิชาเดิมเปิดใหม่คนละภาค = คนละแถว
 - **เขียนโดย**: ผู้สอน หรือผู้ดูแลระบบที่ทำแทน (UC-07) — สร้าง, แก้ข้อมูล, เผยแพร่, เปิด/ปิดรหัสเข้าร่วม + สร้างรหัสใหม่ (UC-08), **ปิดรายวิชา**
 - **อ่านโดย**: หน้า "รายวิชาของฉัน" (จัดกลุ่มตามปีการศึกษา/ภาคเรียน, ป้ายยังไม่เผยแพร่/ปิดแล้ว), ทุกหน้าในวิชา, permission layer
-- **lifecycle**: draft (`is_published=False`) → เผยแพร่ → **ปิด (`is_closed=True`)** = ผู้เรียนดูย้อนหลังอย่างเดียว
+- **lifecycle**: draft (`is_published=False`) ⇄ เผยแพร่ → **ปิด (`is_closed=True`)** = ผู้เรียนดูย้อนหลังอย่างเดียว ; เปิดคืนได้เฉพาะ admin ; draft ที่ไม่เคยมีผู้เรียนลบได้ (v2.5)
 - **invariant**: `(academic_year, semester, code)` unique — ไม่ซ้ำภายในภาคเดียวกัน ; `join_code` ไม่ซ้ำ สุ่มแยกจากรหัสวิชา ; 1 วิชามีผู้สอนคนเดียว (`teacher`) — ผู้สอนสร้างเอง = ตัวเอง, admin สร้างแทน = ต้องเลือกผู้สอน (`role=teacher`), **เปลี่ยน `teacher` ได้เฉพาะ admin**
 - **เชื่อมกับ**: `User` (teacher), `Enrollment`/`Module`/`Quiz`/`Assignment`/`GradingCategory`/`GradeItem`/`Announcement` (ลูก)
 
@@ -267,8 +267,13 @@ in_progress ──► submitted ────────┐
 
 ### Course
 ```
-is_published=False ──► True (ผู้เรียนเห็น) ──► is_closed=True (ดูย้อนหลังอย่างเดียว)
+                 ผู้สอน/admin                    ผู้สอน/admin (ยืนยัน)
+ is_published=False ⇄ is_published=True ──────────────────► is_closed=True (ดูย้อนหลังอย่างเดียว)
+   (ยังไม่เผยแพร่)        (ผู้เรียนเห็น)   ◄── เปิดคืน (admin เท่านั้น) ──┘
+        │
+        └── ลบได้ ถ้าไม่เคยมี Enrollment (รวม dropped) → AuditLog(delete)
 ```
+- ระหว่าง `is_closed=True` ผู้สอนแก้ข้อมูลวิชา / รายชื่อผู้เรียน / การเผยแพร่ไม่ได้ (v2.5)
 
 ### publish lifecycle (Module / Content / Quiz / Assignment / Announcement)
 ```
@@ -299,16 +304,17 @@ is_published = False (draft)  ──► True (ผู้เรียนเห็�
    - เปลี่ยนผู้สอนภายหลัง → admin เท่านั้น → `AuditLog(action=update)`
 2. → `AuditLog(action=create)`
 3. เปิดรหัสเข้าร่วม → `join_code_enabled=True` + สุ่ม `join_code` (สร้างใหม่ได้)
-4. เผยแพร่ → `is_published=True`
-5. ปิดรายวิชา → `is_closed=True` → `AuditLog(action=close_course)`
+4. เผยแพร่ → `is_published=True` (ยกเลิกเผยแพร่ได้ → `False`)
+5. ปิดรายวิชา → `is_closed=True` → `AuditLog(action=close_course)` ; เปิดคืน (admin เท่านั้น) → `is_closed=False` → `AuditLog(action=update)`
+6. ลบ (เฉพาะวิชาที่ยังไม่เผยแพร่และไม่เคยมีผู้เรียน) → `AuditLog(action=delete)`
 
 ### W4 — ผู้สอนเพิ่มผู้เรียน (UC-08)
-1. แท็บ "ผู้เรียน" → เพิ่มรายชื่อ → `POST /courses/{id}/enrollments`
+1. แท็บ "ผู้เรียน" → เพิ่มรายชื่อ (ค้นหาทีละคน หรือวางรายการรหัส/อีเมล ≤ 500) → `POST /courses/{id}/enrollments` — เพิ่มคนที่ถูกไปก่อน แล้วรายงานคนที่เพิ่มไม่ได้ (ไม่พบ / ไม่ใช่ผู้เรียน / ถูกระงับ)
 2. ต่อคน: ไม่มีแถว → `Enrollment(active, enrolled_by=<ผู้สอน>)` ; มีแถว `dropped` → กลับเป็น `active` ; `active` อยู่แล้ว → ข้าม
 3. → `AuditLog(action=enroll)` ; ถอน → `dropped` + `AuditLog(action=unenroll)`
 
 ### W5 — ผู้เรียนเข้าร่วมด้วยรหัส (UC-15)
-1. `POST /enroll` (join_code) → หา `Course` → เช็ค `join_code_enabled`, `is_published`, ไม่ `is_closed` ; ไม่ผ่าน → แจ้งเตือน
+1. `POST /enroll` (join_code ไม่สนตัวพิมพ์) → หา `Course` → เช็ค `join_code_enabled`, `is_published`, ไม่ `is_closed` ; ไม่ผ่าน**ทุกกรณี** → รหัส error เดียวกัน (ไม่บอกว่าเพราะอะไร) ; จำกัดจำนวนครั้งที่ลอง
 2. → `Enrollment(active, enrolled_by=NULL)` (หรือเปิดแถวเดิมที่ `dropped` กลับ คงคะแนน) → `AuditLog(action=enroll)`
 
 ### W6 — สร้างเนื้อหา (UC-09)
@@ -370,7 +376,8 @@ is_published = False (draft)  ──► True (ผู้เรียนเห็�
 | GradingCategory ที่มี GradeItem | — | ลบไม่ได้ → ย้ายช่องคะแนนออกก่อน |
 | Announcement | — | ลบได้ |
 | User | — | ลบไม่ได้ → ระงับ (`is_active=False`) |
-| Course | — | ใช้ปิดรายวิชา (`is_closed=True`) |
+| Course **ที่ยังไม่เผยแพร่และไม่เคยมีผู้เรียน** | `is_published=False` + ไม่มี `Enrollment` (รวม `dropped`) | ลบจริงได้ → `AuditLog(delete)` |
+| Course อื่น ๆ | — | ลบไม่ได้ → ปิดรายวิชา (`is_closed=True`) |
 | QuizAttempt / Submission / Score | — | ไม่มีการลบผ่านระบบใน MVP |
 
 ---
