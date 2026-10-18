@@ -4,6 +4,7 @@ API การลงทะเบียน (UC-08, UC-15 — ขั้น 3.4) —
 สิทธิ์ตรวจต่อรายวิชาผ่าน academics/access.py (ผู้สอนเจ้าของ / ผู้ดูแลระบบ ; ไม่มีสิทธิ์ = 404)
 """
 
+from django.db import transaction
 from django.db.models import Count, OuterRef, Q, QuerySet, Subquery, Value
 from django.db.models.functions import Concat
 from rest_framework.permissions import IsAuthenticated
@@ -11,16 +12,19 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from academics.access import get_managed_course
+from academics.access import ensure_not_closed, get_managed_course
 from accounts.models import User
 from common.pagination import StandardPagination
 from enrollment.models import Enrollment
 from enrollment.serializers import (
+    AddStudentsSerializer,
     CandidateFilterSerializer,
     CandidateSerializer,
+    EnrolledStudentSerializer,
     EnrollmentSerializer,
     RosterFilterSerializer,
 )
+from enrollment.services import add_students
 
 # จำนวนผลค้นหาสูงสุดในหน้าต่าง "เพิ่มผู้เรียน — ค้นหาทีละคน"
 CANDIDATE_LIMIT = 10
@@ -76,6 +80,38 @@ class CourseRosterView(APIView):
         response = paginator.get_paginated_response(EnrollmentSerializer(page, many=True).data)
         response.data["counts"] = counts
         return response
+
+    def post(self, request: Request, pk: int) -> Response:
+        """
+        POST /api/v1/courses/{id}/enrollments/  {"identifiers": ["670510118", "a@example.com", ...]}
+        เพิ่มผู้เรียน 1–500 คน (ใช้ทั้งปุ่ม "เพิ่ม" ทีละคน และ "วางรายการรหัส")
+        - เพิ่มคนที่ถูกไปก่อน แล้วรายงานที่เหลือ → 200 {added, reactivated, already, failed}
+          failed[].reason: not_found / not_student / suspended (เรียงตามลำดับที่วาง)
+        - เกิน 500 รายการ → 400 {"identifiers": ["max_length"]} ไม่เพิ่มใครเลย ; ว่างทั้งหมด → "blank"
+        - วิชาที่ปิดแล้ว → 409 course_closed ; วิชาที่ยังไม่เผยแพร่เพิ่มได้ (เตรียมรายชื่อก่อนเปิด)
+        """
+        serializer = AddStudentsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        with transaction.atomic():
+            # ล็อกแถววิชา → คำขอเพิ่ม / ถอน / เข้าร่วมของวิชาเดียวกันต่อคิวกัน (ไม่เกิดระเบียนซ้ำ)
+            course = get_managed_course(request.user, pk, lock=True)
+            ensure_not_closed(course)
+            result = add_students(course, request.user, serializer.validated_data["identifiers"])
+
+        def rows(items: list) -> list[dict]:
+            return [
+                {"identifier": identifier, "student": EnrolledStudentSerializer(e.student).data}
+                for identifier, e in items
+            ]
+
+        return Response(
+            {
+                "added": rows(result["added"]),
+                "reactivated": rows(result["reactivated"]),
+                "already": rows(result["already"]),
+                "failed": result["failed"],
+            }
+        )
 
 
 class CandidateSearchView(APIView):

@@ -39,6 +39,29 @@ class EnrollmentSerializer(serializers.ModelSerializer):
         return "admin" if adder.role == User.Role.ADMIN else "teacher"
 
 
+# จำนวนบรรทัดสูงสุดต่อการเพิ่ม 1 ครั้ง (เท่ากับเพดานนำเข้า CSV ของก้อน 2)
+MAX_IDENTIFIERS = 500
+
+
+class AddStudentsSerializer(serializers.Serializer):
+    """
+    รายการผู้เรียนที่จะเพิ่ม: {"identifiers": ["670510118", "a@example.com", ...]}
+    - 1–500 บรรทัด ; แต่ละบรรทัดเป็นรหัสนักศึกษาหรืออีเมล (บรรทัดว่างข้ามได้)
+    - เกิน 500 → {"identifiers": ["max_length"]} ; ว่างทั้งหมด → {"identifiers": ["blank"]}
+    """
+
+    identifiers = serializers.ListField(
+        child=serializers.CharField(allow_blank=True, max_length=254),
+        min_length=1,
+        max_length=MAX_IDENTIFIERS,
+    )
+
+    def validate_identifiers(self, identifiers: list[str]) -> list[str]:
+        if not any(value.strip() for value in identifiers):
+            raise serializers.ValidationError("Enter at least one student.", code="blank")
+        return identifiers
+
+
 class RosterFilterSerializer(serializers.Serializer):
     """
     ตัวกรองแท็บผู้เรียน: GET /api/v1/courses/{id}/enrollments/?status=&search=&page=
