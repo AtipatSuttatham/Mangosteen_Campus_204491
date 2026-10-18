@@ -6,7 +6,7 @@ import { act, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { MemoryRouter, Route, Routes } from 'react-router'
-import type { Role, User } from '../../api/auth'
+import type { User } from '../../api/auth'
 import { AuthContext, type AuthContextValue } from '../../auth/AuthContext'
 import AppShell from './AppShell'
 import { navItemsFor } from './navigation'
@@ -212,8 +212,12 @@ describe('AppShell — ขยายจอระหว่างเปิดเม
 })
 
 describe('navItemsFor', () => {
-  it.each<Role>(['teacher', 'student'])('%s เห็นเมนู ภาพรวม เท่านั้น', (role) => {
-    expect(navItemsFor(role).map((item) => item.to)).toEqual(['/'])
+  it('ผู้สอนเห็น ภาพรวม + รายวิชาของฉัน (ขั้น 3.5)', () => {
+    expect(navItemsFor('teacher').map((item) => item.to)).toEqual(['/', '/courses'])
+  })
+
+  it('ผู้เรียนเห็นเมนู ภาพรวม เท่านั้น (รายวิชาของผู้เรียนมาในขั้น 3.7)', () => {
+    expect(navItemsFor('student').map((item) => item.to)).toEqual(['/'])
   })
 
   it('ผู้ดูแลระบบเห็น ภาพรวม + จัดการผู้ใช้ (ขั้น 2.5)', () => {
