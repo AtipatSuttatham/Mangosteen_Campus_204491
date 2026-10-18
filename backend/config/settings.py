@@ -192,6 +192,10 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     # รายการที่แบ่งหน้าใช้รูปแบบเดียวกันทั้งระบบ: {count, next, previous, results} หน้าละ 20 (ขั้น 2.3)
     "DEFAULT_PAGINATION_CLASS": "common.pagination.StandardPagination",
+    # จำกัดความถี่ของที่อยู่ที่ระบุ throttle_scope (นับต่อบัญชี) — เกินแล้วได้ 429 throttled
+    # join_code: เข้าร่วมรายวิชาด้วยรหัส 10 ครั้ง/นาที กันโปรแกรมเดารหัส (ขั้น 3.4 ; ตัวนับเก็บในหน่วยความจำ
+    # ของแต่ละ process — ทบทวนตอน deploy)
+    "DEFAULT_THROTTLE_RATES": {"join_code": "10/min"},
 }
 
 # --- Simple JWT: token สำหรับเข้าสู่ระบบ (CLAUDE.md หัวข้อ "Token", docs/api.md §6) ---

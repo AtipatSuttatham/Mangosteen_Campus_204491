@@ -5,7 +5,12 @@
 
 from django.urls import path
 
-from enrollment.views import CandidateSearchView, CourseRosterView, DropEnrollmentView
+from enrollment.views import (
+    CandidateSearchView,
+    CourseRosterView,
+    DropEnrollmentView,
+    JoinCourseView,
+)
 
 course_patterns = [
     # รายชื่อผู้เรียนในวิชา (แท็บผู้เรียน)
@@ -22,4 +27,9 @@ course_patterns = [
         DropEnrollmentView.as_view(),
         name="course-enrollment-drop",
     ),
+]
+
+# ผู้เรียนเข้าร่วมรายวิชาด้วยรหัส — ต่ออยู่ใต้ /api/v1/ (config/urls.py) เป็น /api/v1/enroll/
+join_patterns = [
+    path("enroll/", JoinCourseView.as_view(), name="enroll-with-code"),
 ]

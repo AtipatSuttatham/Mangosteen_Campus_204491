@@ -8,12 +8,16 @@ from django.db import transaction
 from django.db.models import Count, OuterRef, Q, QuerySet, Subquery, Value
 from django.db.models.functions import Concat
 from django.shortcuts import get_object_or_404
+from rest_framework import status
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from academics.access import ensure_not_closed, get_managed_course
+from academics.serializers import StudentCourseSerializer
 from accounts.models import User
 from common.pagination import StandardPagination
 from enrollment.models import Enrollment
@@ -23,9 +27,10 @@ from enrollment.serializers import (
     CandidateSerializer,
     EnrolledStudentSerializer,
     EnrollmentSerializer,
+    JoinCourseSerializer,
     RosterFilterSerializer,
 )
-from enrollment.services import add_students, drop
+from enrollment.services import add_students, drop, join_with_code
 
 # จำนวนผลค้นหาสูงสุดในหน้าต่าง "เพิ่มผู้เรียน — ค้นหาทีละคน"
 CANDIDATE_LIMIT = 10
@@ -164,3 +169,29 @@ class DropEnrollmentView(APIView):
             )
             drop(enrollment, request.user)
         return Response(EnrollmentSerializer(enrollment).data)
+
+
+class JoinCourseView(APIView):
+    """
+    POST /api/v1/enroll/  {"join_code": "K7Q2XM9A"}   ผู้เรียนเข้าร่วมรายวิชาด้วยรหัส (UC-15)
+    - เข้าร่วมใหม่ → 201 หัวรายวิชา (student_course) ; อยู่ในวิชาอยู่แล้ว → 200 (ไม่จดซ้ำ)
+    - ไม่ผ่านทุกกรณี (ไม่มีรหัส / ปิดรหัส / ยังไม่เผยแพร่ / ปิดวิชา / เคยถูกถอน) → 400 join_code_invalid
+    - จำกัด 10 ครั้ง/นาทีต่อบัญชี (settings DEFAULT_THROTTLE_RATES "join_code") → เกิน 429 throttled
+    - ผู้เรียนเท่านั้น → ผู้สอน / ผู้ดูแลระบบ 403 permission_denied
+    """
+
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = "join_code"
+
+    def post(self, request: Request) -> Response:
+        if request.user.role != User.Role.STUDENT:
+            raise PermissionDenied()
+        serializer = JoinCourseSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        with transaction.atomic():
+            course, joined = join_with_code(request.user, serializer.validated_data["join_code"])
+        return Response(
+            StudentCourseSerializer(course).data,
+            status=status.HTTP_201_CREATED if joined else status.HTTP_200_OK,
+        )

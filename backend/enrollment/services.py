@@ -8,10 +8,12 @@
 
 from django.utils import timezone
 
+from academics.join_codes import normalize_join_code
 from academics.models import Course
 from accounts.models import User
 from audit.models import AuditAction
 from audit.services import log_action
+from common.exceptions import ApiError
 from enrollment.models import Enrollment
 
 # เหตุผลที่เพิ่มไม่ได้ (หน้าจอแปลเป็นข้อความไทย)
@@ -129,3 +131,45 @@ def drop(enrollment: Enrollment, actor: User) -> None:
         target=enrollment,
         changes={"status": [Enrollment.Status.ACTIVE, Enrollment.Status.DROPPED]},
     )
+
+
+def join_code_invalid_error() -> ApiError:
+    """
+    ใช้รหัสนี้เข้าร่วมไม่ได้ — ข้อความเดียวทุกกรณี (ไม่มีรหัสนี้ / ปิดรหัส / ยังไม่เผยแพร่ / ปิดวิชา /
+    เคยถูกถอน) กันการเดารหัสแล้วรู้ข้อมูลวิชา (ข้อตกลงก้อน 3)
+    """
+    return ApiError("join_code_invalid", "This join code cannot be used.")
+
+
+def join_with_code(student: User, raw_code: str) -> tuple[Course, bool]:
+    """
+    ผู้เรียนเข้าร่วมวิชาด้วยรหัส → (วิชา, เข้าร่วมใหม่หรือไม่) ; ต้องเรียกใน transaction.atomic()
+
+    ผ่านได้เมื่อ: วิชาเปิดใช้รหัส + เผยแพร่แล้ว + ยังไม่ปิด + ผู้เรียนไม่เคยถูกถอนจากวิชานี้
+    (ผู้ใช้เลือกแบบ ข 2026-10-18 — การถอนต้องมีผลจริง ; เพิ่มกลับได้เฉพาะผู้สอน / ผู้ดูแลระบบ)
+    - อยู่ในวิชาอยู่แล้ว → (วิชา, False) ไม่จด
+    - เข้าร่วมใหม่ → Enrollment active ไม่มีผู้เพิ่ม (= เข้าร่วมด้วยรหัส) + AuditLog enroll โดยผู้เรียนเอง
+    - ไม่ผ่านทุกกรณี → 400 join_code_invalid
+    """
+    course = (
+        Course.objects.select_for_update().filter(join_code=normalize_join_code(raw_code)).first()
+    )
+    if course is None or not (
+        course.join_code_enabled and course.is_published and not course.is_closed
+    ):
+        raise join_code_invalid_error()
+
+    existing = Enrollment.objects.filter(course=course, student=student).first()
+    if existing is not None:
+        if existing.status == Enrollment.Status.DROPPED:
+            raise join_code_invalid_error()
+        return course, False
+
+    enrollment = Enrollment.objects.create(course=course, student=student)
+    log_action(
+        actor=student,
+        action=AuditAction.ENROLL,
+        target=enrollment,
+        changes={"status": [None, Enrollment.Status.ACTIVE]},
+    )
+    return course, True

@@ -28,6 +28,8 @@ api_v1_patterns: list = [
     path("courses/", include("academics.urls")),
     # การลงทะเบียน: รายชื่อผู้เรียนในวิชา / เพิ่ม / ถอน (ก้อน 3)
     path("courses/", include(enrollment_urls.course_patterns)),
+    # ผู้เรียนเข้าร่วมรายวิชาด้วยรหัส /api/v1/enroll/ (ก้อน 3)
+    path("", include(enrollment_urls.join_patterns)),
 ]
 
 urlpatterns = [

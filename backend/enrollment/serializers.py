@@ -62,6 +62,12 @@ class AddStudentsSerializer(serializers.Serializer):
         return identifiers
 
 
+class JoinCourseSerializer(serializers.Serializer):
+    """รหัสเข้าร่วมที่ผู้เรียนกรอก: {"join_code": "k7q2xm9a"} (ตัวพิมพ์เล็กได้ ; ระบบแปลงเป็นตัวใหญ่เอง)"""
+
+    join_code = serializers.CharField(max_length=20)
+
+
 class RosterFilterSerializer(serializers.Serializer):
     """
     ตัวกรองแท็บผู้เรียน: GET /api/v1/courses/{id}/enrollments/?status=&search=&page=
