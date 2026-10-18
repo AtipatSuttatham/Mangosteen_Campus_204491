@@ -21,6 +21,10 @@ api_v1_patterns: list = [
     path("auth/", include("accounts.urls")),
     # ผู้ดูแลระบบ: จัดการบัญชีผู้ใช้ (ก้อน 2)
     path("admin/", include("accounts.manage_urls")),
+    # ผู้ดูแลระบบ: รายวิชาทั้งระบบ (ก้อน 3)
+    path("admin/", include("academics.admin_urls")),
+    # รายวิชา: รายวิชาของฉัน / สร้าง / จัดการวิชา 1 วิชา (ก้อน 3)
+    path("courses/", include("academics.urls")),
 ]
 
 urlpatterns = [
