@@ -1,0 +1,78 @@
+"""
+ตัวแปลง/ตรวจข้อมูล (serializer) ของ API การลงทะเบียน (ขั้น 3.4) — อ้างอิง docs/api.md §9
+"""
+
+from rest_framework import serializers
+
+from accounts.models import User
+from enrollment.models import Enrollment
+
+
+class EnrolledStudentSerializer(serializers.ModelSerializer):
+    """ข้อมูลผู้เรียนในตารางแท็บผู้เรียน (is_active = false → หน้าจอแสดงป้าย "บัญชีถูกระงับ")"""
+
+    class Meta:
+        model = User
+        fields = ["id", "first_name", "last_name", "email", "student_or_staff_id", "is_active"]
+        read_only_fields = fields
+
+
+class EnrollmentSerializer(serializers.ModelSerializer):
+    """
+    1 แถวในแท็บผู้เรียน
+    method = วิธีเข้าร่วม ดูจากผู้เพิ่ม (ไม่มี field แยก): ไม่มีผู้เพิ่ม → "join_code",
+    ผู้เพิ่มเป็นผู้ดูแลระบบ → "admin", อื่น ๆ → "teacher"
+    """
+
+    student = EnrolledStudentSerializer(read_only=True)
+    method = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Enrollment
+        fields = ["id", "student", "status", "method", "enrolled_at", "dropped_at"]
+        read_only_fields = fields
+
+    def get_method(self, enrollment: Enrollment) -> str:
+        adder = enrollment.enrolled_by
+        if adder is None:
+            return "join_code"
+        return "admin" if adder.role == User.Role.ADMIN else "teacher"
+
+
+class RosterFilterSerializer(serializers.Serializer):
+    """
+    ตัวกรองแท็บผู้เรียน: GET /api/v1/courses/{id}/enrollments/?status=&search=&page=
+    - status: active (ค่าเริ่มต้น — กำลังเรียน) / dropped (ถูกถอน)
+    - search: ชื่อ / นามสกุล / ชื่อเต็ม / อีเมล / รหัสนักศึกษา (ไม่สนตัวพิมพ์)
+    """
+
+    status = serializers.ChoiceField(choices=Enrollment.Status.choices, default="active")
+    search = serializers.CharField(required=False, allow_blank=True, max_length=100)
+
+
+class CandidateFilterSerializer(serializers.Serializer):
+    """ค้นหาผู้เรียนเพื่อเพิ่ม: ?search= อย่างน้อย 2 ตัวอักษร (สั้นกว่า → {"search": ["min_length"]})"""
+
+    search = serializers.CharField(min_length=2, max_length=100)
+
+
+class CandidateSerializer(serializers.ModelSerializer):
+    """
+    ผลค้นหาผู้เรียนเพื่อเพิ่ม 1 คน
+    enrollment_status = สถานะกับวิชานี้: null (ยังไม่อยู่ → ปุ่ม "เพิ่ม"), "active" (อยู่แล้ว),
+    "dropped" (เคยถูกถอน → ปุ่ม "เพิ่มกลับ")
+    """
+
+    enrollment_status = serializers.CharField(read_only=True, allow_null=True)
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "first_name",
+            "last_name",
+            "email",
+            "student_or_staff_id",
+            "enrollment_status",
+        ]
+        read_only_fields = fields
