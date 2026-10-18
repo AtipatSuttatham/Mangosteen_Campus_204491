@@ -452,6 +452,13 @@ export const th = {
     fields: 'ช่องกรอกข้อมูล',
     cards: 'การ์ด',
     badges: 'ป้ายสถานะ',
+    // ขั้น 3.5: ป้ายรหัสวิชา 3 สถานะ × 3 ขนาด + ส่วนที่พับ/เปิดได้
+    courseBadges: 'ป้ายรหัสวิชา',
+    collapsible: 'ส่วนที่พับ/เปิดได้',
+    sampleTermOpen: 'ปีการศึกษา 2569 ภาคเรียนที่ 1',
+    sampleTermClosed: 'ปีการศึกษา 2568 ภาคเรียนที่ 2',
+    sampleTermCount: '{{total}} รายวิชา',
+    sampleTermBody: 'เนื้อหาของกลุ่มนี้ (แสดงเมื่อเปิด)',
     logo: 'ตราสัญลักษณ์',
     disabled: 'กดไม่ได้',
     sampleLogin: 'เข้าสู่ระบบ',
