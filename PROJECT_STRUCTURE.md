@@ -139,7 +139,7 @@ Mangosteen_Campus_204491/
 │   └── src/                  โค้ดของแอป
 │       ├── main.tsx          จุดเริ่มต้น: เปิดระบบข้อความ แล้ววาด <Root /> ลงในหน้า HTML
 │       ├── Root.tsx          โครงนอกสุด: QueryClientProvider → AuthProvider → RouterProvider (data router — ขั้น 2.7)
-│       ├── router.tsx        แผนที่ของหน้าทั้งหมด appRoutes (/login, /, /profile, /users, /users/import, /dev/...) + ยามหน้าประตู ; ที่อยู่อื่น → หน้าแรก ; createAppRouter()
+│       ├── router.tsx        แผนที่ของหน้าทั้งหมด appRoutes (/login, /, /profile, /users, /users/import, /courses, /dev/...) + ยามหน้าประตู ; ที่อยู่อื่น → หน้าแรก ; createAppRouter()
 │       ├── index.css         CSS หลัก: โหลด Tailwind + ธีมของระบบ (@theme: สี 20 ค่า, ฟอนต์, มุมโค้ง, ภาพเคลื่อนไหวเมนูลิ้นชัก — ตรงกับ canvas)
 │       ├── auth/             ระบบเข้าสู่ระบบฝั่งหน้าเว็บ (docs/api.md §6.3)
 │       │   ├── session.ts    ที่เก็บ access token (ในหน่วยความจำ) + ตัวแลกบัตรครั้งเดียวต่อรอบ (กันหลายแท็บด้วย Web Locks)
@@ -161,6 +161,14 @@ Mangosteen_Campus_204491/
 │       │       ├── avatarFile.ts        ตรวจชนิด/ขนาดรูปในหน้าเว็บก่อนอัปโหลด (JPG/PNG/WebP ≤ 2 MB)
 │       │       ├── icons.tsx            ไอคอนกล้อง / อัปโหลด / ถังขยะ / เครื่องหมายถูก (จาก canvas)
 │       │       └── ProfilePage.test.tsx test ทั้งหน้า (เมนูรูป, อัปโหลด/ลบ, ฟอร์มทั้ง 2 ชุดทุกกรณี)
+│       │   ├── courses/          /courses รายวิชาของฉัน (ก้อน 3 — ขั้น 3.5 ผู้สอน) ตาม board แถวก้อน 3
+│       │   │   ├── TeacherCoursesPage.tsx  ประกอบหน้า: หัวข้อ + ปุ่มสร้าง + แถบเขียว + กลุ่มภาคเรียนพับได้ (จำค่าในเบราว์เซอร์) + สถานะโหลด/ผิดพลาด/ว่าง
+│       │   │   ├── CourseRow.tsx           แถวรายวิชา: ป้ายรหัสวิชา + ชื่อ + จำนวนผู้เรียน / รหัสเข้าร่วม + ป้ายสถานะ (ยังไม่เผยแพร่ / ปิดแล้ว)
+│       │   │   ├── CreateCourseDialog.tsx  หน้าต่างสร้างรายวิชา (ปี / ภาคเริ่มที่ภาคปัจจุบัน ; error รายช่องจาก backend)
+│       │   │   ├── CourseFields.tsx        ช่องปี / ภาค / รหัส / ชื่อ / คำอธิบาย (ใช้ซ้ำในแท็บตั้งค่า ขั้น 3.6)
+│       │   │   ├── courseForm.ts           ชนิดข้อมูลฟอร์ม + ค่าเริ่มต้น + แปลงเป็นข้อมูล API + ข้อความใต้ช่อง + แปลง error
+│       │   │   ├── icons.tsx               ไอคอน + / ✓ / ⓘ / ตาขีดฆ่า / แม่กุญแจ (จาก canvas)
+│       │   │   └── TeacherCoursesPage.test.tsx  test ทั้งหน้า + หน้าต่างสร้าง (กลุ่มภาค, จำค่าพับ/เปิด, ว่าง, ผิดพลาด, รหัสซ้ำ, ช่องว่าง)
 │       │   └── admin/users/      /users จัดการบัญชีผู้ใช้ (UC-04 — ขั้น 2.5–2.7, เฉพาะผู้ดูแลระบบ) ตาม board ก้อน 2 จอใหญ่ + มือถือ
 │       │       ├── UsersPage.tsx        ประกอบหน้า: หัวข้อ + ปุ่มเพิ่มผู้ใช้ + แถบข้อความหลังทำรายการ + การ์ด (ตัวกรอง / รายการ / แบ่งหน้า) + หน้าต่างที่เปิดอยู่ + เปิดใช้งานทันที
 │       │       ├── useUserFilters.ts    คำค้น / บทบาท / สถานะ / หน้า เก็บใน "ที่อยู่" ของหน้า (รีเฟรช / ย้อนกลับแล้วเห็นผลเดิม)
@@ -196,6 +204,7 @@ Mangosteen_Campus_204491/
 │       │   ├── client.ts     apiFetch(): ตัวเรียก API กลาง (/api/v1/...) แนบบัตร + แลกบัตรเมื่อได้ 401 ; ส่ง JSON หรือไฟล์ (FormData) ; โยน ApiError รูปแบบเดียวกันทุกกรณี (เก็บคำตอบ error ทั้งก้อนใน body)
 │       │   ├── adminUsers.ts ชนิดข้อมูล AdminUser / Paginated + fetchAdminUsers() รายชื่อ (ขั้น 2.5) + create / update / suspend / activate / resetPassword (ขั้น 2.6) + validateUserImport / importUsers / csvInvalidReport (ขั้น 2.7)
 │       │   ├── adminUsers.test.ts  test การแปลงตัวกรองเป็น query string + method/ที่อยู่/ข้อมูลที่ส่งของฟังก์ชันขั้น 2.6
+│       │   ├── courses.ts    ชนิดข้อมูล Course / StudentCourse + courseState() + fetchMyCourses() / createCourse() (ขั้น 3.5 — docs/api.md §8)
 │       │   ├── auth.ts       ชนิดข้อมูล User/Role + login() / logout() / fetchMe() / updateProfile() / changePassword() / uploadAvatar() / deleteAvatar()
 │       │   ├── client.test.ts  test ของ apiFetch (สำเร็จ / error ทุกแบบ / ติดต่อไม่ได้ / ไม่ใช่ JSON)
 │       │   ├── errors.ts     errorMessage() / fieldErrorMessage() / fieldErrorsMessage() (หลายรหัส): แปลงรหัส error เป็นข้อความไทยจาก th.ts
@@ -212,8 +221,8 @@ Mangosteen_Campus_204491/
 │       │   │   ├── AppShell.tsx      โครง: sidebar ม่วง (จอใหญ่ ≥ 1024px) / แถบบน + ปุ่ม ☰ (มือถือ), ลายจาง, ลิงก์ข้ามเมนู
 │       │   │   ├── MobileDrawer.tsx  เมนูลิ้นชักบนมือถือ (dialog: โฟกัส, Tab วน, Esc/แตะพื้นมืด/✕ ปิด, ล็อก scroll)
 │       │   │   ├── NavMenu.tsx       รายการเมนู + ส่วนผู้ใช้ (รูป ชื่อ บทบาท ข้อมูลส่วนตัว ออกจากระบบ) ใช้ทั้ง sidebar และลิ้นชัก
-│       │   │   ├── navigation.ts     รายการเมนูกลาง + บทบาทที่เห็น: ภาพรวม (ทุกบทบาท), จัดการผู้ใช้ (ผู้ดูแลระบบ — ขั้น 2.5)
-│       │   │   ├── icons.tsx         ไอคอนเส้น ☰ / ✕ / ภาพรวม / จัดการผู้ใช้ (จาก canvas)
+│       │   │   ├── navigation.ts     รายการเมนูกลาง + บทบาทที่เห็น: ภาพรวม (ทุกบทบาท), จัดการผู้ใช้ (ผู้ดูแลระบบ — ขั้น 2.5), รายวิชาของฉัน (ผู้สอน — ขั้น 3.5)
+│       │   │   ├── icons.tsx         ไอคอนเส้น ☰ / ✕ / ภาพรวม / จัดการผู้ใช้ / รายวิชาของฉัน (จาก canvas)
 │       │   │   └── AppShell.test.tsx test ของโครงและเมนูลิ้นชัก
 │       │   └── ui/           คอมโพเนนต์พื้นฐาน (หน้าตาตาม canvas) — import จาก components/ui
 │       │       ├── index.ts        รวม export ทุกชิ้น
@@ -232,6 +241,9 @@ Mangosteen_Campus_204491/
 │       │       ├── SearchInput.tsx ช่องค้นหา type=search ไม่มีป้ายในตัว (ขั้น 2.5)
 │       │       ├── Pagination.tsx  แถบ ก่อนหน้า / หน้า X จาก Y / ถัดไป + ข้อความสรุป (ขั้น 2.5 — ใช้ซ้ำได้)
 │       │       ├── Logo.tsx        ตรากลีบเลี้ยงมังคุด (+ ชื่อระบบ) — รูปทรงตาม board BrandLogo
+│       │       ├── CourseBadge.tsx ป้ายรหัสวิชา: เผยแพร่ (ม่วง + ลายกลีบเลี้ยง) / ยังไม่เผยแพร่ (เส้นประ) / ปิดแล้ว (เทา + กุญแจ) × lg / md / sm (ขั้น 3.5)
+│       │       ├── Collapsible.tsx หัวข้อพับ/เปิดได้: ปุ่มใน h2 + aria-expanded + ลูกศรหมุน (ไม่หมุนเมื่อลดการเคลื่อนไหว) (ขั้น 3.5)
+│       │       ├── courseUi.test.tsx  test ของ CourseBadge / Collapsible (สถานะ, ลาย, แป้นพิมพ์)
 │       │       └── ui.test.tsx     test ของคอมโพเนนต์พื้นฐานทั้งหมด (พฤติกรรม + การเข้าถึง)
 │       │   └── brand/        ภาพประกอบของแบรนด์ (คัดลอกรูปทรงจาก canvas — aria-hidden)
 │       │       ├── CalyxPattern.tsx          ลายกลีบเลี้ยงเส้นบาง สีตาม class (แผงม่วง / ลายจางพื้นหลัง)
@@ -249,6 +261,10 @@ Mangosteen_Campus_204491/
 │       │   ├── passwords.test.ts  test ของตัวสุ่มรหัส
 │       │   ├── csvFiles.ts   สร้างไฟล์ CSV ในหน้าเว็บ: ไฟล์ตัวอย่าง / ไฟล์รหัสผ่าน (UTF-8 BOM, กันสูตร Excel) / ดาวน์โหลด (ขั้น 2.7)
 │       │   ├── csvFiles.test.ts  test ของการสร้างไฟล์ + กันสูตร Excel
+│       │   ├── terms.ts      currentTerm() ภาคเรียนปัจจุบัน (ปีการศึกษาเริ่ม มิ.ย.) / termKey() / groupByTerm() จัดกลุ่มตามภาค (ขั้น 3.5)
+│       │   ├── terms.test.ts test ของภาคเรียนปัจจุบัน (ทุกช่วงเดือน, เวลาไทย) + การจัดกลุ่ม
+│       │   ├── useStoredState.ts  useState ที่จำค่าใน localStorage (ห่อ try/catch — ใช้ไม่ได้ก็ใช้ค่าเริ่มต้น) (ขั้น 3.5)
+│       │   ├── useStoredState.test.tsx  test (อ่าน/เขียน, ข้อมูลเสีย, storage ใช้ไม่ได้)
 │       │   └── useLeaveGuard.ts  ถามยืนยันก่อนออกจากหน้าที่มีงานค้าง: useBlocker + beforeunload + requestLeave (ปุ่มออกจากระบบ) (ขั้น 2.7)
 │       └── test/
 │           └── setup.ts      ไฟล์เตรียมความพร้อมที่ Vitest รันก่อน test ทุกไฟล์
