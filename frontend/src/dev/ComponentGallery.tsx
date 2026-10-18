@@ -13,6 +13,8 @@ import {
   Button,
   buttonClassName,
   Card,
+  Collapsible,
+  CourseBadge,
   ConfirmDialog,
   Dialog,
   DialogBody,
@@ -123,6 +125,31 @@ function DialogSamples() {
 }
 
 /** หัวข้อของแต่ละกลุ่มตัวอย่าง (ขนาด/น้ำหนักเดียวกับหัวข้อรองใน canvas) */
+/** ตัวอย่าง Collapsible 2 อัน (อันแรกเปิด อันที่สองพับ) — กดสลับได้จริง */
+function CollapsibleSamples() {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState([true, false])
+  const toggle = (index: number) => setOpen((prev) => prev.map((value, i) => (i === index ? !value : value)))
+  return (
+    <div className="flex max-w-xl flex-col gap-2">
+      {[t('devGallery.sampleTermOpen'), t('devGallery.sampleTermClosed')].map((title, index) => (
+        <Collapsible
+          key={title}
+          title={title}
+          trailing={t('devGallery.sampleTermCount', { total: index + 2 })}
+          open={open[index] ?? false}
+          onToggle={() => toggle(index)}
+          headingLevel="h3"
+        >
+          <p className="m-0 rounded-card border border-line bg-surface p-4 text-sm text-ink-muted">
+            {t('devGallery.sampleTermBody')}
+          </p>
+        </Collapsible>
+      ))}
+    </div>
+  )
+}
+
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section className="flex flex-col gap-3">
@@ -305,6 +332,24 @@ export default function ComponentGallery() {
             {t('adminUsers.self')}
           </StatusBadge>
         </div>
+      </Section>
+
+      {/* ป้ายรหัสวิชา (ขั้น 3.5): เผยแพร่ / ยังไม่เผยแพร่ / ปิดแล้ว × ขนาด lg / md / sm */}
+      <Section title={t('devGallery.courseBadges')}>
+        <div className="flex flex-col gap-3">
+          {(['lg', 'md', 'sm'] as const).map((size) => (
+            <div key={size} className="flex flex-wrap items-center gap-3">
+              <CourseBadge code="204111" state="published" size={size} />
+              <CourseBadge code="204331" state="draft" size={size} />
+              <CourseBadge code="204100" state="closed" size={size} />
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* ส่วนที่พับ/เปิดได้ (ขั้น 3.5) — หัวกลุ่มภาคเรียนในหน้ารายวิชาของฉัน */}
+      <Section title={t('devGallery.collapsible')}>
+        <CollapsibleSamples />
       </Section>
 
       {/* ตราสัญลักษณ์: บนพื้นม่วง (แบบ sidebar) และบนพื้นสว่าง */}

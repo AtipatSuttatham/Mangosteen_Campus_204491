@@ -67,8 +67,19 @@ function UsersIcon() {
   )
 }
 
+/** ไอคอนหน้ารายวิชาของฉัน: หนังสือเปิด (ตาม board "รายวิชาของฉัน") */
+function CoursesIcon() {
+  return (
+    <StrokeIcon size={18}>
+      <path d="M4 5.5A2 2 0 0 1 6 4h5v16H6a2 2 0 0 1-2-2z" />
+      <path d="M20 5.5A2 2 0 0 0 18 4h-5v16h5a2 2 0 0 0 2-2z" />
+    </StrokeIcon>
+  )
+}
+
 /** ไอคอนของเมนูแต่ละชื่อ (navigation.ts อ้างถึงด้วยชื่อ) */
 export const NAV_ICONS: Record<NavIcon, () => ReactNode> = {
   overview: OverviewIcon,
   users: UsersIcon,
+  courses: CoursesIcon,
 }
