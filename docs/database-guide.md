@@ -112,7 +112,7 @@ Quiz/Assignment --เผยแพร่ (is_graded)--> GradeItem --(ผู้เ
   - ผู้เรียน กรอก `join_code` (UC-15) → `status=active`, `enrolled_by=NULL`
   - ผู้สอน/ผู้ดูแลระบบ ถอน → `status=dropped`, `dropped_at`
 - **อ่านโดย**: permission layer, รายชื่อผู้เรียน (แท็บ "ผู้เรียน"), สมุดคะแนน (แถว), หน้าภาพรวมผู้เรียน
-- **lifecycle**: `active` ↔ `dropped` (เข้าร่วมใหม่ = อัปเดตแถวเดิม คงคะแนน)
+- **lifecycle**: `active` ↔ `dropped` (เพิ่มกลับ = อัปเดตแถวเดิม คงคะแนน — ผู้สอน/ผู้ดูแลระบบเท่านั้น ; ผู้เรียนที่ถูกถอนใช้รหัสเข้าร่วมกลับเองไม่ได้ v2.5)
 - **invariant**: `(course, student)` unique ; ผู้เรียนที่ `dropped` เข้าถึงรายวิชาไม่ได้ แต่คะแนนยังอยู่
 
 ---
@@ -246,7 +246,8 @@ Quiz/Assignment --เผยแพร่ (is_graded)--> GradeItem --(ผู้เ
                     ▼
                  active ──── ผู้สอน/admin ถอน ───► dropped
                     ▲                                 │
-                    └── เพิ่มกลับ / ใส่รหัสใหม่ (แถวเดิม) ─┘
+                    └── ผู้สอน/admin เพิ่มกลับ (แถวเดิม) ─┘
+   (ผู้เรียนที่ถูกถอนใช้รหัสเข้าร่วมกลับเองไม่ได้ — v2.5)
 ```
 
 ### `QuizAttempt.status`
@@ -315,7 +316,7 @@ is_published = False (draft)  ──► True (ผู้เรียนเห็�
 
 ### W5 — ผู้เรียนเข้าร่วมด้วยรหัส (UC-15)
 1. `POST /enroll` (join_code ไม่สนตัวพิมพ์) → หา `Course` → เช็ค `join_code_enabled`, `is_published`, ไม่ `is_closed` ; ไม่ผ่าน**ทุกกรณี** → รหัส error เดียวกัน (ไม่บอกว่าเพราะอะไร) ; จำกัดจำนวนครั้งที่ลอง
-2. → `Enrollment(active, enrolled_by=NULL)` (หรือเปิดแถวเดิมที่ `dropped` กลับ คงคะแนน) → `AuditLog(action=enroll)`
+2. → `Enrollment(active, enrolled_by=NULL)` → `AuditLog(action=enroll)` ; มีแถว `active` อยู่แล้ว → สำเร็จแต่ไม่จด ; **มีแถว `dropped` → ไม่ผ่าน** (รหัส error เดียวกับรหัสผิด ; ต้องให้ผู้สอนเพิ่มกลับ — v2.5)
 
 ### W6 — สร้างเนื้อหา (UC-09)
 1. `POST /courses/{id}/modules` → `Module(order=next, is_published=False)`

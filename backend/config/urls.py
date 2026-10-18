@@ -14,6 +14,7 @@ from django.contrib import admin
 from django.urls import include, path, re_path
 
 from common.views import api_not_found, health_check
+from enrollment import urls as enrollment_urls
 
 # เส้นทางของ API เวอร์ชัน 1 — แต่ละ app เพิ่มเส้นทางของตัวเองที่นี่ตอนทำฟีเจอร์
 api_v1_patterns: list = [
@@ -25,6 +26,10 @@ api_v1_patterns: list = [
     path("admin/", include("academics.admin_urls")),
     # รายวิชา: รายวิชาของฉัน / สร้าง / จัดการวิชา 1 วิชา (ก้อน 3)
     path("courses/", include("academics.urls")),
+    # การลงทะเบียน: รายชื่อผู้เรียนในวิชา / เพิ่ม / ถอน (ก้อน 3)
+    path("courses/", include(enrollment_urls.course_patterns)),
+    # ผู้เรียนเข้าร่วมรายวิชาด้วยรหัส /api/v1/enroll/ (ก้อน 3)
+    path("", include(enrollment_urls.join_patterns)),
 ]
 
 urlpatterns = [
