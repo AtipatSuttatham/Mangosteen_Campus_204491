@@ -7,6 +7,7 @@ API การลงทะเบียน (UC-08, UC-15 — ขั้น 3.4) —
 from django.db import transaction
 from django.db.models import Count, OuterRef, Q, QuerySet, Subquery, Value
 from django.db.models.functions import Concat
+from django.shortcuts import get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -24,7 +25,7 @@ from enrollment.serializers import (
     EnrollmentSerializer,
     RosterFilterSerializer,
 )
-from enrollment.services import add_students
+from enrollment.services import add_students, drop
 
 # จำนวนผลค้นหาสูงสุดในหน้าต่าง "เพิ่มผู้เรียน — ค้นหาทีละคน"
 CANDIDATE_LIMIT = 10
@@ -139,3 +140,27 @@ class CandidateSearchView(APIView):
             .order_by("student_or_staff_id", "first_name", "id")[:CANDIDATE_LIMIT]
         )
         return Response(CandidateSerializer(students, many=True).data)
+
+
+class DropEnrollmentView(APIView):
+    """
+    POST /api/v1/courses/{id}/enrollments/{enrollment_id}/drop/
+    ถอนผู้เรียนออกจากวิชา (ปุ่ม "ถอน" หลังยืนยัน)
+    - สำเร็จ → 200 ระเบียนหลังถอน (status = dropped) + AuditLog unenroll ; ถูกถอนอยู่แล้ว → 200 ไม่จดซ้ำ
+    - ไม่ลบระเบียน → คะแนนเดิมอยู่ครบ ; เพิ่มกลับใช้ POST …/enrollments/ (ผู้สอน / ผู้ดูแลระบบเท่านั้น)
+    - ผู้สอนเจ้าของ / ผู้ดูแลระบบ ; คนอื่น / ระเบียนของวิชาอื่น → 404 ; วิชาที่ปิดแล้ว → 409 course_closed
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request, pk: int, enrollment_id: int) -> Response:
+        with transaction.atomic():
+            course = get_managed_course(request.user, pk, lock=True)
+            ensure_not_closed(course)
+            enrollment = get_object_or_404(
+                Enrollment.objects.select_related("student", "enrolled_by"),
+                pk=enrollment_id,
+                course=course,
+            )
+            drop(enrollment, request.user)
+        return Response(EnrollmentSerializer(enrollment).data)

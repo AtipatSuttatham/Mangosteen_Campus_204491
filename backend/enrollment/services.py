@@ -111,3 +111,21 @@ def add_students(course: Course, actor: User, identifiers: list[str]) -> dict[st
             continue
         log_action(actor=actor, action=AuditAction.ENROLL, target=enrollment, changes=changes)
     return result
+
+
+def drop(enrollment: Enrollment, actor: User) -> None:
+    """
+    ถอนผู้เรียนออกจากวิชา: สถานะ "ถูกถอน" + เวลาถอน → AuditLog unenroll
+    ไม่ลบระเบียน (คะแนนเดิมอยู่ครบ) ; ถูกถอนอยู่แล้ว → ไม่ทำอะไรและไม่จด
+    """
+    if enrollment.status == Enrollment.Status.DROPPED:
+        return
+    enrollment.status = Enrollment.Status.DROPPED
+    enrollment.dropped_at = timezone.now()
+    enrollment.save(update_fields=["status", "dropped_at", "updated_at"])
+    log_action(
+        actor=actor,
+        action=AuditAction.UNENROLL,
+        target=enrollment,
+        changes={"status": [Enrollment.Status.ACTIVE, Enrollment.Status.DROPPED]},
+    )
