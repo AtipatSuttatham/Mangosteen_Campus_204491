@@ -28,9 +28,14 @@ import { useTranslation } from 'react-i18next'
 import { CalyxPattern } from '../brand/CalyxPattern'
 import { useFocusTrap } from './useFocusTrap'
 
-/** ความกว้างของหน้าต่างบนจอใหญ่ (ตาม board: ฟอร์ม 600px, รีเซ็ต/เสร็จแล้ว 560px, ยืนยัน 500px) */
-type DialogSize = 'md' | 'sm' | 'xs'
+/**
+ * ความกว้างของหน้าต่างบนจอใหญ่ (ตาม board: ฟอร์ม 600px, รีเซ็ต/เสร็จแล้ว 560px, ยืนยัน 500px,
+ * เพิ่มผู้เรียน 640px, ตารางตรวจรายการ 880px)
+ */
+type DialogSize = 'xl' | 'lg' | 'md' | 'sm' | 'xs'
 const SIZE_CLASSES: Record<DialogSize, string> = {
+  xl: 'lg:w-[880px]',
+  lg: 'lg:w-[640px]',
   md: 'lg:w-[600px]',
   sm: 'lg:w-[560px]',
   xs: 'w-[500px]',

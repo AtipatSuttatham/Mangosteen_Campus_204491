@@ -7,8 +7,7 @@
  *
  * - backend ปฏิเสธรายช่อง (รหัสซ้ำในภาค, ปีนอกช่วง ฯลฯ) → ข้อความใต้ช่องนั้น ; อื่น ๆ → ข้อความเหนือปุ่ม
  * - ระหว่างบันทึก: ปุ่มกดไม่ได้ + "กำลังสร้างรายวิชา…" และปิดหน้าต่างไม่ได้ (กันสร้างซ้อน)
- * - สำเร็จ → ปิดหน้าต่าง แล้วหน้าหลักแสดงแถบเขียว + เปิดกลุ่มภาคของวิชาใหม่ (onCreated)
- *   (ขั้น 3.6 จะพาไปหน้ารายวิชาที่เพิ่งสร้างแทน — ตอนนี้ยังไม่มีหน้านั้น)
+ * - สำเร็จ → หน้าหลักพาไปหน้ารายวิชาที่เพิ่งสร้าง (onCreated — ขั้น 3.6)
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { useId, useRef, useState } from 'react'
@@ -22,7 +21,7 @@ import { InfoIcon } from './icons'
 
 type CreateCourseDialogProps = {
   onClose: () => void
-  /** สร้างสำเร็จ (หน้าต่างปิดตามหลังจากนี้) */
+  /** สร้างสำเร็จ */
   onCreated: (course: Course) => void
 }
 
@@ -48,10 +47,9 @@ export function CreateCourseDialog({ onClose, onCreated }: CreateCourseDialogPro
     setFormError(undefined)
     try {
       const course = await createCourse(toCourseData(values))
-      // รายการด้านหลังโหลดใหม่ (วิชาใหม่ขึ้นในกลุ่มภาคของมัน)
+      // รายการในหน้ารายวิชาของฉันต้องโหลดใหม่เมื่อกลับมา
       await queryClient.invalidateQueries({ queryKey: ['my-courses'] })
       onCreated(course)
-      onClose()
     } catch (caught) {
       setFormError(applyCourseSaveError(caught, setError))
     }

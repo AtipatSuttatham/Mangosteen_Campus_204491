@@ -6,14 +6,14 @@
  *   ┗━━━━━━━━┛
  *   ป้ายรหัสวิชาบอกสถานะ + ป้ายข้อความ (เฉพาะยังไม่เผยแพร่ / ปิดแล้ว) สำหรับคนที่แยกสีไม่ออก
  *
- * ขั้น 3.5 ยังไม่มีหน้ารายวิชา จึงยังกดแถวไม่ได้ (กฎ "แสดงเฉพาะสิ่งที่ทำเสร็จแล้ว") —
- * ขั้น 3.6 ทำทั้งแถวเป็นลิงก์ไปหน้ารายวิชา + ลูกศร › ตาม board
+ * ทั้งแถวเป็นลิงก์ไปหน้ารายวิชา + ลูกศร › ตาม board (ขั้น 3.6)
  * ซ่อนจำนวนหน่วยการเรียนไว้จนถึงก้อน 4 (ข้อตกลงก้อน 3)
  */
 import { useTranslation } from 'react-i18next'
+import { Link } from 'react-router'
 import { courseState, type Course } from '../../api/courses'
 import { CourseBadge, StatusBadge } from '../../components/ui'
-import { EyeOffIcon, LockIcon } from './icons'
+import { ChevronIcon, EyeOffIcon, LockIcon } from './icons'
 
 export function CourseRow({ course }: { course: Course }) {
   const { t } = useTranslation()
@@ -32,27 +32,39 @@ export function CourseRow({ course }: { course: Course }) {
   ]
 
   return (
-    <li className="flex items-center gap-3.5 px-3.5 py-3.5 lg:gap-5 lg:py-4 lg:pr-5 lg:pl-4">
-      <CourseBadge code={course.code} state={state} />
-      <div className="min-w-0 grow">
-        <h3
-          className={
-            'm-0 font-display text-lg leading-[1.4] font-semibold lg:text-[21px] lg:leading-[1.35] ' +
-            (state === 'published' ? 'text-ink' : 'text-ink-muted')
-          }
-        >
-          {course.name}
-        </h3>
-        <p className="m-0 mt-0.5 flex flex-wrap gap-x-5 gap-y-1 text-sm leading-[1.6] text-ink-muted">
-          {stats.map((text) => (
-            <span key={text}>{text}</span>
-          ))}
-        </p>
-        {/* มือถือ: ป้ายสถานะอยู่ใต้ข้อมูล (แถวแคบ) */}
-        <StateFlag state={state} className="mt-1.5 lg:hidden" />
-      </div>
-      {/* จอใหญ่: ป้ายสถานะอยู่ขวาสุด */}
-      <StateFlag state={state} className="max-lg:hidden" />
+    <li>
+      <Link
+        to={`/courses/${course.id}`}
+        className={
+          'flex items-center gap-3.5 px-3.5 py-3.5 text-inherit no-underline hover:bg-canvas ' +
+          'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent ' +
+          'lg:gap-5 lg:py-4 lg:pr-5 lg:pl-4'
+        }
+      >
+        <CourseBadge code={course.code} state={state} />
+        <div className="min-w-0 grow">
+          <h3
+            className={
+              'm-0 font-display text-lg leading-[1.4] font-semibold lg:text-[21px] lg:leading-[1.35] ' +
+              (state === 'published' ? 'text-ink' : 'text-ink-muted')
+            }
+          >
+            {course.name}
+          </h3>
+          <p className="m-0 mt-0.5 flex flex-wrap gap-x-5 gap-y-1 text-sm leading-[1.6] text-ink-muted">
+            {stats.map((text) => (
+              <span key={text}>{text}</span>
+            ))}
+          </p>
+          {/* มือถือ: ป้ายสถานะอยู่ใต้ข้อมูล (แถวแคบ) */}
+          <StateFlag state={state} className="mt-1.5 lg:hidden" />
+        </div>
+        {/* จอใหญ่: ป้ายสถานะอยู่ถัดจากข้อมูล */}
+        <StateFlag state={state} className="max-lg:hidden" />
+        <span className="text-brand">
+          <ChevronIcon />
+        </span>
+      </Link>
     </li>
   )
 }
