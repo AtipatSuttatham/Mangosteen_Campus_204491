@@ -5,7 +5,7 @@
  */
 import type { FieldErrors, UseFormSetError } from 'react-hook-form'
 import { ApiError } from '../../api/client'
-import type { CourseCreate, Semester } from '../../api/courses'
+import type { Course, CourseCreate, Semester } from '../../api/courses'
 import { errorMessage, fieldErrorMessage, fieldErrorsMessage } from '../../api/errors'
 import { currentTerm } from '../../lib/terms'
 
@@ -31,6 +31,25 @@ export function emptyCourseForm(now: Date = new Date()): CourseFormValues {
     name: '',
     description: '',
   }
+}
+
+/** ค่าในฟอร์มของรายวิชาที่มีอยู่ (แท็บตั้งค่า) */
+export function courseToForm(course: Course): CourseFormValues {
+  return {
+    academic_year: String(course.academic_year),
+    semester: String(course.semester),
+    code: course.code,
+    name: course.name,
+    description: course.description,
+  }
+}
+
+/** ช่องที่เปลี่ยนจากข้อมูลเดิม — แท็บตั้งค่าส่งเฉพาะช่องเหล่านี้ */
+export function changedCourseData(course: Course, values: CourseFormValues): Partial<CourseCreate> {
+  const next = toCourseData(values)
+  return Object.fromEntries(
+    Object.entries(next).filter(([field, value]) => course[field as keyof CourseCreate] !== value),
+  )
 }
 
 /** แปลงค่าในฟอร์มเป็นข้อมูลที่ส่ง API (ตัดช่องว่าง ; backend ตรวจช่วงปีและรหัสซ้ำอีกครั้งเสมอ) */

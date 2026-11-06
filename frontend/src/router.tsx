@@ -9,6 +9,7 @@
  *   /users/import     นำเข้าผู้ใช้จาก CSV 3 ขั้น (เฉพาะผู้ดูแลระบบ — ขั้น 2.7)
  *   /courses          รายวิชาของฉัน (ผู้สอน — ขั้น 3.5 ; ผู้เรียนเพิ่มในขั้น 3.7)
  *   /courses/:id      หน้ารายวิชา แท็บผู้เรียน (ผู้สอน — ขั้น 3.6)
+ *   /courses/:id/settings  หน้ารายวิชา แท็บตั้งค่า (ผู้สอน — ขั้น 3.6)
  *                     (ไม่ใช้ /admin/... เพราะตอน deploy Django ใช้ /admin/ เป็นหน้า Django admin
  *                      บนโดเมนเดียวกัน — รีเฟรชหน้า /admin/users จะไปโผล่หน้า Django แทน)
  *   /dev/components   ตัวอย่างคอมโพเนนต์ (เฉพาะโหมดพัฒนา)
@@ -35,6 +36,7 @@ import LoginPage from './pages/LoginPage'
 import ProfilePage from './pages/profile/ProfilePage'
 import CsvImportPage from './pages/admin/users/import/CsvImportPage'
 import CoursePage from './pages/courses/CoursePage'
+import SettingsTab from './pages/courses/SettingsTab'
 import StudentsTab from './pages/courses/StudentsTab'
 import TeacherCoursesPage from './pages/courses/TeacherCoursesPage'
 import UsersPage from './pages/admin/users/UsersPage'
@@ -101,6 +103,7 @@ export const appRoutes: RouteObject[] = createRoutesFromElements(
         }
       >
         <Route index element={<StudentsTab />} />
+        <Route path="settings" element={<SettingsTab />} />
       </Route>
     </Route>
     {ComponentGallery && (

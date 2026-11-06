@@ -97,6 +97,8 @@ export function TextField({
               'h-[46px] w-full rounded-control border bg-surface px-3.5 text-[15px] text-ink ' +
               // กดที่ช่อง → กรอบม่วง 2px ห่างจากขอบ 1px (ตาม canvas)
               'focus:outline-2 focus:outline-offset-1 focus:outline-brand ' +
+              // ล็อกอยู่: พื้นม่วงอ่อน ตัวอักษรรอง (ตาม .inp[disabled] ใน board แถวก้อน 3)
+              'disabled:border-line disabled:bg-canvas disabled:text-ink-muted ' +
               (showInvalid ? 'border-danger' : 'border-line-strong') +
               // เว้นที่ด้านขวาให้ปุ่มในช่อง (ตาม canvas: padding-right 72px)
               (trailing ? ' pr-[72px]' : '') +
