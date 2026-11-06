@@ -6,6 +6,8 @@
 → คำขอเพิ่ม / ถอน / เข้าร่วมของวิชาเดียวกันต่อคิวกัน ไม่เกิดระเบียนซ้ำจากการกดพร้อมกัน
 """
 
+from collections.abc import Iterator
+
 from django.utils import timezone
 
 from academics.join_codes import normalize_join_code
@@ -20,6 +22,11 @@ from enrollment.models import Enrollment
 NOT_FOUND = "not_found"  # ไม่พบผู้ใช้จากรหัส / อีเมลนี้
 NOT_STUDENT = "not_student"  # เป็นบัญชีผู้สอน / ผู้ดูแลระบบ
 SUSPENDED = "suspended"  # บัญชีผู้เรียนถูกระงับ
+
+# ผลตรวจรายการก่อนเพิ่มของคนที่เพิ่มได้ (คู่กับเหตุผลที่เพิ่มไม่ได้ด้านบน)
+PREVIEW_ADD = "add"  # ยังไม่อยู่ในวิชา → จะเพิ่ม
+PREVIEW_REACTIVATE = "reactivate"  # เคยถูกถอน → เพิ่มกลับ
+PREVIEW_ALREADY = "already"  # กำลังเรียนอยู่แล้ว
 
 
 def _normalize(identifier: str) -> str:
@@ -63,6 +70,60 @@ def activate(enrollment: Enrollment, added_by: User | None) -> None:
     )
 
 
+def _resolve(course: Course, cleaned: list[str]) -> Iterator[tuple]:
+    """
+    จับคู่รายการ (ที่ผ่าน clean_identifiers แล้ว) กับบัญชีและระเบียนในวิชานี้ ตามลำดับที่วาง
+    คืนทีละรายการ (รหัสหรืออีเมล, ผู้ใช้, เหตุผลที่เพิ่มไม่ได้, ระเบียนเดิม)
+    - เพิ่มไม่ได้: ผู้ใช้ / ระเบียน = None และมีเหตุผล ; เพิ่มได้: เหตุผล = None ; ยังไม่เคยอยู่ในวิชา: ระเบียน = None
+    - ผู้ใช้คนเดียวกันมาทั้งทางรหัสและอีเมล → คืนแค่รายการแรก
+    ใช้ทั้งการตรวจรายการ (preview_students) และการเพิ่มจริง (add_students) → ผลตรงกันเสมอ
+    """
+    users = _find_users(cleaned)
+    existing = {
+        enrollment.student_id: enrollment
+        for enrollment in Enrollment.objects.filter(
+            course=course, student__in=[user.pk for user in users.values()]
+        )
+    }
+    handled: set[int] = set()
+    for identifier in cleaned:
+        user = users.get(identifier)
+        if user is None:
+            yield identifier, None, NOT_FOUND, None
+        elif user.role != User.Role.STUDENT:
+            yield identifier, None, NOT_STUDENT, None
+        elif not user.is_active:
+            yield identifier, None, SUSPENDED, None
+        elif user.pk not in handled:
+            handled.add(user.pk)
+            yield identifier, user, None, existing.get(user.pk)
+
+
+def preview_students(course: Course, identifiers: list[str]) -> dict:
+    """
+    ตรวจรายการก่อนเพิ่ม (ปุ่ม "ตรวจรายการ") — อ่านอย่างเดียว ไม่บันทึกข้อมูลและไม่จด AuditLog
+
+    คืน {"rows": [...], "duplicates": จำนวนรายการซ้ำ}
+    - rows: [{"identifier", "result", "student"}] เรียงตามลำดับที่วาง
+      result: add (จะเพิ่ม) / reactivate (เพิ่มกลับ) / already (อยู่แล้ว) / เหตุผลที่เพิ่มไม่ได้
+      student: บัญชีผู้เรียน ; เพิ่มไม่ได้ = None (ไม่แสดงข้อมูลบัญชีเกินจำเป็น)
+    - duplicates: บรรทัดที่ไม่ว่างแต่ไม่มีแถวในผลตรวจ (ซ้ำกันเอง หรือเป็นคนเดียวกับแถวก่อนหน้า)
+    """
+    rows: list[dict] = []
+    for identifier, user, reason, enrollment in _resolve(course, clean_identifiers(identifiers)):
+        if reason:
+            result = reason
+        elif enrollment is None:
+            result = PREVIEW_ADD
+        elif enrollment.status == Enrollment.Status.DROPPED:
+            result = PREVIEW_REACTIVATE
+        else:
+            result = PREVIEW_ALREADY
+        rows.append({"identifier": identifier, "result": result, "student": user})
+    filled = sum(1 for value in identifiers if value.strip())
+    return {"rows": rows, "duplicates": filled - len(rows)}
+
+
 def add_students(course: Course, actor: User, identifiers: list[str]) -> dict[str, list]:
     """
     เพิ่มผู้เรียนเข้าวิชาตามรายการรหัสนักศึกษา / อีเมล — เพิ่มคนที่ถูกไปก่อน แล้วรายงานที่เหลือ
@@ -73,33 +134,11 @@ def add_students(course: Course, actor: User, identifiers: list[str]) -> dict[st
     - ผู้ใช้คนเดียวกันมาทั้งทางรหัสและอีเมล → นับครั้งเดียว
     - เพิ่มใหม่ / เพิ่มกลับ → AuditLog enroll 1 รายการต่อคน (actor = ผู้สอน / ผู้ดูแลระบบที่กด)
     """
-    cleaned = clean_identifiers(identifiers)
-    users = _find_users(cleaned)
-    existing = {
-        enrollment.student_id: enrollment
-        for enrollment in Enrollment.objects.filter(
-            course=course, student__in=[user.pk for user in users.values()]
-        )
-    }
-
     result: dict[str, list] = {"added": [], "reactivated": [], "already": [], "failed": []}
-    handled: set[int] = set()
-    for identifier in cleaned:
-        user = users.get(identifier)
-        if user is None:
-            result["failed"].append({"identifier": identifier, "reason": NOT_FOUND})
+    for identifier, user, reason, enrollment in _resolve(course, clean_identifiers(identifiers)):
+        if reason:
+            result["failed"].append({"identifier": identifier, "reason": reason})
             continue
-        if user.role != User.Role.STUDENT:
-            result["failed"].append({"identifier": identifier, "reason": NOT_STUDENT})
-            continue
-        if not user.is_active:
-            result["failed"].append({"identifier": identifier, "reason": SUSPENDED})
-            continue
-        if user.pk in handled:
-            continue
-        handled.add(user.pk)
-
-        enrollment = existing.get(user.pk)
         if enrollment is None:
             enrollment = Enrollment.objects.create(course=course, student=user, enrolled_by=actor)
             changes = {"status": [None, Enrollment.Status.ACTIVE]}
