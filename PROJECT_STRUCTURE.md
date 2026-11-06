@@ -109,6 +109,7 @@ Mangosteen_Campus_204491/
 │   │       ├── conftest.py     ใช้ fixture ชุดเดียวกับ test API รายวิชา + ตัวสร้างที่อยู่รายชื่อผู้เรียน
 │   │       ├── test_roster_api.py        test รายชื่อ (เรียง, วิธีเข้าร่วม, ถูกระงับ, ถูกถอน, ค้นหา, แบ่งหน้า) + ค้นหาเพื่อเพิ่ม
 │   │       ├── test_add_students_api.py  test เพิ่ม 1–500 คน (รหัส/อีเมล, รายงานตามลำดับ, เพิ่มกลับ, ซ้ำ, เกิน 500, วิชาที่ปิด)
+│   │       ├── test_preview_api.py       test ตรวจรายการก่อนเพิ่ม (ผลทุกแบบ, รายการซ้ำ, ไม่บันทึกอะไร, ตรงกับการเพิ่มจริง, สิทธิ์)
 │   │       ├── test_drop_api.py          test ถอน (ระเบียนอยู่, เข้าวิชาไม่ได้, เพิ่มกลับได้ระเบียนเดิม, สิทธิ์)
 │   │       ├── test_join_api.py          test เข้าร่วมด้วยรหัส (ข้อความเดียวทุกกรณี, ผู้ที่ถูกถอนกลับไม่ได้, จำกัด 10 ครั้ง/นาที)
 │   │       └── test_admin.py   test หน้า /admin/ (เปิดได้, เพิ่ม/แก้/ลบไม่ได้)
@@ -161,7 +162,22 @@ Mangosteen_Campus_204491/
 │       │       ├── avatarFile.ts        ตรวจชนิด/ขนาดรูปในหน้าเว็บก่อนอัปโหลด (JPG/PNG/WebP ≤ 2 MB)
 │       │       ├── icons.tsx            ไอคอนกล้อง / อัปโหลด / ถังขยะ / เครื่องหมายถูก (จาก canvas)
 │       │       └── ProfilePage.test.tsx test ทั้งหน้า (เมนูรูป, อัปโหลด/ลบ, ฟอร์มทั้ง 2 ชุดทุกกรณี)
-│       │   ├── courses/          /courses รายวิชาของฉัน (ก้อน 3 — ขั้น 3.5 ผู้สอน) ตาม board แถวก้อน 3
+│       │   ├── courses/          /courses รายวิชาของฉัน + /courses/{id} หน้ารายวิชา (ก้อน 3 — ขั้น 3.5–3.6 ผู้สอน) ตาม board แถวก้อน 3
+│       │   │   ├── CoursePage.tsx          โครงหน้ารายวิชา: โหลดวิชา + หัวรายวิชา + แถบข้อความ + แท็บ (ไม่พบรายวิชา / โหลดไม่สำเร็จ)
+│       │   │   ├── useCoursePage.ts        ข้อมูลที่หน้ารายวิชาส่งให้แท็บ + ตัวช่วยโหลดข้อมูลใหม่
+│       │   │   ├── CourseHeader.tsx        การ์ดหัวรายวิชา: ป้าย + ชื่อ + รหัสเข้าร่วม + แท็บ
+│       │   │   ├── StudentsTab.tsx         แท็บผู้เรียน: ตัวกรองในที่อยู่ของหน้า + ตาราง / การ์ด + ถอน + เพิ่มกลับ
+│       │   │   ├── AddStudentsDialog.tsx   หน้าต่างเพิ่มผู้เรียน 2 แท็บ (กว้าง 640 / ตาราง 880px)
+│       │   │   ├── AddBySearch.tsx         แท็บค้นหาทีละคน
+│       │   │   ├── AddByList.tsx           แท็บวางรายการหรือเลือกไฟล์: กรอก → ตรวจ → รายงานผล
+│       │   │   ├── ReviewList.tsx          ตารางตรวจรายการ + ป้ายสรุป (มือถือเป็นการ์ด)
+│       │   │   ├── reviewRows.ts           ลำดับแถวในตารางตรวจรายการ (แถวมีปัญหาก่อน)
+│       │   │   ├── AddReport.tsx           รายงานผลหลังกดเพิ่ม
+│       │   │   ├── SettingsTab.tsx         แท็บตั้งค่า: ข้อมูลวิชา, เผยแพร่, รหัสเข้าร่วม, ปิด, ลบ + หน้าต่างยืนยัน
+│       │   │   ├── courseBits.tsx          ชิ้นเล็กที่ใช้ร่วมกัน: แถบข้อความ, ปุ่มสลับ, เลขจำนวน, กล่องสถานะ
+│       │   │   ├── CoursePage.test.tsx     test หัวรายวิชา, แท็บผู้เรียน, หน้าต่างเพิ่มผู้เรียน
+│       │   │   ├── SettingsTab.test.tsx    test แท็บตั้งค่า (บันทึก, ปุ่มที่ต้องยืนยัน, ปิด, ลบ)
+│       │   │   ├── testUtils.tsx           ข้อมูลสมมติ + วาดหน้ารายวิชา (ใช้เฉพาะใน test)
 │       │   │   ├── TeacherCoursesPage.tsx  ประกอบหน้า: หัวข้อ + ปุ่มสร้าง + แถบเขียว + กลุ่มภาคเรียนพับได้ (จำค่าในเบราว์เซอร์) + สถานะโหลด/ผิดพลาด/ว่าง
 │       │   │   ├── CourseRow.tsx           แถวรายวิชา: ป้ายรหัสวิชา + ชื่อ + จำนวนผู้เรียน / รหัสเข้าร่วม + ป้ายสถานะ (ยังไม่เผยแพร่ / ปิดแล้ว)
 │       │   │   ├── CreateCourseDialog.tsx  หน้าต่างสร้างรายวิชา (ปี / ภาคเริ่มที่ภาคปัจจุบัน ; error รายช่องจาก backend)
@@ -204,6 +220,7 @@ Mangosteen_Campus_204491/
 │       │   ├── client.ts     apiFetch(): ตัวเรียก API กลาง (/api/v1/...) แนบบัตร + แลกบัตรเมื่อได้ 401 ; ส่ง JSON หรือไฟล์ (FormData) ; โยน ApiError รูปแบบเดียวกันทุกกรณี (เก็บคำตอบ error ทั้งก้อนใน body)
 │       │   ├── adminUsers.ts ชนิดข้อมูล AdminUser / Paginated + fetchAdminUsers() รายชื่อ (ขั้น 2.5) + create / update / suspend / activate / resetPassword (ขั้น 2.6) + validateUserImport / importUsers / csvInvalidReport (ขั้น 2.7)
 │       │   ├── adminUsers.test.ts  test การแปลงตัวกรองเป็น query string + method/ที่อยู่/ข้อมูลที่ส่งของฟังก์ชันขั้น 2.6
+│       │   ├── enrollments.ts  API การลงทะเบียน: รายชื่อ, ค้นหา, ตรวจรายการ, เพิ่ม, ถอน (ขั้น 3.6)
 │       │   ├── courses.ts    ชนิดข้อมูล Course / StudentCourse + courseState() + fetchMyCourses() / createCourse() (ขั้น 3.5 — docs/api.md §8)
 │       │   ├── auth.ts       ชนิดข้อมูล User/Role + login() / logout() / fetchMe() / updateProfile() / changePassword() / uploadAvatar() / deleteAvatar()
 │       │   ├── client.test.ts  test ของ apiFetch (สำเร็จ / error ทุกแบบ / ติดต่อไม่ได้ / ไม่ใช่ JSON)
@@ -261,6 +278,8 @@ Mangosteen_Campus_204491/
 │       │   ├── passwords.test.ts  test ของตัวสุ่มรหัส
 │       │   ├── csvFiles.ts   สร้างไฟล์ CSV ในหน้าเว็บ: ไฟล์ตัวอย่าง / ไฟล์รหัสผ่าน (UTF-8 BOM, กันสูตร Excel) / ดาวน์โหลด (ขั้น 2.7)
 │       │   ├── csvFiles.test.ts  test ของการสร้างไฟล์ + กันสูตร Excel
+│       │   ├── rosterFile.ts อ่านไฟล์รายชื่อ .xlsx / .csv / .txt ในเบราว์เซอร์ + กฎหาคอลัมน์รหัส / อีเมล (ขั้น 3.6)
+│       │   ├── rosterFile.test.ts  test การอ่านไฟล์ทุกชนิด + ปัญหาของไฟล์
 │       │   ├── terms.ts      currentTerm() ภาคเรียนปัจจุบัน (ปีการศึกษาเริ่ม มิ.ย.) / termKey() / groupByTerm() จัดกลุ่มตามภาค (ขั้น 3.5)
 │       │   ├── terms.test.ts test ของภาคเรียนปัจจุบัน (ทุกช่วงเดือน, เวลาไทย) + การจัดกลุ่ม
 │       │   ├── useStoredState.ts  useState ที่จำค่าใน localStorage (ห่อ try/catch — ใช้ไม่ได้ก็ใช้ค่าเริ่มต้น) (ขั้น 3.5)
