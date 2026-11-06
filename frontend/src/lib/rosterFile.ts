@@ -80,7 +80,7 @@ export function findIdentifiers(rows: string[][]): { identifiers: string[]; colu
   return { identifiers: filled.flat(), column: null }
 }
 
-/** แยกไฟล์ข้อความเป็นตาราง: คั่นด้วย , หรือ tab ; ช่องครอบด้วย " ได้ ("" = " 1 ตัว) */
+/** แยกไฟล์ข้อความเป็นตาราง: คั่นด้วย , ; หรือ tab ; ช่องครอบด้วย " ได้ ("" = " 1 ตัว) */
 export function parseDelimited(text: string): string[][] {
   const rows: string[][] = []
   let row: string[] = []
@@ -96,7 +96,7 @@ export function parseDelimited(text: string): string[][] {
       } else quoted = false
     } else if (char === '"' && cell === '') {
       quoted = true
-    } else if (char === ',' || char === '\t') {
+    } else if (char === ',' || char === ';' || char === '\t') {
       row.push(cell)
       cell = ''
     } else if (char === '\n') {
@@ -111,8 +111,14 @@ export function parseDelimited(text: string): string[][] {
   return rows
 }
 
-/** ถอดรหัสไฟล์ข้อความ: UTF-8 ก่อน ถ้าไม่ใช่ใช้ TIS-620 / cp874 (Excel ไทย) เหมือนการนำเข้า CSV */
+/**
+ * ถอดรหัสไฟล์ข้อความ: ไฟล์ "Unicode Text" ของ Excel (UTF-16 มี BOM) ดูจาก 2 byte แรก ;
+ * นอกนั้นลอง UTF-8 ก่อน ถ้าไม่ใช่ใช้ TIS-620 / cp874 (Excel ไทย) เหมือนการนำเข้า CSV
+ */
 export function decodeText(bytes: ArrayBuffer): string {
+  const [first, second] = new Uint8Array(bytes)
+  if (first === 0xff && second === 0xfe) return new TextDecoder('utf-16le').decode(bytes)
+  if (first === 0xfe && second === 0xff) return new TextDecoder('utf-16be').decode(bytes)
   try {
     return new TextDecoder('utf-8', { fatal: true }).decode(bytes)
   } catch {

@@ -75,6 +75,13 @@ describe('findIdentifiers', () => {
 })
 
 describe('parseDelimited', () => {
+  it('คั่นด้วย ; ได้ (Excel บางเครื่อง)', () => {
+    expect(parseDelimited('รหัส;ชื่อ\n1;ก\n')).toEqual([
+      ['รหัส', 'ชื่อ'],
+      ['1', 'ก'],
+    ])
+  })
+
   it('คั่นด้วย , หรือ tab ; รองรับ " และขึ้นบรรทัดแบบ CRLF', () => {
     expect(parseDelimited('a,"b,c"\r\n"d""e"\tf\n')).toEqual([
       ['a', 'b,c'],
@@ -89,6 +96,13 @@ describe('decodeText', () => {
     const tis620 = new Uint8Array([0xc3, 0xcb, 0xd1, 0xca]).buffer
     expect(decodeText(utf8 as ArrayBuffer)).toBe('รหัส')
     expect(decodeText(tis620)).toBe('รหัส')
+  })
+
+  it('อ่านไฟล์ Unicode Text ของ Excel (UTF-16 มี BOM)', () => {
+    const little = new Uint8Array([0xff, 0xfe, 0x31, 0x00, 0x32, 0x00]).buffer
+    const big = new Uint8Array([0xfe, 0xff, 0x00, 0x31, 0x00, 0x32]).buffer
+    expect(decodeText(little)).toBe('12')
+    expect(decodeText(big)).toBe('12')
   })
 })
 

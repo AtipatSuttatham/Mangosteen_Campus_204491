@@ -18,13 +18,14 @@ export function useCoursePage(): CoursePageContext {
   return useOutletContext<CoursePageContext>()
 }
 
-/** โหลดข้อมูลของวิชานี้ใหม่ทั้งหมด: หัวรายวิชา, รายชื่อ, หน้ารายวิชาของฉัน */
+/** โหลดข้อมูลของวิชานี้ใหม่ทั้งหมด: หัวรายวิชา, รายชื่อ, ผลค้นหาผู้เรียน, หน้ารายวิชาของฉัน */
 export function useRefreshCourse(courseId: number) {
   const queryClient = useQueryClient()
   return useCallback(async () => {
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ['course', courseId] }),
       queryClient.invalidateQueries({ queryKey: ['roster', courseId] }),
+      queryClient.invalidateQueries({ queryKey: ['enrollment-candidates', courseId] }),
       queryClient.invalidateQueries({ queryKey: ['my-courses'] }),
     ])
   }, [queryClient, courseId])

@@ -120,6 +120,7 @@ function InfoForm({ course, className }: { course: Course; className: string }) 
   const {
     register,
     handleSubmit,
+    reset,
     setError,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<CourseFormValues>({ values: courseToForm(course) })
@@ -129,9 +130,16 @@ function InfoForm({ course, className }: { course: Course; className: string }) 
   async function onSubmit(values: CourseFormValues) {
     setFormError(undefined)
     notify(null)
+    const changes = changedCourseData(course, values)
+    // ต่างแค่ช่องว่างหน้า / หลัง → ไม่มีอะไรต้องบันทึก คืนค่าในช่องให้ตรงข้อมูลจริง
+    if (Object.keys(changes).length === 0) {
+      reset(courseToForm(course))
+      return
+    }
     try {
-      const updated = await updateCourse(course.id, changedCourseData(course, values))
+      const updated = await updateCourse(course.id, changes)
       queryClient.setQueryData(['course', course.id], updated)
+      reset(courseToForm(updated))
       await queryClient.invalidateQueries({ queryKey: ['my-courses'] })
       notify({ tone: 'ok', text: t('courseSettings.saved') })
     } catch (caught) {

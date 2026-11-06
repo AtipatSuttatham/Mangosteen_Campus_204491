@@ -33,6 +33,8 @@ import { useCoursePage, useRefreshCourse } from './useCoursePage'
 
 /** เวลารอหลังหยุดพิมพ์ก่อนค้นหา (มิลลิวินาที) — เท่ากับหน้ารายชื่อผู้ใช้ */
 const SEARCH_DELAY_MS = 300
+/** คำค้นยาวสุด (ตรงกับ backend) */
+const MAX_SEARCH = 100
 
 /** หัวตารางและช่องข้อมูล (ตาม th / td ใน board) */
 const TH = 'border-b border-line px-4 py-3 text-left text-sm font-semibold whitespace-nowrap text-ink-muted'
@@ -232,6 +234,7 @@ export default function StudentsTab() {
             value={searchText}
             onChange={(event) => setSearchText(event.target.value)}
             placeholder={t('roster.searchPlaceholder')}
+            maxLength={MAX_SEARCH}
             className="w-full lg:h-[42px] lg:w-[280px]"
           />
         </div>
@@ -271,7 +274,15 @@ export default function StudentsTab() {
             className={isFetching ? 'opacity-60 motion-safe:transition-opacity' : ''}
           >
             {/* จอใหญ่ = ตาราง */}
-            <table className="hidden w-full border-collapse lg:table">
+            <table className="hidden w-full table-fixed border-collapse lg:table">
+              {/* ความกว้างคงที่: ชื่อ / อีเมลยาวขึ้นบรรทัดใหม่ ไม่ดันปุ่มท้ายแถวหลุดการ์ด */}
+              <colgroup>
+                <col />
+                <col className="w-[128px]" />
+                <col className="w-[172px]" />
+                <col className="w-[172px]" />
+                {editable && <col className="w-[104px]" />}
+              </colgroup>
               <thead>
                 <tr>
                   <th scope="col" className={`${TH} pl-6`}>
@@ -298,7 +309,7 @@ export default function StudentsTab() {
                   const muted = row.student.is_active ? '' : 'text-ink-muted'
                   return (
                     <tr key={row.id} className="last:[&>td]:border-b-0">
-                      <td className={`${TD} pl-6 ${muted}`}>
+                      <td className={`${TD} pl-6 wrap-anywhere ${muted}`}>
                         <div className="flex flex-wrap items-center gap-x-1.5 font-semibold">
                           {fullName(row)}
                           {!row.student.is_active && suspendedBadge}
