@@ -1,7 +1,8 @@
 /**
  * ฟังก์ชันเรียก API รายวิชา (backend: docs/api.md §8)
  *
- * ขั้น 3.5: รายวิชาของฉัน (ผู้สอน) + สร้างรายวิชา — ที่อยู่อื่นของ §8 เพิ่มในขั้น 3.6–3.8
+ * ขั้น 3.5: รายวิชาของฉัน (ผู้สอน) + สร้างรายวิชา
+ * ขั้น 3.6: ดู / แก้ / เผยแพร่ / รหัสเข้าร่วม / ปิด / ลบ — ที่อยู่ของผู้ดูแลระบบเพิ่มในขั้น 3.8
  */
 import { apiFetch } from './client'
 
@@ -77,4 +78,39 @@ export type CourseCreate = {
  */
 export function createCourse(data: CourseCreate): Promise<Course> {
   return apiFetch<Course>('/courses/', { method: 'POST', body: data })
+}
+
+/** ข้อมูลรายวิชา 1 วิชา (ไม่มีสิทธิ์ / ไม่มีวิชานี้ = 404) */
+export function fetchCourse(id: number): Promise<Course> {
+  return apiFetch<Course>(`/courses/${id}/`)
+}
+
+/**
+ * แก้ข้อมูลรายวิชา (ส่งเฉพาะช่องที่เปลี่ยน)
+ * @throws ApiError validation_error รายช่อง / course_closed
+ */
+export function updateCourse(id: number, data: Partial<CourseCreate>): Promise<Course> {
+  return apiFetch<Course>(`/courses/${id}/`, { method: 'PATCH', body: data })
+}
+
+/** ปุ่มจัดการสถานะของรายวิชา — ส่วนต่อท้ายที่อยู่ของแต่ละปุ่ม */
+export type CourseAction =
+  | 'publish'
+  | 'unpublish'
+  | 'close'
+  | 'join-code/enable'
+  | 'join-code/disable'
+  | 'join-code/regenerate'
+
+/** กดปุ่มจัดการสถานะ ; ได้ข้อมูลรายวิชาหลังเปลี่ยนกลับมา */
+export function runCourseAction(id: number, action: CourseAction): Promise<Course> {
+  return apiFetch<Course>(`/courses/${id}/${action}/`, { method: 'POST' })
+}
+
+/**
+ * ลบรายวิชา (ยังไม่เผยแพร่ + ไม่เคยมีผู้เรียน)
+ * @throws ApiError course_not_deletable / course_closed
+ */
+export function deleteCourse(id: number): Promise<void> {
+  return apiFetch<void>(`/courses/${id}/`, { method: 'DELETE' })
 }
