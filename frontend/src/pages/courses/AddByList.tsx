@@ -89,6 +89,7 @@ export function AddByList({
     }
     setWork('checking')
     setError(undefined)
+    setFileFailure(null)
     setReport(null)
     try {
       const result = await previewStudents(course.id, identifiers)
@@ -303,7 +304,11 @@ export function AddByList({
             rows={report ? 3 : 6}
             value={text}
             disabled={busy}
-            onChange={(event) => setText(event.target.value)}
+            onChange={(event) => {
+              setText(event.target.value)
+              // แก้รายการเองแล้ว → รายการไม่ใช่ของไฟล์นั้นอีกต่อไป
+              setFile(null)
+            }}
             aria-describedby={hintId}
             className={
               'w-full resize-y rounded-control border border-line-strong bg-surface px-3.5 py-3 text-[15px] ' +

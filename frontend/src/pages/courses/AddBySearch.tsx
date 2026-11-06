@@ -22,8 +22,9 @@ import { useRefreshCourse } from './useCoursePage'
 
 /** เวลารอหลังหยุดพิมพ์ก่อนค้นหา (มิลลิวินาที) */
 const SEARCH_DELAY_MS = 300
-/** จำนวนตัวอักษรขั้นต่ำของคำค้น (ตรงกับ backend) */
+/** จำนวนตัวอักษรขั้นต่ำ / สูงสุดของคำค้น (ตรงกับ backend) */
 const MIN_SEARCH = 2
+const MAX_SEARCH = 100
 
 type AddBySearchProps = {
   course: Course
@@ -68,10 +69,11 @@ export function AddBySearch({ course, active, inputRef, onAdded, onDone }: AddBy
       const failed = result.failed[0]
       if (failed) {
         setError(t(`addStudents.failure.${failed.reason}`))
-      } else {
+      } else if (result.already.length === 0) {
         setAddedIds((current) => [...current, candidate.id])
         onAdded(1)
       }
+      // มีคนอื่นเพิ่มไปก่อนแล้ว (already) → ไม่นับ ; ผลค้นหาที่โหลดใหม่ขึ้นป้าย "อยู่ในรายวิชาแล้ว" เอง
       await refresh()
     } catch (caught) {
       setError(errorMessage(caught instanceof ApiError ? caught.code : 'unknown'))
@@ -97,6 +99,7 @@ export function AddBySearch({ course, active, inputRef, onAdded, onDone }: AddBy
             onChange={(event) => setText(event.target.value)}
             aria-describedby={hintId}
             autoComplete="off"
+            maxLength={MAX_SEARCH}
             className="w-full"
           />
           <p id={hintId} className="m-0 text-[13.5px] leading-[1.55] text-ink-muted">

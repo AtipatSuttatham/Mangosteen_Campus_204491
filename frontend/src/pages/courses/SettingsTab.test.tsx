@@ -43,6 +43,18 @@ describe('แท็บตั้งค่า', () => {
     expect(await screen.findByRole('heading', { name: 'Python ขั้นสูง' })).toBeInTheDocument()
   })
 
+  it('ต่างแค่ช่องว่างท้ายชื่อ → ไม่เรียก API และปุ่มกลับเป็นกดไม่ได้', async () => {
+    const { user } = renderPage('/courses/5/settings')
+    const name = await screen.findByLabelText('ชื่อรายวิชา')
+
+    await user.type(name, '  ')
+    await user.click(screen.getByRole('button', { name: 'บันทึก' }))
+
+    await waitFor(() => expect(name).toHaveValue('Python พื้นฐาน'))
+    expect(screen.getByRole('button', { name: 'บันทึก' })).toBeDisabled()
+    expect(updateCourse).not.toHaveBeenCalled()
+  })
+
   it('ยังไม่แก้อะไร → ปุ่มบันทึกกดไม่ได้', async () => {
     renderPage('/courses/5/settings')
 

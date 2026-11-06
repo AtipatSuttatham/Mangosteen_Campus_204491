@@ -183,10 +183,12 @@ describe('หน้าต่างเพิ่มผู้เรียน', () =
     await opened.user.click(
       within(opened.dialog).getByRole('button', { name: 'วางรายการหรือเลือกไฟล์' }),
     )
-    await opened.user.type(
-      within(opened.dialog).getByLabelText('รหัสนักศึกษาหรืออีเมล บรรทัดละ 1 คน'),
-      text,
-    )
+    if (text) {
+      await opened.user.type(
+        within(opened.dialog).getByLabelText('รหัสนักศึกษาหรืออีเมล บรรทัดละ 1 คน'),
+        text,
+      )
+    }
     return opened
   }
 
@@ -219,6 +221,82 @@ describe('หน้าต่างเพิ่มผู้เรียน', () =
     expect(addStudents).toHaveBeenCalledWith(5, ['6705111'])
     await user.click(within(dialog).getByRole('button', { name: 'เสร็จ' }))
     expect(await screen.findByText('เพิ่มผู้เรียน 1 คนแล้ว')).toBeInTheDocument()
+  })
+
+  it('กดเพิ่มคนที่มีคนอื่นเพิ่มไปก่อนแล้ว → ไม่นับเป็นคนที่เพิ่ม', async () => {
+    searchCandidates.mockResolvedValue([{ ...makeStudent(11), enrollment_status: null }])
+    addStudents.mockResolvedValue({
+      ...emptyResult,
+      already: [{ identifier: '6705111', student: makeStudent(11) }],
+    })
+    const { user, dialog } = await openDialog()
+    await user.type(within(dialog).getByLabelText('ค้นหาผู้เรียน'), 'ชื่อ')
+    const add = await within(dialog).findByRole('button', { name: 'เพิ่ม ชื่อ11 สกุล11' })
+    searchCandidates.mockResolvedValue([{ ...makeStudent(11), enrollment_status: 'active' }])
+
+    await user.click(add)
+
+    expect(await within(dialog).findByText('อยู่ในรายวิชาแล้ว')).toBeInTheDocument()
+    expect(within(dialog).queryByText('เพิ่มแล้ว')).not.toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: 'เสร็จ' }))
+    expect(screen.queryByText(/คนแล้ว/)).not.toBeInTheDocument()
+  })
+
+  it('เพิ่มจากแท็บรายการ → ผลค้นหาในแท็บค้นหาโหลดใหม่', async () => {
+    searchCandidates.mockResolvedValue([{ ...makeStudent(11), enrollment_status: null }])
+    previewStudents.mockResolvedValue({
+      rows: [{ identifier: '6705111', result: 'add', student: makeStudent(11) }],
+      duplicates: 0,
+    })
+    addStudents.mockResolvedValue({
+      ...emptyResult,
+      added: [{ identifier: '6705111', student: makeStudent(11) }],
+    })
+    const { user, dialog } = await openDialog()
+    await user.type(within(dialog).getByLabelText('ค้นหาผู้เรียน'), 'ชื่อ')
+    await within(dialog).findByRole('button', { name: 'เพิ่ม ชื่อ11 สกุล11' })
+    searchCandidates.mockResolvedValue([{ ...makeStudent(11), enrollment_status: 'active' }])
+
+    await user.click(within(dialog).getByRole('button', { name: 'วางรายการหรือเลือกไฟล์' }))
+    await user.type(within(dialog).getByLabelText('รหัสนักศึกษาหรืออีเมล บรรทัดละ 1 คน'), '6705111')
+    await user.click(within(dialog).getByRole('button', { name: 'ตรวจรายการ' }))
+    await user.click(await within(dialog).findByRole('button', { name: 'เพิ่มผู้เรียน 1 คน' }))
+    await within(dialog).findByText('เพิ่มผู้เรียน 1 คนแล้ว')
+    await user.click(within(dialog).getByRole('button', { name: 'ค้นหาทีละคน' }))
+
+    expect(await within(dialog).findByText('อยู่ในรายวิชาแล้ว')).toBeInTheDocument()
+  })
+
+  it('อ่านไฟล์ไม่ได้ แล้ววางรายการตรวจผ่าน → กลับมาแก้ ข้อความไฟล์เดิมไม่ค้าง', async () => {
+    previewStudents.mockResolvedValue({ rows: ROWS, duplicates: 0 })
+    const { user, dialog } = await openList('670511')
+    await user.upload(
+      within(dialog).getByLabelText('เลือกไฟล์'),
+      new File(['ลำดับ,ชื่อ\n1,ก\n'], 'ห้อง.csv', { type: 'text/csv' }),
+    )
+    await within(dialog).findByRole('alert')
+
+    await user.click(within(dialog).getByRole('button', { name: 'ตรวจรายการ' }))
+    await user.click(await within(dialog).findByRole('button', { name: 'แก้รายการ' }))
+
+    expect(within(dialog).queryByRole('alert')).not.toBeInTheDocument()
+  })
+
+  it('ตรวจไฟล์ไม่สำเร็จ แล้วแก้รายการเอง → ไม่อ้างชื่อไฟล์เดิม', async () => {
+    previewStudents.mockRejectedValueOnce(new ApiError(0, 'network_error'))
+    previewStudents.mockResolvedValue({ rows: ROWS, duplicates: 0 })
+    const { user, dialog } = await openList('')
+    await user.upload(
+      within(dialog).getByLabelText('เลือกไฟล์'),
+      new File(['670511\n'], 'ห้อง.txt', { type: 'text/plain' }),
+    )
+    await within(dialog).findByRole('alert')
+
+    await user.type(within(dialog).getByLabelText('รหัสนักศึกษาหรืออีเมล บรรทัดละ 1 คน'), '2')
+    await user.click(within(dialog).getByRole('button', { name: 'ตรวจรายการ' }))
+
+    expect(await within(dialog).findByText('รายการที่วาง')).toBeInTheDocument()
+    expect(within(dialog).queryByText('ห้อง.txt')).not.toBeInTheDocument()
   })
 
   it('พิมพ์ 1 ตัวอักษร → ยังไม่ค้นหา', async () => {
