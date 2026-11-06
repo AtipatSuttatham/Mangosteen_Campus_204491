@@ -30,7 +30,7 @@ from enrollment.serializers import (
     JoinCourseSerializer,
     RosterFilterSerializer,
 )
-from enrollment.services import add_students, drop, join_with_code
+from enrollment.services import add_students, drop, join_with_code, preview_students
 
 # จำนวนผลค้นหาสูงสุดในหน้าต่าง "เพิ่มผู้เรียน — ค้นหาทีละคน"
 CANDIDATE_LIMIT = 10
@@ -118,6 +118,36 @@ class CourseRosterView(APIView):
                 "failed": result["failed"],
             }
         )
+
+
+class EnrollmentPreviewView(APIView):
+    """
+    POST /api/v1/courses/{id}/enrollments/preview/  {"identifiers": [...]}   ตรวจรายการก่อนเพิ่มผู้เรียน
+    - อ่านอย่างเดียว: ไม่เพิ่มใคร ไม่จด AuditLog → ตอนกดเพิ่มจริง backend ตรวจซ้ำทุกครั้ง
+    - 200 {rows: [{identifier, result, student}], duplicates} — result ดู enrollment/services.py
+    - รูปแบบรายการและขีดจำกัดเหมือนการเพิ่ม (1–500) ; วิชาที่ปิดแล้ว → 409 course_closed
+    - ผู้สอนเจ้าของ / ผู้ดูแลระบบ ; คนอื่น → 404
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request, pk: int) -> Response:
+        course = get_managed_course(request.user, pk)
+        ensure_not_closed(course)
+        serializer = AddStudentsSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        preview = preview_students(course, serializer.validated_data["identifiers"])
+        rows = [
+            {
+                "identifier": row["identifier"],
+                "result": row["result"],
+                "student": EnrolledStudentSerializer(row["student"]).data
+                if row["student"]
+                else None,
+            }
+            for row in preview["rows"]
+        ]
+        return Response({"rows": rows, "duplicates": preview["duplicates"]})
 
 
 class CandidateSearchView(APIView):

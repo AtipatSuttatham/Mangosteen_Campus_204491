@@ -3,7 +3,7 @@
  * หน้าตาตาม board "รายวิชาของฉัน (ผู้สอน) — ปรับจาก 5.3" แถวก้อน 3 ใน design canvas (อนุมัติ 2026-10-15)
  *
  *   รายวิชาของฉัน                                         [+ สร้างรายวิชา]
- *   ✓ สร้างรายวิชา 204212 โครงสร้างข้อมูล แล้ว               ← แถบเขียวหลังสร้าง
+ *   ✓ ลบรายวิชา 204212 โครงสร้างข้อมูล แล้ว                  ← แถบเขียวหลังลบ (ส่งมาจากแท็บตั้งค่า)
  *   ⌄ ปีการศึกษา 2569 ภาคเรียนที่ 1                         3 รายวิชา   ← Collapsible
  *   ┌───────────────────────────────────────────────────────────────┐
  *   │ [204111] Python พื้นฐาน   42 ผู้เรียน  รหัสเข้าร่วม K7Q2XM9A       │  ← CourseRow
@@ -16,13 +16,14 @@
  *   จำค่าที่ผู้ใช้กดไว้ในเบราว์เซอร์ (แบบ 2ก — useStoredState)
  */
 import { useQuery } from '@tanstack/react-query'
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { useLocation, useNavigate } from 'react-router'
 import { ApiError } from '../../api/client'
 import { fetchMyCourses, type Course } from '../../api/courses'
 import { errorMessage } from '../../api/errors'
 import { Button, Collapsible } from '../../components/ui'
-import { groupByTerm, termKey, type Term } from '../../lib/terms'
+import { groupByTerm, type Term } from '../../lib/terms'
 import { useStoredState } from '../../lib/useStoredState'
 import { CourseRow } from './CourseRow'
 import { CreateCourseDialog } from './CreateCourseDialog'
@@ -33,9 +34,17 @@ const OPEN_TERMS_KEY = 'teacher-courses:open-terms'
 
 export default function TeacherCoursesPage() {
   const { t } = useTranslation()
+  const navigate = useNavigate()
+  const location = useLocation()
   const [creating, setCreating] = useState(false)
-  // แถบเขียวหลังสร้างรายวิชา — อยู่จนกว่าจะมีข้อความใหม่
-  const [notice, setNotice] = useState<string | null>(null)
+  // แถบเขียวหลังลบรายวิชา: แท็บตั้งค่าส่งข้อความมากับการเปลี่ยนหน้า
+  const [notice, setNotice] = useState<string | null>(
+    (location.state as { notice?: string } | null)?.notice ?? null,
+  )
+  // ล้างข้อความออกจากประวัติ → รีเฟรชหน้าแล้วแถบไม่กลับมา
+  useEffect(() => {
+    if (location.state) void navigate('.', { replace: true, state: null })
+  }, [location.state, navigate])
   const [openTerms, setOpenTerms] = useStoredState<Record<string, boolean>>(OPEN_TERMS_KEY, {})
 
   const { data, error, isPending, refetch } = useQuery({
@@ -49,10 +58,9 @@ export default function TeacherCoursesPage() {
   const toggle = (key: string, index: number) =>
     setOpenTerms((prev) => ({ ...prev, [key]: !(prev[key] ?? index === 0) }))
 
-  /** สร้างสำเร็จ: แถบเขียว + เปิดกลุ่มภาคของวิชาใหม่ ให้เห็นวิชาที่เพิ่งสร้างทันที */
+  /** สร้างสำเร็จ: พาไปหน้ารายวิชา เพราะขั้นต่อไปคือเพิ่มผู้เรียนและเผยแพร่ */
   function handleCreated(course: Course) {
-    setNotice(t('courses.created', { code: course.code, name: course.name }))
-    setOpenTerms((prev) => ({ ...prev, [termKey(course)]: true }))
+    void navigate(`/courses/${course.id}`)
   }
 
   const termTitle = (term: Term) =>

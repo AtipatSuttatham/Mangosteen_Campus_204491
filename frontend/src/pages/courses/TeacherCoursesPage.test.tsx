@@ -1,11 +1,11 @@
 /**
- * test ของหน้า "รายวิชาของฉัน" ของผู้สอน และหน้าต่างสร้างรายวิชา (ขั้น 3.5)
+ * test ของหน้า "รายวิชาของฉัน" ของผู้สอน และหน้าต่างสร้างรายวิชา (ขั้น 3.5 ; ลิงก์ / พาไปหน้ารายวิชา ขั้น 3.6)
  * แทนที่ฟังก์ชันเรียก API ด้วยตัวปลอม (ไม่เรียก backend จริง) ; ข้อมูลทั้งหมดเป็นข้อมูลสมมติ
  */
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { MemoryRouter } from 'react-router'
+import { MemoryRouter, Route, Routes } from 'react-router'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../api/client'
 import * as coursesApi from '../../api/courses'
@@ -60,12 +60,15 @@ const COURSES: Course[] = [
   makeCourse(4, { academic_year: 2568, semester: 2, is_closed: true, student_count: 38 }),
 ]
 
-function renderPage() {
+function renderPage(entry: string | { pathname: string; state: unknown } = '/courses') {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   render(
     <QueryClientProvider client={queryClient}>
-      <MemoryRouter>
-        <TeacherCoursesPage />
+      <MemoryRouter initialEntries={[entry]}>
+        <Routes>
+          <Route path="/courses" element={<TeacherCoursesPage />} />
+          <Route path="/courses/:courseId" element={<p>หน้ารายวิชาที่เปิด</p>} />
+        </Routes>
       </MemoryRouter>
     </QueryClientProvider>,
   )
@@ -158,6 +161,21 @@ describe('รายการรายวิชา', () => {
   })
 })
 
+describe('ลิงก์และข้อความจากหน้ารายวิชา', () => {
+  it('ทั้งแถวเป็นลิงก์ไปหน้ารายวิชา', async () => {
+    renderPage()
+
+    const link = (await screen.findByText('วิศวกรรมซอฟต์แวร์')).closest('a')
+    expect(link).toHaveAttribute('href', '/courses/3')
+  })
+
+  it('ลบรายวิชาแล้วกลับมา → แถบเขียวจากแท็บตั้งค่า', async () => {
+    renderPage({ pathname: '/courses', state: { notice: 'ลบรายวิชา 204331 แล้ว' } })
+
+    expect(await screen.findByRole('status')).toHaveTextContent('ลบรายวิชา 204331 แล้ว')
+  })
+})
+
 describe('หน้าต่างสร้างรายวิชา', () => {
   async function openDialog() {
     const user = renderPage()
@@ -176,7 +194,7 @@ describe('หน้าต่างสร้างรายวิชา', () => {
     expect(within(dialog).getByLabelText('ภาคเรียน')).toHaveValue(String(term.semester))
   })
 
-  it('สร้างสำเร็จ → ส่งข้อมูลที่ตัดช่องว่างแล้ว, ปิดหน้าต่าง, แถบเขียว, โหลดรายการใหม่', async () => {
+  it('สร้างสำเร็จ → ส่งข้อมูลที่ตัดช่องว่างแล้ว แล้วพาไปหน้ารายวิชาที่เพิ่งสร้าง', async () => {
     const { user, dialog } = await openDialog()
     createCourse.mockResolvedValue(makeCourse(9, { code: '204999', name: 'ปัญญาประดิษฐ์' }))
     await user.clear(within(dialog).getByLabelText('ปีการศึกษา'))
@@ -194,9 +212,8 @@ describe('หน้าต่างสร้างรายวิชา', () => {
       name: 'ปัญญาประดิษฐ์',
       description: '',
     })
-    expect(await screen.findByRole('status')).toHaveTextContent('สร้างรายวิชา 204999 ปัญญาประดิษฐ์ แล้ว')
+    expect(await screen.findByText('หน้ารายวิชาที่เปิด')).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    await waitFor(() => expect(fetchMyCourses).toHaveBeenCalledTimes(2))
   })
 
   it('รหัสวิชาซ้ำในภาค → ข้อความใต้ช่องรหัสวิชา และหน้าต่างยังเปิดอยู่', async () => {

@@ -9,6 +9,7 @@ from enrollment.views import (
     CandidateSearchView,
     CourseRosterView,
     DropEnrollmentView,
+    EnrollmentPreviewView,
     JoinCourseView,
 )
 
@@ -20,6 +21,12 @@ course_patterns = [
         "<int:pk>/enrollments/candidates/",
         CandidateSearchView.as_view(),
         name="course-enrollment-candidates",
+    ),
+    # ตรวจรายการก่อนเพิ่ม (หน้าต่างเพิ่มผู้เรียน — วางรายการหรือเลือกไฟล์)
+    path(
+        "<int:pk>/enrollments/preview/",
+        EnrollmentPreviewView.as_view(),
+        name="course-enrollment-preview",
     ),
     # ถอนผู้เรียน 1 คน
     path(

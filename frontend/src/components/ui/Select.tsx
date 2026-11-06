@@ -25,7 +25,8 @@ export function Select({ className = '', children, ...props }: SelectProps) {
           // appearance-none: ซ่อนลูกศรของเบราว์เซอร์ แล้ววาดเองด้านขวา (เว้นที่ไว้ด้วย pr-9)
           'h-full w-full cursor-pointer appearance-none rounded-control border border-line-strong ' +
           'bg-surface pr-9 pl-3 text-[15px] text-ink ' +
-          'focus:outline-2 focus:outline-offset-1 focus:outline-brand'
+          'focus:outline-2 focus:outline-offset-1 focus:outline-brand ' +
+          'disabled:cursor-not-allowed disabled:border-line disabled:bg-canvas disabled:text-ink-muted'
         }
         {...props}
       >

@@ -60,6 +60,83 @@ export function InfoIcon() {
   )
 }
 
+/** ‹ ลิงก์กลับ "รายวิชาของฉัน" */
+export function BackIcon() {
+  return (
+    <LineIcon>
+      <path d="M15 6l-6 6 6 6" />
+    </LineIcon>
+  )
+}
+
+/** › ท้ายแถวรายวิชา */
+export function ChevronIcon() {
+  return (
+    <LineIcon>
+      <path d="M9 6l6 6-6 6" />
+    </LineIcon>
+  )
+}
+
+/** ลูกศรวน: ปุ่ม "สร้างรหัสใหม่" */
+export function RefreshIcon() {
+  return (
+    <LineIcon>
+      <path d="M20 11a8 8 0 0 0-14.5-4.5L4 8M4 4v4h4M4 13a8 8 0 0 0 14.5 4.5L20 16M20 20v-4h-4" />
+    </LineIcon>
+  )
+}
+
+/** ⚠ กล่องรายการที่เพิ่มไม่ได้ */
+export function WarnIcon() {
+  return (
+    <LineIcon>
+      <path d="M12 4l9 16H3z" />
+      <path d="M12 10v4M12 17.2v.1" />
+    </LineIcon>
+  )
+}
+
+/** ลูกศรขึ้น: พื้นที่เลือกไฟล์ */
+export function UploadIcon() {
+  return (
+    <LineIcon size={22}>
+      <path d="M12 15V5M8 9l4-4 4 4" />
+      <path d="M5 15v4h14v-4" />
+    </LineIcon>
+  )
+}
+
+/** ตาราง: แถบบอกไฟล์ที่อ่านแล้ว */
+export function SheetIcon() {
+  return (
+    <LineIcon size={22}>
+      <rect x="4" y="4" width="16" height="16" rx="2" />
+      <path d="M4 10h16M4 15h16M10 10v10" />
+    </LineIcon>
+  )
+}
+
+/** ตา: ป้าย "เผยแพร่แล้ว" */
+export function EyeIcon() {
+  return (
+    <LineIcon size={15} strokeWidth={2}>
+      <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
+      <circle cx="12" cy="12" r="3" />
+    </LineIcon>
+  )
+}
+
+/** วงกลมขีดฆ่า: ป้าย "บัญชีถูกระงับ" */
+export function BlockedIcon() {
+  return (
+    <LineIcon size={14} strokeWidth={2}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M6 6l12 12" />
+    </LineIcon>
+  )
+}
+
 /** ตาขีดฆ่า: ป้าย "ยังไม่เผยแพร่" */
 export function EyeOffIcon() {
   return (
