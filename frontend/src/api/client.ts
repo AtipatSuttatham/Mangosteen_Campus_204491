@@ -104,6 +104,18 @@ export async function apiFetch<T = unknown>(
   path: string,
   options: ApiFetchOptions = {},
 ): Promise<T> {
+  return (await apiFetchWithStatus<T>(path, options)).data
+}
+
+/**
+ * เหมือน apiFetch แต่คืน HTTP status มาด้วย — ใช้เมื่อหน้าจอต้องแยกผลจาก status
+ * เช่น เข้าร่วมด้วยรหัส: 201 = เข้าร่วมใหม่ / 200 = อยู่ในรายวิชาอยู่แล้ว (ขั้น 3.7)
+ * @throws ApiError ทุกกรณีที่ไม่สำเร็จ (เหมือน apiFetch)
+ */
+export async function apiFetchWithStatus<T = unknown>(
+  path: string,
+  options: ApiFetchOptions = {},
+): Promise<{ data: T; status: number }> {
   const { body, headers, auth = true, ...rest } = options
   const hasBody = body !== undefined
   // ส่งไฟล์ (FormData) → ส่งตามเดิม และให้เบราว์เซอร์ตั้ง Content-Type เอง (มีเส้นคั่นของ multipart)
@@ -157,7 +169,7 @@ export async function apiFetch<T = unknown>(
   }
 
   if (response.ok) {
-    return data as T
+    return { data: data as T, status: response.status }
   }
 
   // backend ตอบ error ในรูปแบบกลาง → ใช้รหัสที่ส่งมา
