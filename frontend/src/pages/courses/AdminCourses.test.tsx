@@ -168,6 +168,36 @@ describe('หน้าจัดการรายวิชา', () => {
     expect(router.state.location.search).toBe('?term=2568-2&teacher=11&status=closed')
   })
 
+  it('ลำดับช่องในโค้ด (= ลำดับปุ่ม Tab) ตรงกับลำดับบนจอ: ค้นหา ภาคเรียน ผู้สอน สถานะ ; ไม่มีการย้ายตำแหน่งด้วย CSS', async () => {
+    renderAt('/courses')
+    await screen.findByLabelText('ภาคเรียน')
+    const fields = [...screen.getByRole('search').querySelectorAll<HTMLElement>('input, select')]
+    expect(fields.map((field) => document.querySelector(`label[for="${field.id}"]`)?.textContent)).toEqual([
+      'ค้นหารายวิชา',
+      'ภาคเรียน',
+      'ผู้สอน',
+      'สถานะ',
+    ])
+    // ทุกชิ้นในแถบตัวกรอง (รวมกล่องที่ห่อ select) ต้องไม่มีคลาส order-* ที่ย้ายตำแหน่งบนจอให้ต่างจากลำดับ Tab
+    const search = screen.getByRole('search')
+    ;[search, ...search.querySelectorAll<HTMLElement>('*')].forEach((element) =>
+      expect(element.getAttribute('class') ?? '').not.toMatch(/(^|[\s:])order-/),
+    )
+  })
+
+  it('เปิดหน้าซ้ำภายใน 5 นาที → ใช้รายชื่อผู้สอน / ภาคเรียนที่โหลดไว้ ไม่ขอใหม่', async () => {
+    fetchCourse.mockResolvedValue(makeCourse())
+    const { router } = renderAt('/courses')
+    await screen.findByRole('option', { name: 'กมล ทดลอง (T7)' })
+    // ไปหน้าตั้งค่าของวิชา (ใช้รายชื่อผู้สอนเหมือนกัน) แล้วกลับมา
+    await router.navigate('/courses/5/settings')
+    await within(await screen.findByLabelText('ผู้สอนที่รับผิดชอบ')).findByRole('option', { name: 'วรวุฒิ ทดลอง (T9)' })
+    await router.navigate('/courses')
+    await screen.findByRole('option', { name: 'กมล ทดลอง (T7)' })
+    expect(fetchAdminTeachers).toHaveBeenCalledTimes(1)
+    expect(fetchAdminTerms).toHaveBeenCalledTimes(1)
+  })
+
   it('กรองแล้วไม่พบ → "พบ 0 รายวิชา" + ปุ่มล้างตัวกรอง', async () => {
     const { user, router } = renderAt('/courses?status=draft')
 
