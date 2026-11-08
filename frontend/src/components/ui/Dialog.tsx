@@ -75,12 +75,18 @@ export function Dialog({
   // ระหว่างเปิด: หน้าด้านหลังเลื่อนไม่ได้ + กด/โฟกัสไม่ได้ (inert) — ปิดแล้วคืนค่าเดิม
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
+    const previousPadding = document.body.style.paddingRight
+    // ล็อกการเลื่อนแล้วแถบเลื่อนของหน้าหายไป → เติมช่องว่างเท่าความกว้างแถบเลื่อนแทน
+    // หน้าด้านหลังจึงไม่ขยับ (ขั้น 3.6 รอบ 3) ; หน้าต่างซ้อนกันชั้นที่ 2 วัดได้ 0 จึงไม่เติมซ้ำ
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth
+    if (scrollbarWidth > 0) document.body.style.paddingRight = `${scrollbarWidth}px`
     document.body.style.overflow = 'hidden'
     const appRoot = document.getElementById('root')
     const wasInert = appRoot?.hasAttribute('inert') ?? false
     appRoot?.setAttribute('inert', '')
     return () => {
       document.body.style.overflow = previousOverflow
+      document.body.style.paddingRight = previousPadding
       if (!wasInert) appRoot?.removeAttribute('inert')
     }
   }, [])

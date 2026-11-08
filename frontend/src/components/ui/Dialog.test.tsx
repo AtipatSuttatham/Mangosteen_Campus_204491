@@ -120,6 +120,20 @@ describe('Dialog', () => {
     await user.keyboard('{Escape}')
     expect(document.body.style.overflow).toBe('')
   })
+
+  it('เติมช่องว่างเท่าแถบเลื่อนที่หายไป หน้าด้านหลังจึงไม่ขยับ — ปิดแล้วคืนค่าเดิม (ขั้น 3.6 รอบ 3)', async () => {
+    const user = userEvent.setup()
+    // จำลองแถบเลื่อนกว้าง 15px: หน้าต่างเบราว์เซอร์กว้างกว่าพื้นที่เนื้อหา 15px
+    const clientWidth = vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(window.innerWidth - 15)
+    render(<DialogHarness />)
+
+    await user.click(screen.getByRole('button', { name: 'เปิดหน้าต่าง' }))
+    expect(document.body.style.paddingRight).toBe('15px')
+
+    await user.keyboard('{Escape}')
+    expect(document.body.style.paddingRight).toBe('')
+    clientWidth.mockRestore()
+  })
 })
 
 describe('ConfirmDialog', () => {
