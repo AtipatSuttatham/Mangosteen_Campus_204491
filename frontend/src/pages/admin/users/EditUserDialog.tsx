@@ -20,6 +20,7 @@ import { useAuth } from '../../../auth/AuthContext'
 import { Button, Dialog, DialogBody, DialogFooter, DialogHeader } from '../../../components/ui'
 import { UserFields } from './UserFields'
 import { applySaveError, type UserFormValues } from './userForm'
+import { invalidateUserLists } from './invalidateUsers'
 
 /** ช่องที่แก้ได้ (ส่งเฉพาะช่องที่ค่าเปลี่ยน) */
 const EDITABLE = ['first_name', 'last_name', 'email', 'student_or_staff_id', 'role'] as const
@@ -81,7 +82,7 @@ export function EditUserDialog({ user, isSelf, onClose, onSaved }: EditUserDialo
     }
     try {
       const updated = await updateAdminUser(user.id, changes)
-      void queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      void invalidateUserLists(queryClient)
       if (isSelf) {
         // ชื่อ/อีเมลของตัวเองเปลี่ยน → ทั่วหน้าจอและทุกแท็บเปลี่ยนตาม (เหมือนหน้าข้อมูลส่วนตัว)
         updateUser({

@@ -41,6 +41,7 @@ import { UserFilterBar } from './UserFilterBar'
 import { UsersCards } from './UsersCards'
 import { UsersTable } from './UsersTable'
 import { useUserFilters } from './useUserFilters'
+import { invalidateUserLists } from './invalidateUsers'
 
 /** ตัวเลขแบบมีจุลภาคคั่นหลักพัน เช่น 1,248 */
 const formatCount = (value: number) => value.toLocaleString('th-TH')
@@ -70,7 +71,7 @@ export default function UsersPage() {
     setNotice(null)
     try {
       await activateAdminUser(user.id)
-      await queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      await invalidateUserLists(queryClient)
       setNotice({ tone: 'ok', text: t('adminUsers.activated', { name: fullName(user) }) })
     } catch (caught) {
       const reason = errorMessage(caught instanceof ApiError ? caught.code : 'unknown')

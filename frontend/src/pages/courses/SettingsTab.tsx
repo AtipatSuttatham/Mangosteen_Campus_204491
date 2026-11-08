@@ -34,7 +34,13 @@ import { errorMessage, fieldErrorsMessage } from '../../api/errors'
 import { Button, ConfirmDialog, StatusBadge } from '../../components/ui'
 import { formatDateTime } from '../../lib/datetime'
 import { CopyButton } from '../admin/users/CopyButton'
-import { ADMIN_COURSES_KEY, ADMIN_TEACHERS_KEY, teacherName, useAdminTeachers } from './adminCourseData'
+import {
+  ADMIN_COURSES_KEY,
+  ADMIN_TEACHERS_KEY,
+  ADMIN_TERMS_KEY,
+  teacherName,
+  useAdminTeachers,
+} from './adminCourseData'
 import { CourseFields } from './CourseFields'
 import {
   applyCourseSaveError,
@@ -174,6 +180,8 @@ function InfoForm({ course, className }: { course: Course; className: string }) 
       reset(courseToForm(updated))
       await queryClient.invalidateQueries({ queryKey: ['my-courses'] })
       await queryClient.invalidateQueries({ queryKey: ADMIN_COURSES_KEY })
+      // ปี / ภาคที่แก้ อาจทำให้รายการภาคในตัวกรองของผู้ดูแลระบบเปลี่ยน (ไม่เป็นผู้ดูแลระบบ = ไม่มีแคชนี้ ไม่มีผล)
+      await queryClient.invalidateQueries({ queryKey: ADMIN_TERMS_KEY })
       setSaved(true)
     } catch (caught) {
       setFormError(applyCourseSaveError(caught, setError))
@@ -301,6 +309,9 @@ export default function SettingsTab() {
       await deleteCourse(course.id)
       await queryClient.invalidateQueries({ queryKey: ['my-courses'] })
       await queryClient.invalidateQueries({ queryKey: ADMIN_COURSES_KEY })
+      // ลบวิชาแล้ว ภาคเรียนในตัวกรอง / จำนวนวิชาของผู้สอนอาจเปลี่ยน
+      await queryClient.invalidateQueries({ queryKey: ADMIN_TERMS_KEY })
+      await queryClient.invalidateQueries({ queryKey: ADMIN_TEACHERS_KEY })
       queryClient.removeQueries({ queryKey: ['course', course.id] })
       const notice = t('courseSettings.deletedNotice', { code: course.code, name: course.name })
       await navigate('/courses', { state: { notice } })

@@ -17,6 +17,7 @@ import { suspendAdminUser, type AdminUser } from '../../../api/adminUsers'
 import { ApiError } from '../../../api/client'
 import { errorMessage } from '../../../api/errors'
 import { ConfirmDialog } from '../../../components/ui'
+import { invalidateUserLists } from './invalidateUsers'
 
 type SuspendUserDialogProps = {
   user: AdminUser
@@ -37,7 +38,7 @@ export function SuspendUserDialog({ user, onClose, onSuspended }: SuspendUserDia
     setError(undefined)
     try {
       const updated = await suspendAdminUser(user.id)
-      void queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      void invalidateUserLists(queryClient)
       onSuspended(updated)
     } catch (caught) {
       setError(errorMessage(caught instanceof ApiError ? caught.code : 'unknown'))
