@@ -8,7 +8,8 @@
  * - ทั้ง 2 แท็บเปิดค้างไว้ในหน่วยความจำ → สลับแท็บแล้วรายการที่กรอกไม่หาย
  * - หน้าต่างกว้าง 640px ; ตอนแสดงตารางตรวจรายการกว้าง 880px ; มือถือเต็มจอ
  * - ระหว่างรอผล ปิดหน้าต่าง / สลับแท็บไม่ได้
- * - ปิดหน้าต่างแล้วแจ้งจำนวนคนที่เพิ่มรวมทั้งหมด (onClose) → หน้ารายวิชาแสดงแถบเขียว
+ * - ปิดหน้าต่างแล้วไม่ขึ้นแถบเขียวที่หน้ารายวิชา — ในหน้าต่างรายงานผลไปแล้ว และแถบจะดันตารางให้ปุ่มเลื่อน
+ *   (ขั้น 3.6 รอบ 3 แบบ ท1)
  */
 import { useId, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -20,8 +21,7 @@ import { Segmented } from './courseBits'
 
 type AddStudentsDialogProps = {
   course: Course
-  /** ปิดหน้าต่าง พร้อมจำนวนคนที่เพิ่มและเพิ่มกลับสำเร็จทั้งหมด */
-  onClose: (total: number) => void
+  onClose: () => void
 }
 
 export function AddStudentsDialog({ course, onClose }: AddStudentsDialogProps) {
@@ -31,12 +31,10 @@ export function AddStudentsDialog({ course, onClose }: AddStudentsDialogProps) {
   const [tab, setTab] = useState<'search' | 'list'>('search')
   const [wide, setWide] = useState(false)
   const [busy, setBusy] = useState(false)
-  const [total, setTotal] = useState(0)
 
   const requestClose = () => {
-    if (!busy) onClose(total)
+    if (!busy) onClose()
   }
-  const handleAdded = (count: number) => setTotal((current) => current + count)
 
   return (
     <Dialog
@@ -69,13 +67,11 @@ export function AddStudentsDialog({ course, onClose }: AddStudentsDialogProps) {
         course={course}
         active={tab === 'search'}
         inputRef={searchRef}
-        onAdded={handleAdded}
         onDone={requestClose}
       />
       <AddByList
         course={course}
         active={tab === 'list'}
-        onAdded={handleAdded}
         onDone={requestClose}
         onBusyChange={setBusy}
         onWideChange={setWide}

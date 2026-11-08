@@ -383,10 +383,8 @@ export default function StudentsTab() {
       {adding && (
         <AddStudentsDialog
           course={course}
-          onClose={(total) => {
-            setAdding(false)
-            if (total > 0) notify({ tone: 'ok', text: t('roster.added', { total }) })
-          }}
+          // ไม่ขึ้นแถบเขียวหลังปิด — หน้าต่างรายงานผลไปแล้ว (ขั้น 3.6 รอบ 3 แบบ ท1)
+          onClose={() => setAdding(false)}
         />
       )}
       {dropping && (

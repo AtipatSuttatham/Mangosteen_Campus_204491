@@ -31,11 +31,10 @@ type AddBySearchProps = {
   /** แท็บนี้เปิดอยู่หรือไม่ (ปิดอยู่ = ไม่แสดง แต่คำค้นยังอยู่) */
   active: boolean
   inputRef: RefObject<HTMLInputElement | null>
-  onAdded: (count: number) => void
   onDone: () => void
 }
 
-export function AddBySearch({ course, active, inputRef, onAdded, onDone }: AddBySearchProps) {
+export function AddBySearch({ course, active, inputRef, onDone }: AddBySearchProps) {
   const { t } = useTranslation()
   const inputId = useId()
   const hintId = useId()
@@ -71,9 +70,8 @@ export function AddBySearch({ course, active, inputRef, onAdded, onDone }: AddBy
         setError(t(`addStudents.failure.${failed.reason}`))
       } else if (result.already.length === 0) {
         setAddedIds((current) => [...current, candidate.id])
-        onAdded(1)
       }
-      // มีคนอื่นเพิ่มไปก่อนแล้ว (already) → ไม่นับ ; ผลค้นหาที่โหลดใหม่ขึ้นป้าย "อยู่ในรายวิชาแล้ว" เอง
+      // มีคนอื่นเพิ่มไปก่อนแล้ว (already) → ไม่ขึ้น "เพิ่มแล้ว" ; ผลค้นหาที่โหลดใหม่ขึ้นป้าย "อยู่ในรายวิชาแล้ว" เอง
       await refresh()
     } catch (caught) {
       setError(errorMessage(caught instanceof ApiError ? caught.code : 'unknown'))

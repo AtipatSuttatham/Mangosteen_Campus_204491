@@ -199,7 +199,7 @@ describe('หน้าต่างเพิ่มผู้เรียน', () =
     { identifier: '670513', result: 'already', student: makeStudent(13) },
   ]
 
-  it('ค้นหาทีละคน: กดเพิ่ม → ป้ายเพิ่มแล้ว ; เสร็จแล้วมีแถบเขียว', async () => {
+  it('ค้นหาทีละคน: กดเพิ่ม → ป้ายเพิ่มแล้ว ; ปิดหน้าต่างแล้วไม่ขึ้นแถบเขียว (ไม่ดันตาราง)', async () => {
     searchCandidates.mockResolvedValue([
       { ...makeStudent(11), enrollment_status: null },
       { ...makeStudent(12), enrollment_status: 'dropped' },
@@ -220,7 +220,9 @@ describe('หน้าต่างเพิ่มผู้เรียน', () =
     expect(await within(dialog).findByText('เพิ่มแล้ว')).toBeInTheDocument()
     expect(addStudents).toHaveBeenCalledWith(5, ['6705111'])
     await user.click(within(dialog).getByRole('button', { name: 'เสร็จ' }))
-    expect(await screen.findByText('เพิ่มผู้เรียน 1 คนแล้ว')).toBeInTheDocument()
+    // ขั้น 3.6 รอบ 3 แบบ ท1: หน้าต่างรายงานผลแล้ว จึงไม่ขึ้นแถบเขียวซ้ำที่หน้า
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.queryByText(/คนแล้ว/)).not.toBeInTheDocument()
   })
 
   it('กดเพิ่มคนที่มีคนอื่นเพิ่มไปก่อนแล้ว → ไม่นับเป็นคนที่เพิ่ม', async () => {
@@ -342,8 +344,9 @@ describe('หน้าต่างเพิ่มผู้เรียน', () =
     await user.click(within(dialog).getByRole('button', { name: 'เพิ่มผู้เรียน 1 คน' }))
 
     expect(addStudents).toHaveBeenCalledWith(5, ['670519', '670512', '670513'])
-    expect(await within(dialog).findByText('ไม่มีผู้เรียนใหม่')).toBeInTheDocument()
-    expect(within(dialog).getByText(/เพิ่มกลับ 1 คนที่เคยถูกถอน \(6705112 ชื่อ12 สกุล12\)/)).toBeInTheDocument()
+    // จำนวนรวมนับคนที่เพิ่มกลับด้วย ตรงกับตัวเลขบนปุ่ม (ขั้น 3.6 รอบ 3 แบบ ธ1)
+    expect(await within(dialog).findByText('เพิ่มผู้เรียน 1 คนแล้ว')).toBeInTheDocument()
+    expect(within(dialog).getByText(/^รวมเพิ่มกลับ 1 คนที่เคยถูกถอน \(6705112 ชื่อ12 สกุล12\)/)).toBeInTheDocument()
     expect(within(dialog).getByText('รายการซ้ำ 1 รายการ นับครั้งเดียว')).toBeInTheDocument()
     expect(within(dialog).getByLabelText('รหัสนักศึกษาหรืออีเมล บรรทัดละ 1 คน')).toHaveValue('670519')
   })
