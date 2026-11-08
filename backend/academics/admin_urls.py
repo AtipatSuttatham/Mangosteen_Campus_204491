@@ -5,11 +5,13 @@
 
 from django.urls import path
 
-from academics.views import AdminCourseListView, AdminTermListView
+from academics.views import AdminCourseListView, AdminTeacherListView, AdminTermListView
 
 urlpatterns = [
     # รายวิชาทั้งระบบ + ค้นหา / กรอง / แบ่งหน้า
     path("courses/", AdminCourseListView.as_view(), name="admin-course-list"),
     # ภาคเรียนที่มีรายวิชาอยู่ (ตัวเลือกของตัวกรอง)
     path("courses/terms/", AdminTermListView.as_view(), name="admin-course-terms"),
+    # รายชื่อผู้สอน (ช่องเลือกผู้สอน + ตัวกรอง "ผู้สอน" — ขั้น 3.8)
+    path("courses/teachers/", AdminTeacherListView.as_view(), name="admin-course-teachers"),
 ]

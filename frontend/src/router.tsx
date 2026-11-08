@@ -83,21 +83,22 @@ export const appRoutes: RouteObject[] = createRoutesFromElements(
           </RequireAuth>
         }
       />
-      {/* รายวิชาของฉัน: ผู้สอน (ขั้น 3.5) + ผู้เรียน (ขั้น 3.7) — สลับหน้าตามบทบาทใน CourseRoutes */}
+      {/* รายวิชาของฉัน: ผู้สอน (ขั้น 3.5) + ผู้เรียน (ขั้น 3.7) + จัดการรายวิชาของผู้ดูแลระบบ (ขั้น 3.8)
+          — สลับหน้าตามบทบาทใน CourseRoutes */}
       <Route
         path="/courses"
         element={
-          <RequireAuth roles={['teacher', 'student']}>
+          <RequireAuth roles={['admin', 'teacher', 'student']}>
             <MyCoursesRoute />
           </RequireAuth>
         }
       />
-      {/* หน้ารายวิชา: ผู้สอน = CoursePage + แท็บตรง <Outlet /> ; ผู้เรียน = StudentCoursePage (ไม่มีแท็บ)
-          ผู้ดูแลระบบเพิ่มในขั้น 3.8 */}
+      {/* หน้ารายวิชา: ผู้สอน / ผู้ดูแลระบบ = CoursePage + แท็บตรง <Outlet /> ;
+          ผู้เรียน = StudentCoursePage (ไม่มีแท็บ) */}
       <Route
         path="/courses/:courseId"
         element={
-          <RequireAuth roles={['teacher', 'student']}>
+          <RequireAuth roles={['admin', 'teacher', 'student']}>
             <CourseRoute />
           </RequireAuth>
         }

@@ -6,7 +6,7 @@ API รายวิชา (UC-07 — ขั้น 3.3) — อ้างอิง
 """
 
 from django.db import IntegrityError, transaction
-from django.db.models import Q
+from django.db.models import Count, Q
 from rest_framework import status
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
@@ -25,6 +25,7 @@ from academics.join_codes import generate_join_code
 from academics.models import Course
 from academics.serializers import (
     AdminCourseFilterSerializer,
+    AdminTeacherOptionSerializer,
     CourseSerializer,
     CourseWriteSerializer,
     StudentCourseSerializer,
@@ -345,3 +346,25 @@ class AdminTermListView(APIView):
             .distinct()
         )
         return Response(list(terms))
+
+
+class AdminTeacherListView(APIView):
+    """
+    GET /api/v1/admin/courses/teachers/   รายชื่อผู้สอนสำหรับหน้าจัดการรายวิชา (ขั้น 3.8 — ผู้ใช้เลือกแบบ ล1)
+    → 200 [{id, first_name, last_name, student_or_staff_id, is_active, assignable,
+            course_count}, ...]
+      ไม่แบ่งหน้า (ช่องเลือกต้องเห็นครบทุกคน) เรียงตามชื่อ–นามสกุล
+    - รวม: บัญชีผู้สอนทุกคน (รวมที่ถูกระงับ) + ผู้ที่ยังเป็นผู้สอนของวิชาใดอยู่แม้บทบาทเปลี่ยนไปแล้ว
+    - หน้าจอใช้: ช่องเลือกผู้สอน = assignable ; ตัวกรอง "ผู้สอน" = course_count > 0
+    ผู้ดูแลระบบเท่านั้น
+    """
+
+    permission_classes = [IsAuthenticated, IsAdminRole]
+
+    def get(self, request: Request) -> Response:
+        teachers = (
+            User.objects.annotate(course_count=Count("taught_courses"))
+            .filter(Q(role=User.Role.TEACHER) | Q(course_count__gt=0))
+            .order_by("first_name", "last_name", "id")
+        )
+        return Response(AdminTeacherOptionSerializer(teachers, many=True).data)

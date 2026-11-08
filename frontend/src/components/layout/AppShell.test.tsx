@@ -220,8 +220,9 @@ describe('navItemsFor', () => {
     expect(navItemsFor('student').map((item) => item.to)).toEqual(['/', '/courses'])
   })
 
-  it('ผู้ดูแลระบบเห็น ภาพรวม + จัดการผู้ใช้ (ขั้น 2.5)', () => {
-    expect(navItemsFor('admin').map((item) => item.to)).toEqual(['/', '/users'])
+  it('ผู้ดูแลระบบเห็น ภาพรวม + จัดการผู้ใช้ (ขั้น 2.5) + จัดการรายวิชา (ขั้น 3.8)', () => {
+    expect(navItemsFor('admin').map((item) => item.to)).toEqual(['/', '/users', '/courses'])
+    expect(navItemsFor('admin').at(-1)?.label).toBe('manageCourses')
   })
 })
 
