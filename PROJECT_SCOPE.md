@@ -175,7 +175,7 @@
 | 3.5 | หน้า "รายวิชาของฉัน" ของผู้สอน `/courses` (กลุ่มภาคพับได้ + จำค่าในเบราว์เซอร์) + หน้าต่างสร้างรายวิชา + `CourseBadge` + `Collapsible` + เมนู "รายวิชาของฉัน" | ✅ | [#31](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/31) |
 | 3.6 | หน้ารายวิชา `/courses/{id}`: แท็บผู้เรียน (เพิ่ม 2 แบบ / เลือกไฟล์ `.xlsx` `.csv` `.txt` / ตารางตรวจรายการก่อนเพิ่ม / ถอน / เพิ่มกลับ) + แท็บตั้งค่า (แก้ข้อมูล, เผยแพร่, รหัสเข้าร่วม, ปิด, ลบ) + API ตรวจรายการ | ✅ | [#32](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/32), [#33](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/33), [#35](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/35), [#36](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/36) |
 | 3.7 | หน้า "รายวิชาของฉัน" ของผู้เรียน (เข้าร่วมด้วยรหัส) + หน้ารายวิชาของผู้เรียน (ยังไม่มีเนื้อหา + คำอธิบายแบบ Markdown) | ✅ | [#37](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/37), [#38](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/38) |
-| 3.8 | หน้า "จัดการรายวิชา" ของผู้ดูแลระบบ + สร้างแทนผู้สอน + เปลี่ยนผู้สอน + เปิดรายวิชาคืน + แถบ "กำลังจัดการแทนผู้สอน" + API รายชื่อผู้สอน | ✅ | [#39](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/39) |
+| 3.8 | หน้า "จัดการรายวิชา" ของผู้ดูแลระบบ + สร้างแทนผู้สอน + เปลี่ยนผู้สอน + เปิดรายวิชาคืน + แถบ "กำลังจัดการแทนผู้สอน" + API รายชื่อผู้สอน | ✅ | [#39](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/39), [#40](https://github.com/AtipatSuttatham/Mangosteen_Campus_204491/pull/40) |
 
 ### หลังก้อน 10 (ตามรายงานตาราง 1.1 ขั้นที่ 7–8)
 
