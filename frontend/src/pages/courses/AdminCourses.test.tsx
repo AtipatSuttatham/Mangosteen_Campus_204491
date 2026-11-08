@@ -327,6 +327,28 @@ describe('หน้ารายวิชาของผู้ดูแลระ�
     expect(screen.getByRole('button', { name: 'เปลี่ยนผู้สอน' })).toBeDisabled()
   })
 
+  it('เลือกผู้สอนค้างไว้แล้วไปตั้งค่าของวิชาอื่นโดยตรง → ช่องกลับเป็นผู้สอนของวิชาใหม่ ปุ่มกดไม่ได้', async () => {
+    // ทั้ง 2 วิชาสอนโดยกมล (7) — ค่าที่ค้าง (วรวุฒิ) จึงต่างจากผู้สอนของวิชาใหม่ และปุ่มจะกดได้ถ้าค่าค้าง
+    fetchCourse.mockImplementation((id) =>
+      Promise.resolve(id === 6 ? makeCourse({ id: 6, code: '204252', name: 'โครงสร้างข้อมูล' }) : makeCourse()),
+    )
+    // เคยเปิดวิชา 6 มาก่อน → ข้อมูลอยู่ในแคช กลับไปแล้วไม่มีช่วง "กำลังโหลด" ที่ถอดแท็บออก
+    const { user, router } = renderAt('/courses/6/settings')
+    await screen.findByRole('heading', { name: 'โครงสร้างข้อมูล', level: 1 })
+    await router.navigate('/courses/5/settings')
+    await screen.findByRole('heading', { name: 'Python พื้นฐาน', level: 1 })
+    const picker = await screen.findByLabelText('ผู้สอนที่รับผิดชอบ')
+    await within(picker).findByRole('option', { name: 'วรวุฒิ ทดลอง (T9)' })
+    await user.selectOptions(picker, '9')
+    expect(screen.getByRole('button', { name: 'เปลี่ยนผู้สอน' })).toBeEnabled()
+
+    // ย้อนกลับไปวิชา 6 ตรง ๆ (ปุ่มย้อนกลับของเบราว์เซอร์ / พิมพ์ที่อยู่)
+    await router.navigate(-1)
+    await screen.findByRole('heading', { name: 'โครงสร้างข้อมูล', level: 1 })
+    expect(screen.getByLabelText('ผู้สอนที่รับผิดชอบ')).toHaveValue('7')
+    expect(screen.getByRole('button', { name: 'เปลี่ยนผู้สอน' })).toBeDisabled()
+  })
+
   it('ผู้สอนปัจจุบันถูกระงับ → ช่องบอกว่าเป็นใครพร้อม "(บัญชีถูกระงับ)" แต่เลือกกลับไม่ได้', async () => {
     fetchCourse.mockResolvedValue(
       makeCourse({ teacher: { id: 11, first_name: 'ปรียา', last_name: 'ทดลอง', is_active: false } }),
