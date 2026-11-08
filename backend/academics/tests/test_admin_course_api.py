@@ -135,3 +135,63 @@ def test_terms_for_filter(admin_client: APIClient) -> None:
         {"academic_year": 2569, "semester": 1},
         {"academic_year": 2568, "semester": 2},
     ]
+
+
+# ---------- รายชื่อผู้สอนสำหรับช่องเลือก / ตัวกรอง (ขั้น 3.8) ----------
+
+TEACHERS_URL = f"{ADMIN_COURSES_URL}teachers/"
+
+
+def test_teachers_for_picker_and_filter(
+    admin_client: APIClient, teacher: User, other_teacher: User, student: User
+) -> None:
+    """
+    ผู้สอนทุกคน (รวมที่ถูกระงับ) เรียงตามชื่อ + จำนวนวิชา + เลือกเป็นผู้สอนได้ไหม ;
+    ผู้เรียน / ผู้ดูแลระบบที่ไม่ได้สอนวิชาใดไม่อยู่ในรายการ
+    """
+    make_course(teacher)
+    make_course(teacher, code="204212", name="โครงสร้างข้อมูล")
+    suspended = make_user("pree@example.com", User.Role.TEACHER, first_name="ปรียา", is_active=False)
+    make_course(suspended, code="204252", name="การวิเคราะห์อัลกอริทึม")
+
+    response = admin_client.get(TEACHERS_URL)
+
+    assert response.status_code == 200
+    rows = {row["id"]: row for row in response.data}
+    assert set(rows) == {teacher.pk, other_teacher.pk, suspended.pk}
+    # เรียงตามชื่อ: กมล → ปรียา → วรวุฒิ
+    assert [row["id"] for row in response.data] == [teacher.pk, suspended.pk, other_teacher.pk]
+    assert rows[teacher.pk]["course_count"] == 2
+    assert rows[teacher.pk]["assignable"] is True
+    assert rows[other_teacher.pk]["course_count"] == 0
+    assert rows[suspended.pk] == {
+        "id": suspended.pk,
+        "first_name": "ปรียา",
+        "last_name": "ระบบ",
+        "student_or_staff_id": None,
+        "is_active": False,
+        "assignable": False,
+        "course_count": 1,
+    }
+
+
+def test_teachers_include_former_teacher_with_courses(
+    admin_client: APIClient, teacher: User
+) -> None:
+    """เปลี่ยนบทบาทเป็นผู้เรียนแล้วแต่ยังเป็นผู้สอนของวิชาอยู่ → ยังอยู่ในตัวกรอง แต่เลือกเป็นผู้สอนไม่ได้"""
+    make_course(teacher)
+    teacher.role = User.Role.STUDENT
+    teacher.save()
+
+    response = admin_client.get(TEACHERS_URL)
+
+    assert [(row["id"], row["assignable"], row["course_count"]) for row in response.data] == [
+        (teacher.pk, False, 1)
+    ]
+
+
+@pytest.mark.parametrize("role", [User.Role.TEACHER, User.Role.STUDENT])
+def test_teachers_admin_only(role: str) -> None:
+    user = make_user(f"{role}8@example.com", role)
+
+    assert client_for(user).get(TEACHERS_URL).status_code == 403

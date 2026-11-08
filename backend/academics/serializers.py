@@ -5,6 +5,7 @@
 - StudentCourseSerializer: ข้อมูลหัวรายวิชาที่ผู้เรียนเห็น (ไม่มีรหัสเข้าร่วม / จำนวนผู้เรียน)
 - CourseWriteSerializer: ตรวจข้อมูลตอนสร้าง / แก้ไขวิชา
 - AdminCourseFilterSerializer: ตัวกรองของหน้าจัดการรายวิชา (ผู้ดูแลระบบ)
+- AdminTeacherOptionSerializer: รายชื่อผู้สอนสำหรับช่องเลือก / ตัวกรองของผู้ดูแลระบบ (ขั้น 3.8)
 """
 
 import re
@@ -181,3 +182,30 @@ class AdminCourseFilterSerializer(serializers.Serializer):
     teacher = serializers.IntegerField(required=False, min_value=1)
     # สถานะ: draft = ยังไม่เผยแพร่, published = เผยแพร่แล้ว, closed = ปิดแล้ว
     status = serializers.ChoiceField(choices=["draft", "published", "closed"], required=False)
+
+
+class AdminTeacherOptionSerializer(serializers.ModelSerializer):
+    """
+    ผู้สอน 1 คนในรายการตัวเลือกของผู้ดูแลระบบ (GET /api/v1/admin/courses/teachers/ — ขั้น 3.8)
+    - assignable: เลือกเป็นผู้สอนของวิชาได้ไหม (บัญชีผู้สอนที่ใช้งานได้ — กฎเดียวกับ validate_teacher)
+    - course_count: จำนวนรายวิชาที่เป็นผู้สอนอยู่ (ตัวกรอง "ผู้สอน" แสดงเฉพาะคนที่มีวิชา)
+    """
+
+    assignable = serializers.SerializerMethodField()
+    course_count = serializers.IntegerField(read_only=True)
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "first_name",
+            "last_name",
+            "student_or_staff_id",
+            "is_active",
+            "assignable",
+            "course_count",
+        ]
+        read_only_fields = fields
+
+    def get_assignable(self, user: User) -> bool:
+        return user.role == User.Role.TEACHER and user.is_active
