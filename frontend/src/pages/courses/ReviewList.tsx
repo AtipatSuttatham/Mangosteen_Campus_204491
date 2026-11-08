@@ -96,12 +96,13 @@ export function ReviewList({ rows, disabled, onRemove }: ReviewListProps) {
 
   return (
     <>
-      {/* จอใหญ่ = ตาราง */}
+      {/* จอใหญ่ = ตาราง — ยืดเต็มพื้นที่ที่เหลือในหน้าต่าง (หัว / แถบไฟล์ / ปุ่มล่างอยู่กับที่)
+          จอเตี้ยก็เห็นหลายแถว (ขั้น 3.6 รอบ 3 แบบ ถ1) ; เตี้ยมากจนเหลือไม่ถึง 140px → ทั้งหน้าต่างเลื่อนแทน */}
       <div
         tabIndex={0}
         role="region"
         aria-label={t('addStudents.reviewLabel')}
-        className="max-h-[430px] overflow-auto rounded-[10px] border border-line max-lg:hidden"
+        className="min-h-[140px] overflow-auto rounded-[10px] border border-line max-lg:hidden"
       >
         <table className="w-full border-collapse">
           <thead>

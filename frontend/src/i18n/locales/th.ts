@@ -410,7 +410,6 @@ export const th = {
     dropBody2: 'คะแนนเดิมยังอยู่ครบ และคุณเพิ่มกลับได้ทุกเมื่อ',
     dropping: 'กำลังถอน…',
     // แถบข้อความหลังทำรายการ
-    added: 'เพิ่มผู้เรียน {{total}} คนแล้ว',
     droppedNotice: 'ถอน {{name}} ออกจากรายวิชาแล้ว',
     readded: 'เพิ่ม {{name}} กลับเข้ารายวิชาแล้ว',
     readdFailed: 'เพิ่ม {{name}} กลับไม่สำเร็จ: {{reason}}',
@@ -500,8 +499,8 @@ export const th = {
     // รายงานผล
     reportAdded: 'เพิ่มผู้เรียน {{total}} คนแล้ว',
     reportNoneAdded: 'ไม่มีผู้เรียนใหม่',
-    reportReactivated: 'เพิ่มกลับ {{total}} คนที่เคยถูกถอน',
-    reportReactivatedOne: 'เพิ่มกลับ 1 คนที่เคยถูกถอน ({{id}} {{name}})',
+    reportReactivated: 'รวมเพิ่มกลับ {{total}} คนที่เคยถูกถอน',
+    reportReactivatedOne: 'รวมเพิ่มกลับ 1 คนที่เคยถูกถอน ({{id}} {{name}})',
     reportAlready: 'อยู่ในรายวิชาแล้ว {{total}} คน',
     reportAlreadyOne: 'อยู่ในรายวิชาแล้ว 1 คน ({{id}} {{name}})',
     reportDuplicates: 'รายการซ้ำ {{total}} รายการ นับครั้งเดียว',

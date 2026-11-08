@@ -21,10 +21,21 @@ type CourseFieldsProps = {
   firstFieldRef?: RefObject<HTMLInputElement | null>
   /** ล็อกทุกช่อง (เช่น ระหว่างบันทึก) */
   disabled?: boolean
+  /**
+   * ดูได้อย่างเดียว (วิชาที่ปิดแล้ว) — ไม่แสดงข้อความตัวอย่างในช่องคำอธิบายที่ว่าง
+   * เพราะทำให้ดูเหมือนยังกรอกได้ (ขั้น 3.6 รอบ 3)
+   */
+  readOnlyView?: boolean
 }
 
 /** ช่องกรอกข้อมูลรายวิชาทั้งชุด */
-export function CourseFields({ register, errors, firstFieldRef, disabled = false }: CourseFieldsProps) {
+export function CourseFields({
+  register,
+  errors,
+  firstFieldRef,
+  disabled = false,
+  readOnlyView = false,
+}: CourseFieldsProps) {
   const { t } = useTranslation()
   const semesterId = useId()
   const descriptionId = useId()
@@ -35,7 +46,9 @@ export function CourseFields({ register, errors, firstFieldRef, disabled = false
 
   return (
     <>
-      <div className="grid grid-cols-2 gap-3 lg:gap-4">
+      {/* ปี + ภาคเรียนคู่กัน ; จอแคบกว่า 360px เรียงคนละบรรทัด — ไม่งั้นช่องภาคเรียนแคบจนเลขภาคถูกตัด
+          ("ภาคเรียนที่" โดยไม่มีเลข — พบตอนตรวจมือถือ 320px ขั้น 3.6 รอบ 3) */}
+      <div className="grid grid-cols-1 gap-3 min-[360px]:grid-cols-2 lg:gap-4">
         <TextField
           label={t('courseForm.year')}
           inputMode="numeric"
@@ -84,7 +97,7 @@ export function CourseFields({ register, errors, firstFieldRef, disabled = false
           id={descriptionId}
           rows={3}
           disabled={disabled}
-          placeholder={t('courseForm.descriptionPlaceholder')}
+          placeholder={readOnlyView ? undefined : t('courseForm.descriptionPlaceholder')}
           aria-describedby={descriptionHintId}
           aria-invalid={descriptionError ? true : undefined}
           className={

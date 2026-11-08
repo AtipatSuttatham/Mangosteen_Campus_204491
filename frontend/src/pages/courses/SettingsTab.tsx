@@ -8,6 +8,9 @@
  * - ทำทันที: เผยแพร่, เปิด / ปิดการใช้รหัส
  * - วิชาที่ปิดแล้ว: ดูข้อมูลได้อย่างเดียว + "ปิดเมื่อ … โดย …" ; เปิดคืนได้เฉพาะผู้ดูแลระบบ (ขั้น 3.8)
  * - ปุ่มลบแสดงตาม can_delete จาก backend (backend ตรวจซ้ำตอนลบ)
+ * - ผลของการกด (สำเร็จ / ไม่สำเร็จ) ขึ้นในส่วนที่เพิ่งกด ไม่ใช่แถบด้านบนหน้า — บนจอเตี้ยผู้ใช้อยู่ด้านล่าง
+ *   แล้วมองไม่เห็นแถบ (ขั้น 3.6 รอบ 3 แบบ ท1 แบบเดียวกับป้าย "บันทึกแล้ว" ของหน้าข้อมูลส่วนตัว)
+ *   ยกเว้นปิดรายวิชา: ส่วนนั้นหายไป จึงใช้แถบด้านบนแล้วเลื่อนหน้าขึ้นไปให้เห็น
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
@@ -33,11 +36,30 @@ import {
   courseToForm,
   type CourseFormValues,
 } from './courseForm'
-import { EyeIcon, EyeOffIcon, LockIcon, RefreshIcon } from './icons'
+import { CheckIcon, EyeIcon, EyeOffIcon, LockIcon, RefreshIcon } from './icons'
 import { useCoursePage, useRefreshCourse } from './useCoursePage'
 
 /** หน้าต่างยืนยันที่เปิดอยู่ */
 type Confirming = 'unpublish' | 'regenerate' | 'close' | 'delete'
+
+/** ส่วนที่แสดงผลของการกดล่าสุด */
+type SectionKey = 'publish' | 'join'
+type SectionResult = { section: SectionKey; tone: 'ok' | 'bad'; text: string }
+
+/** ผลของการกดล่าสุด ขึ้นท้ายส่วนนั้น (role=status / alert ให้โปรแกรมอ่านหน้าจออ่าน) */
+function ResultLine({ result }: { result: SectionResult }) {
+  return result.tone === 'ok' ? (
+    <div role="status">
+      <StatusBadge tone="ok" icon={<CheckIcon />} className="w-fit">
+        {result.text}
+      </StatusBadge>
+    </div>
+  ) : (
+    <p role="alert" className="m-0 text-[14.5px] leading-[1.55] text-danger">
+      {result.text}
+    </p>
+  )
+}
 
 /** ส่วนหนึ่งของแท็บ: หัวข้อ + คำอธิบาย แล้วตามด้วยเนื้อหา */
 function Section({
@@ -117,6 +139,8 @@ function InfoForm({ course, className }: { course: Course; className: string }) 
   const refresh = useRefreshCourse(course.id)
   const queryClient = useQueryClient()
   const [formError, setFormError] = useState<string>()
+  // บันทึกสำเร็จ → ป้าย "บันทึกข้อมูลรายวิชาแล้ว" ข้างปุ่ม จนกว่าจะแก้ช่องใดอีก
+  const [saved, setSaved] = useState(false)
   const {
     register,
     handleSubmit,
@@ -129,6 +153,7 @@ function InfoForm({ course, className }: { course: Course; className: string }) 
 
   async function onSubmit(values: CourseFormValues) {
     setFormError(undefined)
+    setSaved(false)
     notify(null)
     const changes = changedCourseData(course, values)
     // ต่างแค่ช่องว่างหน้า / หลัง → ไม่มีอะไรต้องบันทึก คืนค่าในช่องให้ตรงข้อมูลจริง
@@ -141,7 +166,7 @@ function InfoForm({ course, className }: { course: Course; className: string }) 
       queryClient.setQueryData(['course', course.id], updated)
       reset(courseToForm(updated))
       await queryClient.invalidateQueries({ queryKey: ['my-courses'] })
-      notify({ tone: 'ok', text: t('courseSettings.saved') })
+      setSaved(true)
     } catch (caught) {
       setFormError(applyCourseSaveError(caught, setError))
       if (caught instanceof ApiError && caught.code === 'course_closed') await refresh()
@@ -151,7 +176,12 @@ function InfoForm({ course, className }: { course: Course; className: string }) 
   return (
     <Section title={t('courseSettings.infoTitle')} body={t('courseSettings.infoBody')} className={className}>
       <form noValidate onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <CourseFields register={register} errors={errors} disabled={closed || isSubmitting} />
+        <CourseFields
+          register={register}
+          errors={errors}
+          disabled={closed || isSubmitting}
+          readOnlyView={closed}
+        />
         <p className={HINT}>{t('courseSettings.teacherHint', { name: teacher })}</p>
         {formError && (
           <p role="alert" className="m-0 text-[14.5px] leading-[1.55] text-danger">
@@ -159,7 +189,15 @@ function InfoForm({ course, className }: { course: Course; className: string }) 
           </p>
         )}
         {!closed && (
-          <div className="flex lg:justify-end">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-end">
+            {/* role=status: โปรแกรมอ่านหน้าจออ่านเมื่อป้ายปรากฏ ; แก้ช่องใดอีก (isDirty) → ป้ายหาย */}
+            <div role="status">
+              {saved && !isDirty && (
+                <StatusBadge tone="ok" icon={<CheckIcon />} className="w-fit">
+                  {t('courseSettings.saved')}
+                </StatusBadge>
+              )}
+            </div>
             <Button type="submit" disabled={!isDirty || isSubmitting} className="max-lg:w-full">
               {isSubmitting ? t('courseSettings.saving') : t('courseSettings.save')}
             </Button>
@@ -181,6 +219,9 @@ export default function SettingsTab() {
   const [running, setRunning] = useState(false)
   const [confirming, setConfirming] = useState<Confirming | null>(null)
   const [confirmError, setConfirmError] = useState<string>()
+  const [result, setResult] = useState<SectionResult | null>(null)
+  const resultIn = (section: SectionKey) =>
+    result?.section === section ? <ResultLine result={result} /> : null
   const closeConfirm = () => {
     setConfirming(null)
     setConfirmError(undefined)
@@ -196,28 +237,43 @@ export default function SettingsTab() {
     await queryClient.invalidateQueries({ queryKey: ['my-courses'] })
   }
 
-  /** ปุ่มที่ทำทันที */
-  async function runNow(action: CourseAction, noticeText?: string) {
+  /** ปุ่มที่ทำทันที — ผลขึ้นในส่วนที่กด */
+  async function runNow(section: SectionKey, action: CourseAction, noticeText?: string) {
     setRunning(true)
     notify(null)
+    setResult(null)
     try {
       await apply(action)
-      if (noticeText) notify({ tone: 'ok', text: noticeText })
+      if (noticeText) setResult({ section, tone: 'ok', text: noticeText })
     } catch (caught) {
-      notify({ tone: 'bad', text: t('courseSettings.actionFailed', { reason: apiMessage(caught) }) })
+      setResult({
+        section,
+        tone: 'bad',
+        text: t('courseSettings.actionFailed', { reason: apiMessage(caught) }),
+      })
       await refresh()
     } finally {
       setRunning(false)
     }
   }
 
-  /** ปุ่มยืนยันในหน้าต่าง */
-  async function runConfirmed(action: CourseAction, noticeText: string) {
+  /**
+   * ปุ่มยืนยันในหน้าต่าง — ผลขึ้นในส่วนที่กด
+   * ยกเว้นปิดรายวิชา (section = null): ส่วนนั้นหายไป → แถบด้านบน + เลื่อนหน้าขึ้นไปให้เห็นกล่อง "ปิดรายวิชาแล้ว"
+   */
+  async function runConfirmed(section: SectionKey | null, action: CourseAction, noticeText: string) {
     setRunning(true)
     setConfirmError(undefined)
+    notify(null)
+    setResult(null)
     try {
       await apply(action)
-      notify({ tone: 'ok', text: noticeText })
+      if (section) {
+        setResult({ section, tone: 'ok', text: noticeText })
+      } else {
+        notify({ tone: 'ok', text: noticeText })
+        window.scrollTo({ top: 0 })
+      }
       closeConfirm()
     } catch (caught) {
       setConfirmError(apiMessage(caught))
@@ -302,7 +358,7 @@ export default function SettingsTab() {
               ) : (
                 <Button
                   disabled={running}
-                  onClick={() => void runNow('publish', t('courseSettings.publishedNotice'))}
+                  onClick={() => void runNow('publish', 'publish', t('courseSettings.publishedNotice'))}
                   className="lg:ml-auto"
                 >
                   {t('courseSettings.publish')}
@@ -310,6 +366,7 @@ export default function SettingsTab() {
               )}
             </div>
             {published && <p className={HINT}>{t('courseSettings.unpublishHint')}</p>}
+            {resultIn('publish')}
           </Section>
         )}
 
@@ -325,7 +382,7 @@ export default function SettingsTab() {
                 labelledBy={joinLabelId}
                 disabled={running}
                 onChange={() =>
-                  void runNow(course.join_code_enabled ? 'join-code/disable' : 'join-code/enable')
+                  void runNow('join', course.join_code_enabled ? 'join-code/disable' : 'join-code/enable')
                 }
               />
               <span id={joinLabelId} className="text-[15px] font-semibold">
@@ -354,6 +411,7 @@ export default function SettingsTab() {
             ) : (
               <p className={HINT}>{t('courseSettings.joinOffHint')}</p>
             )}
+            {resultIn('join')}
           </Section>
         )}
       </div>
@@ -392,7 +450,7 @@ export default function SettingsTab() {
           pendingLabel={t('courseSettings.unpublishing')}
           pending={running}
           error={confirmError}
-          onConfirm={() => void runConfirmed('unpublish', t('courseSettings.unpublishedNotice'))}
+          onConfirm={() => void runConfirmed('publish', 'unpublish', t('courseSettings.unpublishedNotice'))}
           onCancel={closeConfirm}
         />
       )}
@@ -409,7 +467,7 @@ export default function SettingsTab() {
           pending={running}
           error={confirmError}
           onConfirm={() =>
-            void runConfirmed('join-code/regenerate', t('courseSettings.regeneratedNotice'))
+            void runConfirmed('join', 'join-code/regenerate', t('courseSettings.regeneratedNotice'))
           }
           onCancel={closeConfirm}
         />
@@ -426,7 +484,7 @@ export default function SettingsTab() {
           pendingLabel={t('courseSettings.closing')}
           pending={running}
           error={confirmError}
-          onConfirm={() => void runConfirmed('close', t('courseSettings.closedNotice'))}
+          onConfirm={() => void runConfirmed(null, 'close', t('courseSettings.closedNotice'))}
           onCancel={closeConfirm}
         />
       )}

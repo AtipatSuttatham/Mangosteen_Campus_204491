@@ -45,7 +45,6 @@ type AddByListProps = {
   course: Course
   /** แท็บนี้เปิดอยู่หรือไม่ (ปิดอยู่ = ไม่แสดง แต่รายการยังอยู่) */
   active: boolean
-  onAdded: (count: number) => void
   onDone: () => void
   onBusyChange: (busy: boolean) => void
   onWideChange: (wide: boolean) => void
@@ -54,7 +53,6 @@ type AddByListProps = {
 export function AddByList({
   course,
   active,
-  onAdded,
   onDone,
   onBusyChange,
   onWideChange,
@@ -174,7 +172,6 @@ export function AddByList({
       setText(result.failed.map((item) => item.identifier).join('\n'))
       setFile(null)
       setReview(null)
-      onAdded(result.added.length + result.reactivated.length)
       await refresh()
     } catch (caught) {
       setError(apiMessage(caught))
@@ -199,7 +196,10 @@ export function AddByList({
     const total = review.rows.length + review.duplicates
     return (
       <>
-        <DialogBody className="min-h-0 pt-3! lg:pt-[18px]!">
+        {/* จอใหญ่: ส่วนนี้ไม่เลื่อนเอง ให้ตารางในนั้นหดเต็มพื้นที่ที่เหลือแล้วเลื่อนเฉพาะตาราง (แบบ ถ1)
+            มือถือ: สูงตามเนื้อหา แล้วทั้งหน้าต่างเลื่อน — ถ้าหดได้ (min-h-0) กล่องการ์ดจะถูกบีบ
+            จนรายการที่เกินถูกซ่อนและเลื่อนดูไม่ได้ (พบตอนตรวจมือถือขั้น 3.6 รอบ 3) */}
+        <DialogBody className="pt-3! lg:min-h-0 lg:overflow-hidden lg:pt-[18px]!">
           <div className="flex items-center gap-3.5 rounded-[10px] border border-line bg-surface py-3 pr-2 pl-4">
             <span className="flex size-11 shrink-0 items-center justify-center rounded-[10px] bg-ok-soft text-ok">
               <SheetIcon />

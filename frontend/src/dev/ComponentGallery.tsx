@@ -334,7 +334,8 @@ export default function ComponentGallery() {
         </div>
       </Section>
 
-      {/* ป้ายรหัสวิชา (ขั้น 3.5): เผยแพร่ / ยังไม่เผยแพร่ / ปิดแล้ว × ขนาด lg / md / sm */}
+      {/* ป้ายรหัสวิชา (ขั้น 3.5): เผยแพร่ / ยังไม่เผยแพร่ / ปิดแล้ว × ขนาด lg / md / sm
+          + รหัสยาว 8 / 12 / 20 ตัว (ขั้น 3.6 รอบ 3 แบบ ต1) */}
       <Section title={t('devGallery.courseBadges')}>
         <div className="flex flex-col gap-3">
           {(['lg', 'md', 'sm'] as const).map((size) => (
@@ -342,6 +343,9 @@ export default function ComponentGallery() {
               <CourseBadge code="204111" state="published" size={size} />
               <CourseBadge code="204331" state="draft" size={size} />
               <CourseBadge code="204100" state="closed" size={size} />
+              <CourseBadge code="CS204111" state="published" size={size} />
+              <CourseBadge code="204111-SEC01" state="draft" size={size} />
+              <CourseBadge code="CS204111-SEC001-2569" state="closed" size={size} />
             </div>
           ))}
         </div>

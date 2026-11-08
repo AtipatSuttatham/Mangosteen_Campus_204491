@@ -29,18 +29,24 @@ beforeEach(() => {
 })
 
 describe('แท็บตั้งค่า', () => {
-  it('แก้ข้อมูล → ส่งเฉพาะช่องที่เปลี่ยน และมีแถบเขียว', async () => {
+  it('แก้ข้อมูล → ส่งเฉพาะช่องที่เปลี่ยน ; ป้าย "บันทึกแล้ว" ขึ้นข้างปุ่ม และหายเมื่อแก้อีก', async () => {
     updateCourse.mockResolvedValue(makeCourse({ name: 'Python ขั้นสูง' }))
     const { user } = renderPage('/courses/5/settings')
     const name = await screen.findByLabelText('ชื่อรายวิชา')
 
     await user.clear(name)
     await user.type(name, ' Python ขั้นสูง ')
-    await user.click(screen.getByRole('button', { name: 'บันทึก' }))
+    const save = screen.getByRole('button', { name: 'บันทึก' })
+    await user.click(save)
 
-    expect(await screen.findByText('บันทึกข้อมูลรายวิชาแล้ว')).toBeInTheDocument()
+    // ขั้น 3.6 รอบ 3 แบบ ท1: ป้ายอยู่ในแถวเดียวกับปุ่มบันทึก (ไม่ใช่แถบด้านบนหน้า)
+    const saved = await screen.findByText('บันทึกข้อมูลรายวิชาแล้ว')
+    expect(save.parentElement).toContainElement(saved)
     expect(updateCourse).toHaveBeenCalledWith(5, { name: 'Python ขั้นสูง' })
     expect(await screen.findByRole('heading', { name: 'Python ขั้นสูง' })).toBeInTheDocument()
+
+    await user.type(name, 'x')
+    expect(screen.queryByText('บันทึกข้อมูลรายวิชาแล้ว')).not.toBeInTheDocument()
   })
 
   it('ต่างแค่ช่องว่างท้ายชื่อ → ไม่เรียก API และปุ่มกลับเป็นกดไม่ได้', async () => {
@@ -84,7 +90,20 @@ describe('แท็บตั้งค่า', () => {
 
     expect(runCourseAction).toHaveBeenCalledWith(5, 'publish')
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
-    expect(await screen.findByText('เผยแพร่รายวิชาแล้ว')).toBeInTheDocument()
+    // ผลขึ้นในส่วน "การเผยแพร่" ที่เพิ่งกด
+    const section = screen.getByRole('heading', { name: 'การเผยแพร่' }).closest('section') as HTMLElement
+    expect(await within(section).findByText('เผยแพร่รายวิชาแล้ว')).toBeInTheDocument()
+  })
+
+  it('ทำรายการไม่สำเร็จ → ข้อความแดงในส่วนที่กด (ขั้น 3.6 รอบ 3)', async () => {
+    fetchCourse.mockResolvedValue(makeCourse({ is_published: false }))
+    runCourseAction.mockRejectedValue(new ApiError(409, 'course_closed'))
+    const { user } = renderPage('/courses/5/settings')
+
+    await user.click(await screen.findByRole('button', { name: 'เผยแพร่รายวิชา' }))
+
+    const section = screen.getByRole('heading', { name: 'การเผยแพร่' }).closest('section') as HTMLElement
+    expect(await within(section).findByRole('alert')).toHaveTextContent('ทำรายการไม่สำเร็จ')
   })
 
   it('ยกเลิกเผยแพร่ต้องยืนยัน (ง1)', async () => {
@@ -126,8 +145,15 @@ describe('แท็บตั้งค่า', () => {
 
   it('ปิดรายวิชาต้องยืนยัน → ดูได้อย่างเดียว พร้อมข้อความปิดเมื่อ โดย', async () => {
     runCourseAction.mockResolvedValue(
-      makeCourse({ is_closed: true, closed_at: '2026-10-01T03:00:00Z', closed_by: 'กมล ศรีวงศ์' }),
+      makeCourse({
+        is_closed: true,
+        closed_at: '2026-10-01T03:00:00Z',
+        closed_by: 'กมล ศรีวงศ์',
+        description: '',
+      }),
     )
+    // ส่วนปิดรายวิชาหายไปหลังปิด → เลื่อนหน้าขึ้นไปให้เห็นแถบและกล่อง "ปิดรายวิชาแล้ว"
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {})
     const { user } = renderPage('/courses/5/settings')
 
     await user.click(await screen.findByRole('button', { name: 'ปิดรายวิชา' }))
@@ -139,6 +165,10 @@ describe('แท็บตั้งค่า', () => {
     expect(screen.getByLabelText('ชื่อรายวิชา')).toBeDisabled()
     expect(screen.queryByRole('button', { name: 'บันทึก' })).not.toBeInTheDocument()
     expect(screen.queryByRole('switch')).not.toBeInTheDocument()
+    expect(scrollTo).toHaveBeenCalledWith({ top: 0 })
+    // ช่องคำอธิบายที่ว่างไม่มีข้อความตัวอย่าง (ดูเหมือนยังกรอกได้) — ขั้น 3.6 รอบ 3
+    expect(screen.getByLabelText('คำอธิบายรายวิชา')).not.toHaveAttribute('placeholder')
+    scrollTo.mockRestore()
   })
 
   it('ลบได้ → ยืนยันแล้วกลับหน้ารายวิชาของฉันพร้อมข้อความ', async () => {

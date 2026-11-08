@@ -9,11 +9,13 @@
  *   กลีบเลี้ยงเขียวจาง      (ยังเป็นฉบับร่าง)       + กุญแจเล็ก (ยกเว้นขนาด sm)
  *
  * ขนาด: lg 112×88 (หัวหน้ารายวิชา) · md 84×64 (รายการวิชา / มือถือ) · sm 66×40 (ตารางผู้ดูแลระบบ)
- * รหัสวิชาใช้ฟอนต์ Taviraj ตัวเลขกว้างเท่ากัน
+ * รหัสวิชาใช้ฟอนต์ Taviraj ตัวเลขกว้างเท่ากัน ; รหัสยาว (สูงสุด 20 ตัว) ตัวอักษรเล็กลง / แบ่ง 2 บรรทัด
+ * ตาม courseBadgeText.ts (ขั้น 3.6 รอบ 3 แบบ ต1) และชี้ที่ป้ายเห็นรหัสเต็ม
  * สถานะต้องมีป้ายข้อความ (StatusBadge) อยู่ใกล้ ๆ ด้วยเสมอ — ป้ายนี้บอกสถานะด้วยหน้าตาอย่างเดียว
  * (คนที่แยกสีไม่ออก / โปรแกรมอ่านหน้าจอ อ่านจากป้ายข้อความ)
  */
 import { CalyxPattern } from '../brand/CalyxPattern'
+import { badgeFontSize, badgeLines } from './courseBadgeText'
 
 export type CourseBadgeState = 'published' | 'draft' | 'closed'
 export type CourseBadgeSize = 'lg' | 'md' | 'sm'
@@ -26,11 +28,14 @@ type CourseBadgeProps = {
   className?: string
 }
 
-/** ขนาดกล่อง / ตัวอักษร / ลาย ของแต่ละขนาด */
+/**
+ * ขนาดกล่องของแต่ละขนาด — ขนาดตัวอักษรคำนวณตามความยาวรหัสใน courseBadgeText.ts
+ * (ตั้งต้น lg 22px / md 16.5px / sm 13.5px)
+ */
 const SIZE_CLASSES: Record<CourseBadgeSize, string> = {
-  lg: 'h-[88px] w-28 text-[22px]',
-  md: 'h-16 w-[84px] text-[16.5px]',
-  sm: 'h-10 w-[66px] text-[13.5px] rounded-[10px]',
+  lg: 'h-[88px] w-28',
+  md: 'h-16 w-[84px]',
+  sm: 'h-10 w-[66px] rounded-[10px]',
 }
 
 /** ขนาดลายกลีบเลี้ยง (ประมาณ 78% ของความกว้างป้าย ตาม canvas) */
@@ -66,9 +71,13 @@ function LockMark() {
 
 /** ป้ายรหัสวิชา */
 export function CourseBadge({ code, state, size = 'md', className = '' }: CourseBadgeProps) {
+  // รหัสยาวแบ่งบรรทัด + ลดขนาดตัวอักษรให้พอดีป้าย (ไม่ตัดตัวอักษรทิ้ง)
+  const lines = badgeLines(code)
   return (
     <span
       data-state={state}
+      title={code}
+      style={{ fontSize: `${badgeFontSize(lines, size)}px` }}
       className={
         'relative flex shrink-0 flex-col items-center justify-center gap-0.5 overflow-hidden rounded-xl ' +
         'font-display leading-none font-semibold tracking-[0.02em] tabular-nums lining-nums ' +
@@ -83,7 +92,13 @@ export function CourseBadge({ code, state, size = 'md', className = '' }: Course
           className="pointer-events-none absolute -right-[24%] -bottom-[34%] text-accent opacity-[0.38]"
         />
       )}
-      <span className="relative">{code}</span>
+      <span className="relative flex flex-col items-center">
+        {lines.map((line, index) => (
+          <span key={index} className="leading-[1.08] whitespace-nowrap">
+            {line}
+          </span>
+        ))}
+      </span>
       {state === 'closed' && size !== 'sm' && <LockMark />}
     </span>
   )

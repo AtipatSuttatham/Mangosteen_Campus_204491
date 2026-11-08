@@ -1,5 +1,6 @@
 /**
  * test ของคอมโพเนนต์พื้นฐานขั้น 3.5: ป้ายรหัสวิชา (CourseBadge) และส่วนที่พับ/เปิดได้ (Collapsible)
+ * + ป้ายรหัสวิชาเมื่อรหัสยาว (ขั้น 3.6 รอบ 3)
  */
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
@@ -7,6 +8,7 @@ import { useState } from 'react'
 import { describe, expect, it } from 'vitest'
 import { Collapsible } from './Collapsible'
 import { CourseBadge } from './CourseBadge'
+import { badgeFontSize, badgeLines } from './courseBadgeText'
 
 describe('CourseBadge', () => {
   it.each(['published', 'draft', 'closed'] as const)('แสดงรหัสวิชาและบอกสถานะ %s', (state) => {
@@ -23,6 +25,40 @@ describe('CourseBadge', () => {
     expect(svgCount(<CourseBadge code="2" state="draft" />)).toBe(0)
     expect(svgCount(<CourseBadge code="3" state="closed" />)).toBe(1)
     expect(svgCount(<CourseBadge code="4" state="closed" size="sm" />)).toBe(0)
+  })
+
+  // ขั้น 3.6 รอบ 3 (แบบ ต1): รหัสยาวไม่ถูกตัดทิ้ง
+  it('รหัสยาวแบ่ง 2 บรรทัด ตัวอักษรเล็กลง และชี้แล้วเห็นรหัสเต็ม', () => {
+    const { container } = render(<CourseBadge code="CS204111-SEC001-2569" state="published" />)
+    const badge = container.firstElementChild as HTMLElement
+
+    expect(screen.getByText('CS204111-')).toBeInTheDocument()
+    expect(screen.getByText('SEC001-2569')).toBeInTheDocument()
+    expect(badge).toHaveAttribute('title', 'CS204111-SEC001-2569')
+    expect(parseFloat(badge.style.fontSize)).toBeLessThan(16.5)
+  })
+})
+
+describe('badgeLines / badgeFontSize', () => {
+  it('ไม่เกิน 9 ตัวอยู่บรรทัดเดียว ; 6 ตัวใช้ขนาดเดิม ; 8 ตัวเล็กลง', () => {
+    expect(badgeLines('204111')).toEqual(['204111'])
+    expect(badgeLines('CS2041119')).toEqual(['CS2041119'])
+    expect(badgeFontSize(['204111'], 'lg')).toBe(22)
+    expect(badgeFontSize(['204111'], 'md')).toBe(16.5)
+    expect(badgeFontSize(['CS204111'], 'md')).toBeLessThan(16.5)
+  })
+
+  it('10 ตัวขึ้นไป: ตัดที่ขีดใกล้กลาง ; ไม่มีขีดตัดครึ่ง ; ขีดไกลกลางเกินไปตัดครึ่ง', () => {
+    expect(badgeLines('204111-SEC01')).toEqual(['204111-', 'SEC01'])
+    expect(badgeLines('ABCDEFGHIJKL')).toEqual(['ABCDEF', 'GHIJKL'])
+    expect(badgeLines('A-BCDEFGHIJKLMNOP')).toEqual(['A-BCDEFGH', 'IJKLMNOP'])
+  })
+
+  it('ตัวอักษรไม่เล็กกว่าขนาดเล็กสุดของแต่ละป้าย', () => {
+    const lines = badgeLines('ABCDEFGHIJKLMNOPQRST')
+    expect(badgeFontSize(lines, 'lg')).toBeGreaterThanOrEqual(12)
+    expect(badgeFontSize(lines, 'md')).toBeGreaterThanOrEqual(9.5)
+    expect(badgeFontSize(lines, 'sm')).toBeGreaterThanOrEqual(8.5)
   })
 })
 
