@@ -10,8 +10,8 @@
  *   › ปีการศึกษา 2568 ภาคเรียนที่ 2                 1 รายวิชา
  *
  * - ข้อมูล: GET /api/v1/courses/ (backend ส่งเฉพาะวิชาที่กำลังเรียนและเผยแพร่แล้ว รวมวิชาที่ปิดแล้ว)
- * - ส่วนเข้าร่วม (ผู้ใช้เลือกแบบ 1ก / 2ก): ยังไม่มีวิชา = เปิด, มีวิชาแล้ว = พับ ; จำค่าที่ผู้ใช้กดไว้ ;
- *   กรอกผิด = เปิดค้าง
+ * - ส่วนเข้าร่วม (ผู้ใช้เลือกแบบ 1ก / 2ก + ย1): ยังไม่มีวิชา = เปิดเสมอ (ไม่อ่านค่าที่จำไว้),
+ *   มีวิชาแล้ว = พับ หรือตามค่าที่ผู้ใช้กดไว้ ; กรอกผิด = เปิดค้าง
  * - เข้าร่วมสำเร็จ: อยู่หน้าเดิม แถบเขียว + วิชาใหม่โผล่ในรายการ (เปิดกลุ่มภาคของวิชานั้น) + พับส่วนเข้าร่วม (แบบ ฟ1)
  * - กลุ่มภาคเรียน: ภาคล่าสุดเปิด ภาคเก่าพับ ; จำค่าที่ผู้ใช้กดไว้
  */
@@ -30,7 +30,7 @@ import { StudentCourseRow } from './StudentCourseRow'
 
 /** ค่าที่จำไว้ในเบราว์เซอร์ (แยกจากของผู้สอน) */
 const OPEN_TERMS_KEY = 'student-courses:open-terms'
-/** true / false = ผู้ใช้กดไว้ ; null = ใช้ค่าเริ่มต้นตามจำนวนรายวิชา */
+/** true / false = ผู้ใช้ที่มีวิชาแล้วกดไว้ ; null = ยังไม่เคยกด (ใช้ค่าเริ่มต้น = พับ) */
 const JOIN_OPEN_KEY = 'student-courses:join-open'
 
 /** ที่เก็บข้อมูลของ TanStack Query (แยกจากรายวิชาของผู้สอน — ข้อมูลคนละรูปแบบ) */
@@ -53,8 +53,15 @@ export default function StudentCoursesPage() {
   const toggleTerm = (key: string, index: number) =>
     setOpenTerms((prev) => ({ ...prev, [key]: !(prev[key] ?? index === 0) }))
 
-  // ยังไม่มีวิชา = เปิดเป็นค่าเริ่มต้น ; ระหว่างโหลดถือว่าพับ (ไม่กระพริบ)
-  const isJoinOpen = joinOpen ?? (data !== undefined && data.length === 0)
+  // ส่วนเข้าร่วม (แก้ในแบบ ย1 หลังขั้น 3.7):
+  // - ยังไม่มีวิชา → เปิดเสมอ ไม่อ่านค่าที่จำไว้ — ค่านั้นใช้ร่วมกันทั้งเบราว์เซอร์ อาจเป็นของคนก่อน
+  //   (เครื่องในห้องแล็บ: คนก่อนเข้าร่วมแล้วจำ "พับ" → นักศึกษาใหม่ไม่เห็นช่องกรอก)
+  //   พับได้ชั่วคราวในหน้านี้ (emptyOpen) แต่ไม่บันทึกลงเบราว์เซอร์
+  // - มีวิชาแล้ว → ใช้ค่าที่จำไว้ ไม่มีก็พับ ; ระหว่างโหลดถือว่าพับ (ไม่กระพริบ)
+  const [emptyOpen, setEmptyOpen] = useState(true)
+  const noCourses = data !== undefined && data.length === 0
+  const isJoinOpen = noCourses ? emptyOpen : (joinOpen ?? false)
+  const setOpen = (open: boolean) => (noCourses ? setEmptyOpen(open) : setJoinOpen(open))
 
   /** กรอกรหัสผ่าน: แถบข้อความ + โหลดรายการใหม่ + เปิดกลุ่มภาคของวิชานั้น + พับส่วนเข้าร่วม */
   async function handleJoined({ course, joined }: JoinResult) {
@@ -87,12 +94,12 @@ export default function StudentCoursesPage() {
         open={isJoinOpen}
         onToggle={() => {
           setNotice(null)
-          setJoinOpen(!isJoinOpen)
+          setOpen(!isJoinOpen)
         }}
         onJoined={(result) => void handleJoined(result)}
         onFailed={() => {
           setNotice(null)
-          setJoinOpen(true)
+          setOpen(true)
         }}
       />
 

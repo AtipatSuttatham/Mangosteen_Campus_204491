@@ -184,6 +184,47 @@ describe('รายวิชาของฉัน (ผู้เรียน)', (
     expect(await screen.findByRole('alert')).toHaveTextContent('ส่งคำขอบ่อยเกินไป')
   })
 
+  // แก้แบบ ย1: เครื่องที่ใช้ร่วมกัน — คนก่อนจำ "พับ" ไว้ แล้วนักศึกษาใหม่ (ยังไม่มีวิชา) เข้าใช้ต่อ
+  it('ยังไม่มีวิชา → ส่วนเข้าร่วมเปิดเสมอ แม้เบราว์เซอร์จำ "พับ" ของคนก่อนไว้', async () => {
+    localStorage.setItem('mangosteen:student-courses:join-open', 'false')
+    fetchMyStudentCourses.mockResolvedValue([])
+    renderAt('/courses')
+
+    expect(await screen.findByText('ยังไม่มีรายวิชา')).toBeInTheDocument()
+    expect(joinButton()).toHaveAttribute('aria-expanded', 'true')
+    expect(screen.getByLabelText('รหัสเข้าร่วม')).toBeInTheDocument()
+  })
+
+  it('ยังไม่มีวิชาแล้วกดพับ → พับได้ในหน้านี้ แต่ไม่บันทึกลงเบราว์เซอร์', async () => {
+    fetchMyStudentCourses.mockResolvedValue([])
+    const { user } = renderAt('/courses')
+    await screen.findByText('ยังไม่มีรายวิชา')
+
+    await user.click(joinButton())
+
+    expect(joinButton()).toHaveAttribute('aria-expanded', 'false')
+    expect(localStorage.getItem('mangosteen:student-courses:join-open')).toBeNull()
+  })
+
+  it('มีวิชาแล้ว + เบราว์เซอร์จำ "เปิด" → เปิดตามค่าที่จำ', async () => {
+    localStorage.setItem('mangosteen:student-courses:join-open', 'true')
+    fetchMyStudentCourses.mockResolvedValue([makeStudentCourse()])
+    renderAt('/courses')
+
+    await screen.findByRole('link', { name: /Python พื้นฐาน/ })
+    expect(joinButton()).toHaveAttribute('aria-expanded', 'true')
+  })
+
+  it('โหลดรายการไม่สำเร็จ → ข้อความผิดพลาด + ลองอีกครั้ง (ส่วนเข้าร่วมยังใช้ได้)', async () => {
+    fetchMyStudentCourses.mockRejectedValueOnce(new ApiError(0, 'network_error')).mockResolvedValue([makeStudentCourse()])
+    const { user } = renderAt('/courses')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('โหลดรายวิชาไม่สำเร็จ')
+    expect(joinButton()).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'ลองอีกครั้ง' }))
+    expect(await screen.findByRole('link', { name: /Python พื้นฐาน/ })).toBeInTheDocument()
+  })
+
   it('จำค่าที่ผู้ใช้เปิดส่วนเข้าร่วมไว้ในเบราว์เซอร์', async () => {
     fetchMyStudentCourses.mockResolvedValue([makeStudentCourse()])
     const { user } = renderAt('/courses')
@@ -218,6 +259,15 @@ describe('หน้ารายวิชา (ผู้เรียน)', () => {
     expect(screen.queryByRole('heading', { name: 'เกี่ยวกับรายวิชา' })).not.toBeInTheDocument()
     expect(screen.getByText('ปิดรายวิชาแล้ว')).toBeInTheDocument()
     expect(screen.getByText('รายวิชานี้ปิดแล้ว ดูข้อมูลย้อนหลังได้อย่างเดียว')).toBeInTheDocument()
+  })
+
+  it('โหลดหน้ารายวิชาไม่สำเร็จ → ข้อความผิดพลาด + ลองอีกครั้ง', async () => {
+    fetchStudentCourse.mockRejectedValueOnce(new ApiError(500, 'server_error')).mockResolvedValue(makeStudentCourse())
+    const { user } = renderAt('/courses/5')
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('โหลดรายวิชาไม่สำเร็จ')
+    await user.click(screen.getByRole('button', { name: 'ลองอีกครั้ง' }))
+    expect(await screen.findByRole('heading', { level: 1, name: 'Python พื้นฐาน' })).toBeInTheDocument()
   })
 
   it('ไม่ได้เรียนวิชานี้ (404) → ไม่พบรายวิชา', async () => {
