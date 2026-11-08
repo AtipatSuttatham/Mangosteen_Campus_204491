@@ -14,14 +14,26 @@ export const ADMIN_TERMS_KEY = ['admin-terms'] as const
 /** รายการรายวิชาทั้งระบบ (คำต่อท้ายคือตัวกรอง) */
 export const ADMIN_COURSES_KEY = ['admin-courses'] as const
 
+/**
+ * ใช้ข้อมูลที่โหลดไว้ต่อได้ 5 นาทีโดยไม่ขอใหม่ (เดิมขอใหม่ทุกครั้งที่เปิดหน้า / หน้าต่าง)
+ * ปลอดภัยเพราะทุกจุดที่เปลี่ยนข้อมูลชุดนี้ล้างแคชเอง: สร้าง / แก้ปีภาค / ลบวิชา / เปลี่ยนผู้สอน (หน้ารายวิชา)
+ * และสร้าง / แก้ / ระงับ / เปิดใช้งาน / นำเข้าบัญชี (invalidateUserLists ในหน้าจัดการผู้ใช้)
+ */
+const ADMIN_LOOKUP_STALE_MS = 5 * 60 * 1000
+
 /** รายชื่อผู้สอนทั้งหมด (โหลดครั้งเดียว ใช้ร่วมกันทุกจุด) — enabled = false เมื่อไม่ใช่ผู้ดูแลระบบ (กัน 403) */
 export function useAdminTeachers(enabled = true) {
-  return useQuery({ queryKey: ADMIN_TEACHERS_KEY, queryFn: fetchAdminTeachers, enabled })
+  return useQuery({
+    queryKey: ADMIN_TEACHERS_KEY,
+    queryFn: fetchAdminTeachers,
+    enabled,
+    staleTime: ADMIN_LOOKUP_STALE_MS,
+  })
 }
 
 /** ภาคเรียนที่มีรายวิชาอยู่ */
 export function useAdminTerms() {
-  return useQuery({ queryKey: ADMIN_TERMS_KEY, queryFn: fetchAdminTerms })
+  return useQuery({ queryKey: ADMIN_TERMS_KEY, queryFn: fetchAdminTerms, staleTime: ADMIN_LOOKUP_STALE_MS })
 }
 
 /** ชื่อเต็มของผู้สอน */

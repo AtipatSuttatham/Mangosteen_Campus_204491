@@ -38,6 +38,7 @@ import { DoneStep } from './DoneStep'
 import { ImportStepper } from './ImportStepper'
 import { ReviewStep } from './ReviewStep'
 import { UploadStep } from './UploadStep'
+import { invalidateUserLists } from '../invalidateUsers'
 
 /** ขนาดไฟล์สูงสุด (เท่ากับ backend — csv_too_large) */
 const MAX_FILE_BYTES = 1024 * 1024
@@ -85,7 +86,7 @@ export default function CsvImportPage() {
     try {
       const result = await importUsers(file)
       // รายชื่อในหน้า /users โหลดใหม่ (บัญชีใหม่ขึ้นทันทีเมื่อกลับไป)
-      void queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      void invalidateUserLists(queryClient)
       setState({ step: 'done', file, result, downloaded: false })
     } catch (caught) {
       const newReport = csvInvalidReport(caught)

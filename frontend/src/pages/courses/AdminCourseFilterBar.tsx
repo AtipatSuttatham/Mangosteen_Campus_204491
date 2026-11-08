@@ -2,10 +2,12 @@
  * แถบค้นหา + ตัวกรองของหน้าจัดการรายวิชา — ตาม board "จัดการรายวิชา (ผู้ดูแลระบบ)" (ขั้น 3.8)
  *
  *   จอใหญ่: [ค้นหารหัสหรือชื่อวิชา] [ทุกภาคเรียน ⌄] [ผู้สอนทุกคน ⌄] [ทุกสถานะ ⌄]   ← แถวเดียว
- *   มือถือ: [ค้นหารหัสหรือชื่อวิชา                 ]
- *           [ทุกภาคเรียน ⌄]            [ทุกสถานะ ⌄]
- *           [ผู้สอนทุกคน ⌄                         ]   ← ชื่อผู้สอนยาว ให้เต็มแถว (ย้ายลงล่างเฉพาะมือถือ)
- *           ลำดับในโค้ด = ลำดับบนจอใหญ่ (ปุ่ม Tab ไล่ตามที่ตาเห็น)
+ *   มือถือ: ช่องละแถว เต็มความกว้าง เรียงเหมือนจอใหญ่ (ผู้ใช้เลือกแบบ อ1 — ชื่อผู้สอนยาวจึงต้องเต็มแถว)
+ *           [ค้นหารหัสหรือชื่อวิชา ]
+ *           [ทุกภาคเรียน ⌄        ]
+ *           [ผู้สอนทุกคน ⌄        ]
+ *           [ทุกสถานะ ⌄           ]
+ *   ลำดับในโค้ด = ลำดับบนจอทุกขนาด (ปุ่ม Tab ไล่ตามที่ตาเห็น — เดิมมือถือย้ายช่องผู้สอนลงล่างด้วย CSS ทำให้ Tab กระโดด)
  *
  * - ป้ายชื่อของทุกช่องซ่อนไว้ให้โปรแกรมอ่านหน้าจอ (board ไม่แสดงป้าย — ตัวเลือกแรกบอกอยู่แล้ว)
  * - ค้นหาเองหลังหยุดพิมพ์ 0.3 วินาที ; เลือกตัวกรองแล้วกรองทันที (แบบเดียวกับหน้ารายชื่อผู้ใช้)
@@ -59,7 +61,7 @@ export function AdminCourseFilterBar({ filters, onChange }: AdminCourseFilterBar
     <div
       role="search"
       className={
-        'grid grid-cols-2 gap-2 lg:flex lg:flex-wrap lg:items-center lg:gap-3 ' +
+        'flex flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-center lg:gap-3 ' +
         'lg:border-b lg:border-line lg:px-6 lg:py-4'
       }
     >
@@ -71,7 +73,7 @@ export function AdminCourseFilterBar({ filters, onChange }: AdminCourseFilterBar
         value={searchText}
         onChange={(event) => setSearchText(event.target.value)}
         placeholder={t('adminCourses.searchPlaceholder')}
-        className="col-span-2 w-full lg:h-[42px] lg:w-[260px]"
+        className="w-full lg:h-[42px] lg:w-[260px]"
       />
 
       <label htmlFor={`${id}-term`} className="sr-only">
@@ -104,7 +106,7 @@ export function AdminCourseFilterBar({ filters, onChange }: AdminCourseFilterBar
         id={`${id}-teacher`}
         value={filters.teacher ? String(filters.teacher) : ''}
         onChange={(event) => onChange({ teacher: event.target.value })}
-        className={`col-span-2 max-lg:order-last ${selectClass}`}
+        className={selectClass}
       >
         <option value="">{t('adminCourses.teacherAll')}</option>
         {teacherOptions.map((teacher) => (
@@ -113,6 +115,7 @@ export function AdminCourseFilterBar({ filters, onChange }: AdminCourseFilterBar
           </option>
         ))}
       </Select>
+
       <label htmlFor={`${id}-status`} className="sr-only">
         {t('adminCourses.statusLabel')}
       </label>
@@ -127,7 +130,6 @@ export function AdminCourseFilterBar({ filters, onChange }: AdminCourseFilterBar
         <option value="published">{t('coursePage.published')}</option>
         <option value="closed">{t('courses.closed')}</option>
       </Select>
-
     </div>
   )
 }

@@ -25,6 +25,7 @@ import { DoneMark, PasswordSlip } from './PasswordSlip'
 import { TempPasswordField } from './TempPasswordField'
 import { UserFields } from './UserFields'
 import { applySaveError, fieldMessage, type UserFormValues } from './userForm'
+import { invalidateUserLists } from './invalidateUsers'
 
 /** ค่าเริ่มต้นของฟอร์มเปล่า (บทบาทเริ่มที่ผู้เรียน ตาม board ; รหัสผ่านสุ่มใหม่ทุกครั้ง) */
 function emptyForm(): UserFormValues {
@@ -84,7 +85,7 @@ export function CreateUserDialog({ onClose }: { onClose: () => void }) {
     try {
       const user = await createAdminUser(values)
       // รายชื่อด้านหลังโหลดใหม่ (ไม่ต้องรอ)
-      void queryClient.invalidateQueries({ queryKey: ['admin-users'] })
+      void invalidateUserLists(queryClient)
       setCreated({ user, password: values.password })
     } catch (caught) {
       setFormError(applySaveError(caught, setError))
