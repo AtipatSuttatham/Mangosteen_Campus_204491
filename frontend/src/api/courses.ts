@@ -3,8 +3,9 @@
  *
  * ขั้น 3.5: รายวิชาของฉัน (ผู้สอน) + สร้างรายวิชา
  * ขั้น 3.6: ดู / แก้ / เผยแพร่ / รหัสเข้าร่วม / ปิด / ลบ — ที่อยู่ของผู้ดูแลระบบเพิ่มในขั้น 3.8
+ * ขั้น 3.7: ฝั่งผู้เรียน — รายวิชาของฉัน, หัวรายวิชา, เข้าร่วมด้วยรหัส
  */
-import { apiFetch } from './client'
+import { apiFetch, apiFetchWithStatus } from './client'
 
 /** ภาคเรียน: 1 / 2 / 3 (ภาคฤดูร้อน) */
 export type Semester = 1 | 2 | 3
@@ -113,4 +114,38 @@ export function runCourseAction(id: number, action: CourseAction): Promise<Cours
  */
 export function deleteCourse(id: number): Promise<void> {
   return apiFetch<void>(`/courses/${id}/`, { method: 'DELETE' })
+}
+
+// ---------- ฝั่งผู้เรียน (ขั้น 3.7) ----------
+
+/**
+ * รายวิชาของฉัน (ผู้เรียน): วิชาที่กำลังเรียนและเผยแพร่แล้ว รวมวิชาที่ปิดแล้ว — ข้อมูลหัวรายวิชาเท่านั้น
+ * ที่อยู่เดียวกับของผู้สอน แต่ backend ส่งข้อมูลตามบทบาท
+ */
+export function fetchMyStudentCourses(): Promise<StudentCourse[]> {
+  return apiFetch<StudentCourse[]>('/courses/')
+}
+
+/** หัวรายวิชาที่ผู้เรียนเห็น (ไม่ได้เรียนวิชานี้ / ยังไม่เผยแพร่ = 404 not_found เหมือนไม่มีวิชา) */
+export function fetchStudentCourse(id: number): Promise<StudentCourse> {
+  return apiFetch<StudentCourse>(`/courses/${id}/`)
+}
+
+/** ผลของการเข้าร่วมด้วยรหัส */
+export type JoinResult = {
+  course: StudentCourse
+  /** true = เพิ่งเข้าร่วม (201) ; false = อยู่ในรายวิชานี้อยู่แล้ว (200) */
+  joined: boolean
+}
+
+/**
+ * เข้าร่วมรายวิชาด้วยรหัสเข้าร่วม (UC-15) — POST /api/v1/enroll/
+ * @throws ApiError join_code_invalid (ทุกกรณีที่ใช้ไม่ได้ ใช้รหัสเดียว) / throttled (เกิน 10 ครั้ง/นาที)
+ */
+export async function joinCourse(joinCode: string): Promise<JoinResult> {
+  const { data, status } = await apiFetchWithStatus<StudentCourse>('/enroll/', {
+    method: 'POST',
+    body: { join_code: joinCode },
+  })
+  return { course: data, joined: status === 201 }
 }

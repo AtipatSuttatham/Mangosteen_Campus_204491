@@ -162,7 +162,13 @@ Mangosteen_Campus_204491/
 │       │       ├── avatarFile.ts        ตรวจชนิด/ขนาดรูปในหน้าเว็บก่อนอัปโหลด (JPG/PNG/WebP ≤ 2 MB)
 │       │       ├── icons.tsx            ไอคอนกล้อง / อัปโหลด / ถังขยะ / เครื่องหมายถูก (จาก canvas)
 │       │       └── ProfilePage.test.tsx test ทั้งหน้า (เมนูรูป, อัปโหลด/ลบ, ฟอร์มทั้ง 2 ชุดทุกกรณี)
-│       │   ├── courses/          /courses รายวิชาของฉัน + /courses/{id} หน้ารายวิชา (ก้อน 3 — ขั้น 3.5–3.6 ผู้สอน) ตาม board แถวก้อน 3
+│       │   ├── courses/          /courses รายวิชาของฉัน + /courses/{id} หน้ารายวิชา (ก้อน 3 — ขั้น 3.5–3.6 ผู้สอน, ขั้น 3.7 ผู้เรียน) ตาม board แถวก้อน 3
+│       │   │   ├── CourseRoutes.tsx        สลับหน้าตามบทบาท: /courses และ /courses/{id} ของผู้สอน / ผู้เรียน (ขั้น 3.7)
+│       │   │   ├── StudentCoursesPage.tsx  รายวิชาของฉันของผู้เรียน: ส่วนเข้าร่วม + กลุ่มภาคเรียนพับได้ + แถบหลังเข้าร่วม (ขั้น 3.7)
+│       │   │   ├── JoinCourseSection.tsx   ส่วนเข้าร่วมรายวิชาด้วยรหัส พับได้: ช่องรหัส 8 ตัว + ข้อความผิด (ขั้น 3.7)
+│       │   │   ├── StudentCourseRow.tsx    แถวรายวิชาของผู้เรียน: ป้าย + ชื่อ + ผู้สอน + ป้ายปิดแล้ว (ขั้น 3.7)
+│       │   │   ├── StudentCoursePage.tsx   หน้ารายวิชาของผู้เรียน: หัวรายวิชา + เกี่ยวกับรายวิชา (Markdown) + ยังไม่มีเนื้อหา (ขั้น 3.7)
+│       │   │   ├── StudentCourses.test.tsx test หน้าของผู้เรียน + สลับหน้าตามบทบาท (ขั้น 3.7)
 │       │   │   ├── CoursePage.tsx          โครงหน้ารายวิชา: โหลดวิชา + หัวรายวิชา + แถบข้อความ + แท็บ (ไม่พบรายวิชา / โหลดไม่สำเร็จ)
 │       │   │   ├── useCoursePage.ts        ข้อมูลที่หน้ารายวิชาส่งให้แท็บ + ตัวช่วยโหลดข้อมูลใหม่
 │       │   │   ├── CourseHeader.tsx        การ์ดหัวรายวิชา: ป้าย + ชื่อ + รหัสเข้าร่วม + แท็บ
@@ -174,7 +180,7 @@ Mangosteen_Campus_204491/
 │       │   │   ├── reviewRows.ts           ลำดับแถวในตารางตรวจรายการ (แถวมีปัญหาก่อน)
 │       │   │   ├── AddReport.tsx           รายงานผลหลังกดเพิ่ม
 │       │   │   ├── SettingsTab.tsx         แท็บตั้งค่า: ข้อมูลวิชา, เผยแพร่, รหัสเข้าร่วม, ปิด, ลบ + หน้าต่างยืนยัน
-│       │   │   ├── courseBits.tsx          ชิ้นเล็กที่ใช้ร่วมกัน: แถบข้อความ, ปุ่มสลับ, เลขจำนวน, กล่องสถานะ
+│       │   │   ├── courseBits.tsx          ชิ้นเล็กที่ใช้ร่วมกัน: แถบข้อความ (เขียว / แดง / เทา), ปุ่มสลับ, เลขจำนวน, กล่องสถานะ
 │       │   │   ├── CoursePage.test.tsx     test หัวรายวิชา, แท็บผู้เรียน, หน้าต่างเพิ่มผู้เรียน
 │       │   │   ├── SettingsTab.test.tsx    test แท็บตั้งค่า (บันทึก, ปุ่มที่ต้องยืนยัน, ปิด, ลบ)
 │       │   │   ├── testUtils.tsx           ข้อมูลสมมติ + วาดหน้ารายวิชา (ใช้เฉพาะใน test)
@@ -217,11 +223,11 @@ Mangosteen_Campus_204491/
 │       │           ├── csvProblem.ts        แปลงปัญหารายช่องเป็นข้อความไทยตาม board
 │       │           └── CsvImportPage.test.tsx  test ทั้ง 3 ขั้น + ตัวเฝ้าประตู
 │       ├── api/              การเรียก backend
-│       │   ├── client.ts     apiFetch(): ตัวเรียก API กลาง (/api/v1/...) แนบบัตร + แลกบัตรเมื่อได้ 401 ; ส่ง JSON หรือไฟล์ (FormData) ; โยน ApiError รูปแบบเดียวกันทุกกรณี (เก็บคำตอบ error ทั้งก้อนใน body)
+│       │   ├── client.ts     apiFetch(): ตัวเรียก API กลาง (/api/v1/...) แนบบัตร + แลกบัตรเมื่อได้ 401 ; ส่ง JSON หรือไฟล์ (FormData) ; โยน ApiError รูปแบบเดียวกันทุกกรณี (เก็บคำตอบ error ทั้งก้อนใน body) ; apiFetchWithStatus() คืน HTTP status ด้วย (ขั้น 3.7)
 │       │   ├── adminUsers.ts ชนิดข้อมูล AdminUser / Paginated + fetchAdminUsers() รายชื่อ (ขั้น 2.5) + create / update / suspend / activate / resetPassword (ขั้น 2.6) + validateUserImport / importUsers / csvInvalidReport (ขั้น 2.7)
 │       │   ├── adminUsers.test.ts  test การแปลงตัวกรองเป็น query string + method/ที่อยู่/ข้อมูลที่ส่งของฟังก์ชันขั้น 2.6
 │       │   ├── enrollments.ts  API การลงทะเบียน: รายชื่อ, ค้นหา, ตรวจรายการ, เพิ่ม, ถอน (ขั้น 3.6)
-│       │   ├── courses.ts    ชนิดข้อมูล Course / StudentCourse + courseState() + fetchMyCourses() / createCourse() (ขั้น 3.5 — docs/api.md §8)
+│       │   ├── courses.ts    ชนิดข้อมูล Course / StudentCourse + courseState() + fetchMyCourses() / createCourse() (ขั้น 3.5 — docs/api.md §8) ; ผู้เรียน: fetchMyStudentCourses() / fetchStudentCourse() / joinCourse() (ขั้น 3.7)
 │       │   ├── auth.ts       ชนิดข้อมูล User/Role + login() / logout() / fetchMe() / updateProfile() / changePassword() / uploadAvatar() / deleteAvatar()
 │       │   ├── client.test.ts  test ของ apiFetch (สำเร็จ / error ทุกแบบ / ติดต่อไม่ได้ / ไม่ใช่ JSON)
 │       │   ├── errors.ts     errorMessage() / fieldErrorMessage() / fieldErrorsMessage() (หลายรหัส): แปลงรหัส error เป็นข้อความไทยจาก th.ts
@@ -257,6 +263,8 @@ Mangosteen_Campus_204491/
 │       │       ├── Select.tsx      ช่องเลือก (dropdown) ลูกศรวาดเอง (ขั้น 2.5)
 │       │       ├── SearchInput.tsx ช่องค้นหา type=search ไม่มีป้ายในตัว (ขั้น 2.5)
 │       │       ├── Pagination.tsx  แถบ ก่อนหน้า / หน้า X จาก Y / ถัดไป + ข้อความสรุป (ขั้น 2.5 — ใช้ซ้ำได้)
+│       │       ├── Markdown.tsx    ข้อความยาวแบบ Markdown (react-markdown) — ทิ้ง HTML ดิบ, ล้างลิงก์อันตราย (ขั้น 3.7)
+│       │       ├── Markdown.test.tsx  test รูปแบบพื้นฐาน + ความปลอดภัย (HTML ดิบ, ลิงก์ javascript:)
 │       │       ├── Logo.tsx        ตรากลีบเลี้ยงมังคุด (+ ชื่อระบบ) — รูปทรงตาม board BrandLogo
 │       │       ├── CourseBadge.tsx ป้ายรหัสวิชา: เผยแพร่ (ม่วง + ลายกลีบเลี้ยง) / ยังไม่เผยแพร่ (เส้นประ) / ปิดแล้ว (เทา + กุญแจ) × lg / md / sm (ขั้น 3.5)
 │       │       ├── courseBadgeText.ts จัดรหัสวิชาให้พอดีป้าย: แบ่ง 2 บรรทัด + ขนาดตัวอักษรตามความยาว (ขั้น 3.6 รอบ 3)

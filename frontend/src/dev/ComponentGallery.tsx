@@ -21,6 +21,7 @@ import {
   DialogFooter,
   DialogHeader,
   Logo,
+  Markdown,
   Pagination,
   PasswordField,
   SearchInput,
@@ -354,6 +355,11 @@ export default function ComponentGallery() {
       {/* ส่วนที่พับ/เปิดได้ (ขั้น 3.5) — หัวกลุ่มภาคเรียนในหน้ารายวิชาของฉัน */}
       <Section title={t('devGallery.collapsible')}>
         <CollapsibleSamples />
+      </Section>
+
+      {/* ข้อความ Markdown (ขั้น 3.7) — คำอธิบายรายวิชา ; HTML ดิบไม่แสดง (บรรทัดสุดท้ายของตัวอย่าง) */}
+      <Section title={t('devGallery.markdown')}>
+        <Markdown text={t('devGallery.markdownSample')} className="max-w-[720px]" />
       </Section>
 
       {/* ตราสัญลักษณ์: บนพื้นม่วง (แบบ sidebar) และบนพื้นสว่าง */}

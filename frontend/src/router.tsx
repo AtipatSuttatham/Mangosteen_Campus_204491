@@ -7,9 +7,9 @@
  *   /profile          ข้อมูลส่วนตัว (ทุกบทบาท ตาม UC-02)
  *   /users            จัดการบัญชีผู้ใช้ (เฉพาะผู้ดูแลระบบ — UC-04 ขั้น 2.5) ; บทบาทอื่น → กลับหน้าแรก
  *   /users/import     นำเข้าผู้ใช้จาก CSV 3 ขั้น (เฉพาะผู้ดูแลระบบ — ขั้น 2.7)
- *   /courses          รายวิชาของฉัน (ผู้สอน — ขั้น 3.5 ; ผู้เรียนเพิ่มในขั้น 3.7)
- *   /courses/:id      หน้ารายวิชา แท็บผู้เรียน (ผู้สอน — ขั้น 3.6)
- *   /courses/:id/settings  หน้ารายวิชา แท็บตั้งค่า (ผู้สอน — ขั้น 3.6)
+ *   /courses          รายวิชาของฉัน (ผู้สอน — ขั้น 3.5 ; ผู้เรียน + เข้าร่วมด้วยรหัส — ขั้น 3.7)
+ *   /courses/:id      หน้ารายวิชา: ผู้สอน = แท็บผู้เรียน (ขั้น 3.6) ; ผู้เรียน = หัวรายวิชา + ยังไม่มีเนื้อหา (ขั้น 3.7)
+ *   /courses/:id/settings  หน้ารายวิชา แท็บตั้งค่า (ผู้สอน — ขั้น 3.6 ; ผู้เรียนเปิดแล้วได้ "ไม่พบรายวิชา")
  *                     (ไม่ใช้ /admin/... เพราะตอน deploy Django ใช้ /admin/ เป็นหน้า Django admin
  *                      บนโดเมนเดียวกัน — รีเฟรชหน้า /admin/users จะไปโผล่หน้า Django แทน)
  *   /dev/components   ตัวอย่างคอมโพเนนต์ (เฉพาะโหมดพัฒนา)
@@ -35,10 +35,9 @@ import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import ProfilePage from './pages/profile/ProfilePage'
 import CsvImportPage from './pages/admin/users/import/CsvImportPage'
-import CoursePage from './pages/courses/CoursePage'
+import { CourseRoute, MyCoursesRoute } from './pages/courses/CourseRoutes'
 import SettingsTab from './pages/courses/SettingsTab'
 import StudentsTab from './pages/courses/StudentsTab'
-import TeacherCoursesPage from './pages/courses/TeacherCoursesPage'
 import UsersPage from './pages/admin/users/UsersPage'
 
 // หน้าสำหรับนักพัฒนา: โหลดแยกไฟล์เมื่อเปิดหน้านั้นเท่านั้น
@@ -84,21 +83,22 @@ export const appRoutes: RouteObject[] = createRoutesFromElements(
           </RequireAuth>
         }
       />
-      {/* รายวิชาของฉัน: ขั้น 3.5 เฉพาะผู้สอน (หน้าของผู้เรียนมาในขั้น 3.7) */}
+      {/* รายวิชาของฉัน: ผู้สอน (ขั้น 3.5) + ผู้เรียน (ขั้น 3.7) — สลับหน้าตามบทบาทใน CourseRoutes */}
       <Route
         path="/courses"
         element={
-          <RequireAuth roles={['teacher']}>
-            <TeacherCoursesPage />
+          <RequireAuth roles={['teacher', 'student']}>
+            <MyCoursesRoute />
           </RequireAuth>
         }
       />
-      {/* หน้ารายวิชา: หัวรายวิชาอยู่ที่ CoursePage ; แท็บแสดงตรง <Outlet /> (ผู้เรียน / ผู้ดูแลระบบเพิ่มในขั้น 3.7–3.8) */}
+      {/* หน้ารายวิชา: ผู้สอน = CoursePage + แท็บตรง <Outlet /> ; ผู้เรียน = StudentCoursePage (ไม่มีแท็บ)
+          ผู้ดูแลระบบเพิ่มในขั้น 3.8 */}
       <Route
         path="/courses/:courseId"
         element={
-          <RequireAuth roles={['teacher']}>
-            <CoursePage />
+          <RequireAuth roles={['teacher', 'student']}>
+            <CourseRoute />
           </RequireAuth>
         }
       >
