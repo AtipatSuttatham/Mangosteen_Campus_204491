@@ -104,7 +104,9 @@ export default function CoursePage({ isAdmin = false }: { isAdmin?: boolean }) {
         <>
           <CourseHeader course={context.course} />
           {notice && <Notice notice={notice} />}
-          <Outlet context={context} />
+          {/* key = รหัสวิชา: เปลี่ยนวิชาโดยตรง (ย้อนกลับ / พิมพ์ที่อยู่ ขณะข้อมูลวิชาใหม่อยู่ในแคช) → แท็บถูกสร้างใหม่
+              ค่าที่ค้างในแท็บ (ผู้สอนที่เลือกไว้, ป้ายผลลัพธ์, ฟอร์ม) จึงไม่ติดไปวิชาอื่น */}
+          <Outlet key={context.course.id} context={context} />
         </>
       )}
     </div>
