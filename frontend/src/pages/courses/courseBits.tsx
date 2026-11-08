@@ -4,9 +4,10 @@
  *   Segmented    กลุ่มปุ่มสลับตาม .seg ใน board (ตัวกรองสถานะ, วิธีเพิ่มผู้เรียน)
  *   CountPill    เลขจำนวนในแท็บและปุ่มสลับ
  *   StateMessage กล่องข้อความกำลังโหลด / ว่าง / ผิดพลาด
+ *   ManagingBanner แถบส้ม "คุณกำลังจัดการรายวิชานี้แทนผู้สอน" ของผู้ดูแลระบบ (ขั้น 3.8)
  */
 import type { ReactNode } from 'react'
-import { CheckIcon } from './icons'
+import { CheckIcon, WarnIcon } from './icons'
 
 /**
  * ข้อความหลังทำรายการ
@@ -32,6 +33,21 @@ export function Notice({ notice }: { notice: NoticeValue }) {
     >
       {notice.tone === 'ok' && <CheckIcon />}
       {notice.text}
+    </div>
+  )
+}
+
+/**
+ * แถบเตือนผู้ดูแลระบบว่ากำลังแก้รายวิชาของคนอื่น — ตาม board "ตั้งค่ารายวิชาที่ปิดแล้ว (ผู้ดูแลระบบ)"
+ * อยู่เหนือปุ่มกลับ แสดงทุกแท็บของหน้ารายวิชา (ไม่ใช่ role=alert — เป็นข้อมูลประจำหน้า ไม่ใช่เหตุการณ์ใหม่)
+ */
+export function ManagingBanner({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-start gap-2.5 rounded-[10px] bg-warn-soft px-3.5 py-3 text-sm leading-[1.55] font-semibold text-warn">
+      <span className="mt-0.5 shrink-0">
+        <WarnIcon />
+      </span>
+      <p className="m-0">{children}</p>
     </div>
   )
 }

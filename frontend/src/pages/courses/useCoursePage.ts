@@ -9,6 +9,8 @@ import type { NoticeValue } from './courseBits'
 
 export type CoursePageContext = {
   course: Course
+  /** ผู้ดูแลระบบกำลังจัดการแทนผู้สอน → แท็บตั้งค่ามีส่วนเปลี่ยนผู้สอน / เปิดคืน (ขั้น 3.8) */
+  isAdmin: boolean
   /** แสดงแถบข้อความใต้หัวรายวิชา (null = ซ่อน) */
   notify: (notice: NoticeValue | null) => void
 }
@@ -18,7 +20,7 @@ export function useCoursePage(): CoursePageContext {
   return useOutletContext<CoursePageContext>()
 }
 
-/** โหลดข้อมูลของวิชานี้ใหม่ทั้งหมด: หัวรายวิชา, รายชื่อ, ผลค้นหาผู้เรียน, หน้ารายวิชาของฉัน */
+/** โหลดข้อมูลของวิชานี้ใหม่ทั้งหมด: หัวรายวิชา, รายชื่อ, ผลค้นหาผู้เรียน, หน้ารายวิชาของฉัน / จัดการรายวิชา */
 export function useRefreshCourse(courseId: number) {
   const queryClient = useQueryClient()
   return useCallback(async () => {
@@ -27,6 +29,8 @@ export function useRefreshCourse(courseId: number) {
       queryClient.invalidateQueries({ queryKey: ['roster', courseId] }),
       queryClient.invalidateQueries({ queryKey: ['enrollment-candidates', courseId] }),
       queryClient.invalidateQueries({ queryKey: ['my-courses'] }),
+      // รายการทั้งระบบของผู้ดูแลระบบ (ขั้น 3.8 — ชื่อเดียวกับ ADMIN_COURSES_KEY)
+      queryClient.invalidateQueries({ queryKey: ['admin-courses'] }),
     ])
   }, [queryClient, courseId])
 }

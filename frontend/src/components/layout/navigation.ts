@@ -29,6 +29,8 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/users', label: 'users', icon: 'users', roles: ['admin'] },
   // รายวิชาของฉัน (ก้อน 3 — ขั้น 3.5 ผู้สอน ; ขั้น 3.7 ผู้เรียน)
   { to: '/courses', label: 'courses', icon: 'courses', roles: ['teacher', 'student'] },
+  // จัดการรายวิชาทั้งระบบ (ขั้น 3.8) — ที่อยู่เดียวกัน หน้าต่างกันตามบทบาท (CourseRoutes.tsx)
+  { to: '/courses', label: 'manageCourses', icon: 'courses', roles: ['admin'] },
 ]
 
 /** เมนูที่บทบาทนี้เห็น (เรียงตามลำดับในรายการ) */

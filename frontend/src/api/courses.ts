@@ -4,7 +4,9 @@
  * ขั้น 3.5: รายวิชาของฉัน (ผู้สอน) + สร้างรายวิชา
  * ขั้น 3.6: ดู / แก้ / เผยแพร่ / รหัสเข้าร่วม / ปิด / ลบ — ที่อยู่ของผู้ดูแลระบบเพิ่มในขั้น 3.8
  * ขั้น 3.7: ฝั่งผู้เรียน — รายวิชาของฉัน, หัวรายวิชา, เข้าร่วมด้วยรหัส
+ * ขั้น 3.8: ผู้ดูแลระบบ — รายวิชาทั้งระบบ, ภาคเรียน / ผู้สอนของตัวกรอง, สร้างแทน, เปลี่ยนผู้สอน, เปิดคืน
  */
+import type { Paginated } from './adminUsers'
 import { apiFetch, apiFetchWithStatus } from './client'
 
 /** ภาคเรียน: 1 / 2 / 3 (ภาคฤดูร้อน) */
@@ -71,6 +73,8 @@ export type CourseCreate = {
   code: string
   name: string
   description: string
+  /** รหัสผู้ใช้ของผู้สอน — ผู้ดูแลระบบต้องส่ง (สร้างแทน / เปลี่ยนผู้สอน) ; ผู้สอนห้ามส่ง */
+  teacher?: number
 }
 
 /**
@@ -102,6 +106,8 @@ export type CourseAction =
   | 'join-code/enable'
   | 'join-code/disable'
   | 'join-code/regenerate'
+  /** เปิดรายวิชาที่ปิดแล้วคืน — ผู้ดูแลระบบเท่านั้น (ขั้น 3.8) */
+  | 'reopen'
 
 /** กดปุ่มจัดการสถานะ ; ได้ข้อมูลรายวิชาหลังเปลี่ยนกลับมา */
 export function runCourseAction(id: number, action: CourseAction): Promise<Course> {
@@ -148,4 +154,70 @@ export async function joinCourse(joinCode: string): Promise<JoinResult> {
     body: { join_code: joinCode },
   })
   return { course: data, joined: status === 201 }
+}
+
+// ---------- ผู้ดูแลระบบ (ขั้น 3.8) ----------
+
+/** จำนวนรายวิชาต่อหน้าที่ backend ใช้ (common/pagination.py) */
+export const ADMIN_COURSES_PAGE_SIZE = 20
+
+/** สถานะที่กรองได้ในหน้าจัดการรายวิชา */
+export type CourseStatusFilter = CourseState
+
+/** ตัวกรองของหน้าจัดการรายวิชา — ไม่ระบุ = ไม่กรอง */
+export type AdminCourseFilters = {
+  /** คำค้น: รหัสหรือชื่อวิชา */
+  search?: string
+  /** ภาคเรียน "ปี-ภาค" เช่น "2569-1" */
+  term?: string
+  /** รหัสผู้ใช้ของผู้สอน */
+  teacher?: number
+  status?: CourseStatusFilter
+  /** เลขหน้า (เริ่มที่ 1) */
+  page?: number
+}
+
+/** แปลงตัวกรองเป็น query string ของ backend (ข้ามค่าว่าง) เช่น ?search=python&term=2569-1&page=2 */
+export function adminCoursesQuery(filters: AdminCourseFilters): string {
+  const params = new URLSearchParams()
+  const search = filters.search?.trim()
+  if (search) params.set('search', search)
+  if (filters.term) params.set('term', filters.term)
+  if (filters.teacher) params.set('teacher', String(filters.teacher))
+  if (filters.status) params.set('status', filters.status)
+  if (filters.page && filters.page > 1) params.set('page', String(filters.page))
+  const query = params.toString()
+  return query ? `?${query}` : ''
+}
+
+/**
+ * รายวิชาทั้งระบบ 1 หน้า (ภาคล่าสุดก่อน แล้วตามรหัสวิชา)
+ * @throws ApiError permission_denied (ไม่ใช่ผู้ดูแลระบบ) / not_found (หน้าที่ไม่มีอยู่)
+ */
+export function fetchAdminCourses(filters: AdminCourseFilters): Promise<Paginated<Course>> {
+  return apiFetch<Paginated<Course>>(`/admin/courses/${adminCoursesQuery(filters)}`)
+}
+
+/** ภาคเรียนที่มีรายวิชาอยู่ (ตัวเลือกของตัวกรอง "ภาคเรียน") เรียงล่าสุดก่อน */
+export function fetchAdminTerms(): Promise<{ academic_year: number; semester: Semester }[]> {
+  return apiFetch('/admin/courses/terms/')
+}
+
+/** ผู้สอน 1 คนในรายการตัวเลือกของผู้ดูแลระบบ (GET /admin/courses/teachers/) */
+export type TeacherOption = {
+  id: number
+  first_name: string
+  last_name: string
+  /** รหัสพนักงาน ; ไม่มี = null */
+  student_or_staff_id: string | null
+  is_active: boolean
+  /** เลือกเป็นผู้สอนของวิชาได้ไหม (บัญชีผู้สอนที่ใช้งานได้) */
+  assignable: boolean
+  /** จำนวนรายวิชาที่เป็นผู้สอนอยู่ (ตัวกรองแสดงเฉพาะคนที่มีวิชา) */
+  course_count: number
+}
+
+/** รายชื่อผู้สอนทั้งหมด (ไม่แบ่งหน้า) เรียงตามชื่อ */
+export function fetchAdminTeachers(): Promise<TeacherOption[]> {
+  return apiFetch<TeacherOption[]>('/admin/courses/teachers/')
 }

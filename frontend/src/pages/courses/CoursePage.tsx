@@ -12,6 +12,8 @@
  *
  * - ข้อมูลวิชาโหลดที่นี่จุดเดียว แล้วส่งให้แท็บผ่าน useCoursePage()
  * - ไม่มีวิชานี้ หรือไม่มีสิทธิ์ → backend ตอบ 404 เหมือนกัน → "ไม่พบรายวิชา" (ไม่บอกว่าวิชามีอยู่จริงไหม)
+ * - ผู้ดูแลระบบ (ขั้น 3.8): หน้าเดียวกับผู้สอน ทำแทนได้ทุกอย่าง + แถบส้ม "กำลังจัดการแทนผู้สอน" เหนือปุ่มกลับ
+ *   (ตาม board) ; ปุ่มกลับไป "จัดการรายวิชา"
  */
 import { useQuery } from '@tanstack/react-query'
 import { useState } from 'react'
@@ -21,12 +23,13 @@ import { ApiError } from '../../api/client'
 import { fetchCourse } from '../../api/courses'
 import { errorMessage } from '../../api/errors'
 import { Button, Card } from '../../components/ui'
-import { Notice, StateMessage, type NoticeValue } from './courseBits'
+import { ManagingBanner, Notice, StateMessage, type NoticeValue } from './courseBits'
 import { CourseHeader } from './CourseHeader'
 import { BackIcon } from './icons'
 import type { CoursePageContext } from './useCoursePage'
 
-export default function CoursePage() {
+/** isAdmin: ผู้ดูแลระบบจัดการแทนผู้สอน (CourseRoutes ส่งมาจากบทบาทของผู้ที่เข้าสู่ระบบ — ขั้น 3.8) */
+export default function CoursePage({ isAdmin = false }: { isAdmin?: boolean }) {
   const { t } = useTranslation()
   const { courseId } = useParams()
   const id = Number(courseId)
@@ -48,10 +51,15 @@ export default function CoursePage() {
   })
 
   const notFound = !validId || (error instanceof ApiError && error.status === 404)
-  const context: CoursePageContext | null = data ? { course: data, notify: setNotice } : null
+  const context: CoursePageContext | null = data ? { course: data, isAdmin, notify: setNotice } : null
 
   return (
     <div className="flex flex-col gap-3.5 lg:gap-[18px]">
+      {/* แถบส้ม: แสดงตั้งแต่กำลังโหลด (ปุ่มกลับไม่กระโดดลงตอนข้อมูลมา) ;
+          ไม่พบรายวิชา / โหลดไม่สำเร็จ = ไม่มีอะไรให้จัดการแทน จึงไม่แสดง */}
+      {isAdmin && !notFound && (isPending || data) && (
+        <ManagingBanner>{t('coursePage.managingBanner')}</ManagingBanner>
+      )}
       <Link
         to="/courses"
         className={
@@ -60,7 +68,7 @@ export default function CoursePage() {
         }
       >
         <BackIcon />
-        {t('coursePage.back')}
+        {isAdmin ? t('coursePage.backAdmin') : t('coursePage.back')}
       </Link>
 
       {notFound ? (
