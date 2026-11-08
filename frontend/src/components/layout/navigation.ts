@@ -27,8 +27,8 @@ export const NAV_ITEMS: NavItem[] = [
   { to: '/', label: 'home', icon: 'overview', roles: ['admin', 'teacher', 'student'] },
   // จัดการบัญชีผู้ใช้ (ก้อน 2 — ขั้น 2.5) เฉพาะผู้ดูแลระบบ
   { to: '/users', label: 'users', icon: 'users', roles: ['admin'] },
-  // รายวิชาของฉัน (ก้อน 3 — ขั้น 3.5 ผู้สอน ; ผู้เรียนเพิ่มในขั้น 3.7)
-  { to: '/courses', label: 'courses', icon: 'courses', roles: ['teacher'] },
+  // รายวิชาของฉัน (ก้อน 3 — ขั้น 3.5 ผู้สอน ; ขั้น 3.7 ผู้เรียน)
+  { to: '/courses', label: 'courses', icon: 'courses', roles: ['teacher', 'student'] },
 ]
 
 /** เมนูที่บทบาทนี้เห็น (เรียงตามลำดับในรายการ) */

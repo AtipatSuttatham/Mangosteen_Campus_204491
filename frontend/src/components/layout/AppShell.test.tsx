@@ -216,8 +216,8 @@ describe('navItemsFor', () => {
     expect(navItemsFor('teacher').map((item) => item.to)).toEqual(['/', '/courses'])
   })
 
-  it('ผู้เรียนเห็นเมนู ภาพรวม เท่านั้น (รายวิชาของผู้เรียนมาในขั้น 3.7)', () => {
-    expect(navItemsFor('student').map((item) => item.to)).toEqual(['/'])
+  it('ผู้เรียนเห็นเมนู ภาพรวม + รายวิชาของฉัน (ขั้น 3.7)', () => {
+    expect(navItemsFor('student').map((item) => item.to)).toEqual(['/', '/courses'])
   })
 
   it('ผู้ดูแลระบบเห็น ภาพรวม + จัดการผู้ใช้ (ขั้น 2.5)', () => {

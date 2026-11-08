@@ -1,6 +1,6 @@
 /**
  * ชิ้นส่วนเล็ก ๆ ที่ใช้ร่วมกันในหน้ารายวิชา (ขั้น 3.6)
- *   Notice       แถบข้อความหลังทำรายการ: สำเร็จ = เขียว ✓ / ไม่สำเร็จ = แดง
+ *   Notice       แถบข้อความหลังทำรายการ: สำเร็จ = เขียว ✓ / ไม่สำเร็จ = แดง / แจ้งให้ทราบ = เทา (ขั้น 3.7)
  *   Segmented    กลุ่มปุ่มสลับตาม .seg ใน board (ตัวกรองสถานะ, วิธีเพิ่มผู้เรียน)
  *   CountPill    เลขจำนวนในแท็บและปุ่มสลับ
  *   StateMessage กล่องข้อความกำลังโหลด / ว่าง / ผิดพลาด
@@ -8,16 +8,26 @@
 import type { ReactNode } from 'react'
 import { CheckIcon } from './icons'
 
-/** ข้อความหลังทำรายการ */
-export type NoticeValue = { tone: 'ok' | 'bad'; text: string }
+/**
+ * ข้อความหลังทำรายการ
+ * ok = สำเร็จ (เขียว ✓) / bad = ไม่สำเร็จ (แดง) /
+ * mute = แจ้งให้ทราบ ไม่มีอะไรเปลี่ยน (เทา) เช่น "คุณอยู่ในรายวิชา … อยู่แล้ว" (ขั้น 3.7 แบบ ภ1)
+ */
+export type NoticeValue = { tone: 'ok' | 'bad' | 'mute'; text: string }
+
+const NOTICE_TONE: Record<NoticeValue['tone'], string> = {
+  ok: 'bg-ok-soft text-ok',
+  bad: 'bg-bad-soft text-bad',
+  mute: 'bg-mute-soft text-mute',
+}
 
 export function Notice({ notice }: { notice: NoticeValue }) {
   return (
     <div
-      role={notice.tone === 'ok' ? 'status' : 'alert'}
+      role={notice.tone === 'bad' ? 'alert' : 'status'}
       className={
         'flex items-center gap-2.5 rounded-[10px] px-3.5 py-2.5 text-sm leading-[1.55] font-semibold ' +
-        (notice.tone === 'ok' ? 'bg-ok-soft text-ok' : 'bg-bad-soft text-bad')
+        NOTICE_TONE[notice.tone]
       }
     >
       {notice.tone === 'ok' && <CheckIcon />}
