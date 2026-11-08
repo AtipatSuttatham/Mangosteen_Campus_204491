@@ -11,6 +11,11 @@
  * - ผลของการกด (สำเร็จ / ไม่สำเร็จ) ขึ้นในส่วนที่เพิ่งกด ไม่ใช่แถบด้านบนหน้า — บนจอเตี้ยผู้ใช้อยู่ด้านล่าง
  *   แล้วมองไม่เห็นแถบ (ขั้น 3.6 รอบ 3 แบบ ท1 แบบเดียวกับป้าย "บันทึกแล้ว" ของหน้าข้อมูลส่วนตัว)
  *   ยกเว้นปิดรายวิชา: ส่วนนั้นหายไป จึงใช้แถบด้านบนแล้วเลื่อนหน้าขึ้นไปให้เห็น
+ * - ผู้ดูแลระบบ (ขั้น 3.8 — board "ตั้งค่ารายวิชาที่ปิดแล้ว (ผู้ดูแลระบบ)") เพิ่ม 2 ส่วน:
+ *     "สถานะรายวิชา" (เฉพาะวิชาที่ปิด) — ปิดเมื่อ … โดย … + ปุ่ม "เปิดรายวิชาคืน" (ทำทันที ย้อนได้ด้วยการปิดอีกครั้ง)
+ *       เปิดคืนแล้วส่วนนี้หายไป → ผลขึ้นแถบด้านบนแบบเดียวกับปิดรายวิชา
+ *     "ผู้สอน" — เลือกผู้สอนใหม่ + "เปลี่ยนผู้สอน" (ยืนยันก่อน — ผู้ใช้เลือกแบบ ว1) ; ใช้ได้แม้วิชาปิดแล้ว
+ *   ลำดับ (ตาม board): สถานะรายวิชา → ผู้สอน → ข้อมูลรายวิชา → การเผยแพร่ → รหัสเข้าร่วม
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { useState, type ReactNode } from 'react'
@@ -25,10 +30,11 @@ import {
   type Course,
   type CourseAction,
 } from '../../api/courses'
-import { errorMessage } from '../../api/errors'
+import { errorMessage, fieldErrorsMessage } from '../../api/errors'
 import { Button, ConfirmDialog, StatusBadge } from '../../components/ui'
 import { formatDateTime } from '../../lib/datetime'
 import { CopyButton } from '../admin/users/CopyButton'
+import { ADMIN_COURSES_KEY, ADMIN_TEACHERS_KEY, teacherName, useAdminTeachers } from './adminCourseData'
 import { CourseFields } from './CourseFields'
 import {
   applyCourseSaveError,
@@ -37,13 +43,14 @@ import {
   type CourseFormValues,
 } from './courseForm'
 import { CheckIcon, EyeIcon, EyeOffIcon, LockIcon, RefreshIcon } from './icons'
+import { TeacherSelect } from './TeacherSelect'
 import { useCoursePage, useRefreshCourse } from './useCoursePage'
 
 /** หน้าต่างยืนยันที่เปิดอยู่ */
-type Confirming = 'unpublish' | 'regenerate' | 'close' | 'delete'
+type Confirming = 'unpublish' | 'regenerate' | 'close' | 'delete' | 'teacher'
 
 /** ส่วนที่แสดงผลของการกดล่าสุด */
-type SectionKey = 'publish' | 'join'
+type SectionKey = 'publish' | 'join' | 'teacher'
 type SectionResult = { section: SectionKey; tone: 'ok' | 'bad'; text: string }
 
 /** ผลของการกดล่าสุด ขึ้นท้ายส่วนนั้น (role=status / alert ให้โปรแกรมอ่านหน้าจออ่าน) */
@@ -135,7 +142,7 @@ const HINT = 'm-0 text-[13.5px] leading-[1.55] text-ink-muted'
 /** ฟอร์มข้อมูลรายวิชา */
 function InfoForm({ course, className }: { course: Course; className: string }) {
   const { t } = useTranslation()
-  const { notify } = useCoursePage()
+  const { notify, isAdmin } = useCoursePage()
   const refresh = useRefreshCourse(course.id)
   const queryClient = useQueryClient()
   const [formError, setFormError] = useState<string>()
@@ -166,6 +173,7 @@ function InfoForm({ course, className }: { course: Course; className: string }) 
       queryClient.setQueryData(['course', course.id], updated)
       reset(courseToForm(updated))
       await queryClient.invalidateQueries({ queryKey: ['my-courses'] })
+      await queryClient.invalidateQueries({ queryKey: ADMIN_COURSES_KEY })
       setSaved(true)
     } catch (caught) {
       setFormError(applyCourseSaveError(caught, setError))
@@ -182,7 +190,8 @@ function InfoForm({ course, className }: { course: Course; className: string }) 
           disabled={closed || isSubmitting}
           readOnlyView={closed}
         />
-        <p className={HINT}>{t('courseSettings.teacherHint', { name: teacher })}</p>
+        {/* ผู้ดูแลระบบมีส่วน "ผู้สอน" แยกอยู่แล้ว → ไม่ต้องบอกซ้ำ */}
+        {!isAdmin && <p className={HINT}>{t('courseSettings.teacherHint', { name: teacher })}</p>}
         {formError && (
           <p role="alert" className="m-0 text-[14.5px] leading-[1.55] text-danger">
             {formError}
@@ -210,7 +219,7 @@ function InfoForm({ course, className }: { course: Course; className: string }) 
 
 export default function SettingsTab() {
   const { t } = useTranslation()
-  const { course, notify } = useCoursePage()
+  const { course, notify, isAdmin } = useCoursePage()
   const refresh = useRefreshCourse(course.id)
   const queryClient = useQueryClient()
   const navigate = useNavigate()
@@ -235,6 +244,7 @@ export default function SettingsTab() {
     const updated = await runCourseAction(course.id, action)
     queryClient.setQueryData(['course', course.id], updated)
     await queryClient.invalidateQueries({ queryKey: ['my-courses'] })
+    await queryClient.invalidateQueries({ queryKey: ADMIN_COURSES_KEY })
   }
 
   /** ปุ่มที่ทำทันที — ผลขึ้นในส่วนที่กด */
@@ -290,6 +300,7 @@ export default function SettingsTab() {
     try {
       await deleteCourse(course.id)
       await queryClient.invalidateQueries({ queryKey: ['my-courses'] })
+      await queryClient.invalidateQueries({ queryKey: ADMIN_COURSES_KEY })
       queryClient.removeQueries({ queryKey: ['course', course.id] })
       const notice = t('courseSettings.deletedNotice', { code: course.code, name: course.name })
       await navigate('/courses', { state: { notice } })
@@ -300,13 +311,75 @@ export default function SettingsTab() {
     }
   }
 
+  /** เปิดรายวิชาคืน (ผู้ดูแลระบบ — ทำทันที) : ส่วนสถานะหายไปหลังเปิดคืน → แถบด้านบน + เลื่อนขึ้น */
+  const [reopening, setReopening] = useState(false)
+  async function reopen() {
+    setRunning(true)
+    setReopening(true)
+    notify(null)
+    setResult(null)
+    try {
+      await apply('reopen')
+      notify({ tone: 'ok', text: t('courseSettings.reopenedNotice') })
+    } catch (caught) {
+      notify({ tone: 'bad', text: t('courseSettings.actionFailed', { reason: apiMessage(caught) }) })
+      await refresh()
+    } finally {
+      setRunning(false)
+      setReopening(false)
+      window.scrollTo({ top: 0 })
+    }
+  }
+
+  // ---- เปลี่ยนผู้สอน (ผู้ดูแลระบบ) ----
+  // โหลดเฉพาะผู้ดูแลระบบ (ผู้สอนเรียก API นี้ไม่ได้)
+  const teachers = useAdminTeachers(isAdmin)
+  // ผู้สอนที่เลือกในช่อง (null = ยังไม่แตะ → แสดงผู้สอนปัจจุบัน)
+  const [pickedTeacher, setPickedTeacher] = useState<string | null>(null)
+  const teacherValue = pickedTeacher ?? String(course.teacher.id)
+  const teacherChanged = teacherValue !== String(course.teacher.id)
+  const pickedRow = teachers.data?.find((item) => String(item.id) === teacherValue)
+
+  /** ยืนยันในหน้าต่างแล้วเปลี่ยนผู้สอน — ผลขึ้นในส่วน "ผู้สอน" */
+  async function confirmTeacherChange() {
+    setRunning(true)
+    setConfirmError(undefined)
+    notify(null)
+    setResult(null)
+    try {
+      const updated = await updateCourse(course.id, { teacher: Number(teacherValue) })
+      queryClient.setQueryData(['course', course.id], updated)
+      setPickedTeacher(null)
+      await Promise.all(
+        [['my-courses'], ADMIN_COURSES_KEY, ADMIN_TEACHERS_KEY].map((queryKey) =>
+          queryClient.invalidateQueries({ queryKey }),
+        ),
+      )
+      setResult({
+        section: 'teacher',
+        tone: 'ok',
+        text: t('courseSettings.teacherChangedNotice', { name: teacherName(updated.teacher) }),
+      })
+      closeConfirm()
+    } catch (caught) {
+      // ผู้สอนที่เลือกใช้ไม่ได้แล้ว (เช่น เพิ่งถูกระงับ) → teacher_not_assignable ; อื่น ๆ → ข้อความรวม
+      const fieldMessage =
+        caught instanceof ApiError ? fieldErrorsMessage(caught.fields.teacher) : undefined
+      setConfirmError(fieldMessage ?? apiMessage(caught))
+      await Promise.all([refresh(), queryClient.invalidateQueries({ queryKey: ADMIN_TEACHERS_KEY })])
+    } finally {
+      setRunning(false)
+    }
+  }
+
   const closed = course.is_closed
   const published = course.is_published
   const joinLabelId = `course-${course.id}-join`
 
   return (
     <>
-      {closed && (
+      {/* ผู้ดูแลระบบเห็นข้อมูลการปิดในส่วน "สถานะรายวิชา" แทน (พร้อมปุ่มเปิดคืน) */}
+      {closed && !isAdmin && (
         <div className="flex flex-col gap-1 rounded-card border border-line bg-surface px-4 py-3.5 lg:px-7">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
             <StatusBadge tone="mute" icon={<LockIcon />}>
@@ -327,6 +400,69 @@ export default function SettingsTab() {
 
       {/* จอใหญ่: การ์ดเดียว ส่วนต่าง ๆ คั่นด้วยเส้น ; มือถือ: การ์ดแยก เรียงตาม order */}
       <div className="flex flex-col gap-3 lg:gap-0 lg:divide-y lg:divide-line-soft lg:rounded-card lg:border lg:border-line lg:bg-surface">
+        {isAdmin && closed && (
+          <Section
+            title={t('courseSettings.statusTitle')}
+            body={t('courseSettings.statusBody')}
+            className="order-first lg:order-none"
+          >
+            <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:gap-4">
+              <div className="grow">
+                <StatusBadge tone="mute" icon={<LockIcon />} className="mb-1.5 w-fit">
+                  {t('courses.closed')}
+                </StatusBadge>
+                {course.closed_at && (
+                  <p className="m-0 text-[15px] leading-[1.6] font-semibold">
+                    {t('courseSettings.closedNote', {
+                      date: formatDateTime(course.closed_at),
+                      name: course.closed_by ?? '',
+                    })}
+                  </p>
+                )}
+                <p className="m-0 text-sm leading-[1.6] text-ink-muted">{t('courseSettings.reopenNote')}</p>
+              </div>
+              <Button variant="secondary" disabled={running} onClick={() => void reopen()} className="shrink-0">
+                {reopening ? t('courseSettings.reopening') : t('courseSettings.reopen')}
+              </Button>
+            </div>
+          </Section>
+        )}
+
+        {isAdmin && (
+          <Section
+            title={t('courseSettings.teacherTitle')}
+            body={t('courseSettings.teacherBody')}
+            // มือถือ: ก่อนข้อมูลรายวิชา (order เท่ากัน → เรียงตามลำดับในโค้ด)
+            className="order-3 lg:order-none"
+          >
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-2.5">
+              <div className="min-w-0 grow">
+                <TeacherSelect
+                  label={t('courseSettings.teacherLabel')}
+                  value={teacherValue}
+                  onChange={(value) => {
+                    setPickedTeacher(value)
+                    setResult(null)
+                  }}
+                  current={course.teacher}
+                  hint={t('courseSettings.teacherChangeHint')}
+                  disabled={running}
+                />
+              </div>
+              {/* จอใหญ่: ปุ่มอยู่ระดับเดียวกับช่อง (เว้นที่ให้ป้ายชื่อด้านบน) */}
+              <Button
+                variant="secondary"
+                disabled={running || !teacherChanged || !pickedRow?.assignable}
+                onClick={() => setConfirming('teacher')}
+                className="shrink-0 lg:mt-[30px] lg:h-[46px]"
+              >
+                {t('courseSettings.changeTeacher')}
+              </Button>
+            </div>
+            {resultIn('teacher')}
+          </Section>
+        )}
+
         <InfoForm course={course} className="order-3 lg:order-none" />
 
         {!closed && (
@@ -485,6 +621,22 @@ export default function SettingsTab() {
           pending={running}
           error={confirmError}
           onConfirm={() => void runConfirmed(null, 'close', t('courseSettings.closedNotice'))}
+          onCancel={closeConfirm}
+        />
+      )}
+      {confirming === 'teacher' && pickedRow && (
+        <ConfirmDialog
+          tone="primary"
+          title={t('courseSettings.changeTeacherTitle', { name: teacherName(pickedRow) })}
+          description={[
+            t('courseSettings.changeTeacherBody', { name: teacherName(course.teacher) }),
+            t('courseSettings.changeTeacherBody2'),
+          ]}
+          confirmLabel={t('courseSettings.changeTeacher')}
+          pendingLabel={t('courseSettings.changingTeacher')}
+          pending={running}
+          error={confirmError}
+          onConfirm={() => void confirmTeacherChange()}
           onCancel={closeConfirm}
         />
       )}
