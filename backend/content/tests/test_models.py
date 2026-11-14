@@ -164,13 +164,23 @@ def test_video_needs_exactly_one_source(module: Module) -> None:
 
 
 def test_file_metadata_must_match_file(module: Module) -> None:
-    """มีไฟล์ต้องมีชื่อเดิม + ขนาด ; ไม่มีไฟล์ต้องไม่มีข้อมูลไฟล์ค้าง"""
-    assert_rejected(
-        module=module, title="x", content_type="file", file_url="content/1/a.pdf", file_size=1
-    )
-    assert_rejected(
-        module=module, title="x", content_type="file", file_url="content/1/a.pdf", file_name="a.pdf"
-    )
+    """มีไฟล์ต้องมีชื่อเดิม + ขนาด + ชนิดไฟล์ ; ไม่มีไฟล์ต้องไม่มีข้อมูลไฟล์ค้าง"""
+    file_fields = {
+        "module": module,
+        "title": "x",
+        "content_type": "file",
+        "file_url": "content/1/a.pdf",
+        "file_name": "a.pdf",
+        "file_size": 1,
+        "mime_type": "application/pdf",
+    }
+    # ครบทุกช่อง → บันทึกได้ (ยืนยันว่าแถวที่ขาดทีละช่องด้านล่างผิดเพราะช่องนั้นจริง)
+    with transaction.atomic():
+        Content.objects.create(**file_fields).delete()
+
+    for missing in ("file_name", "file_size", "mime_type"):
+        incomplete = {**file_fields, missing: None if missing == "file_size" else ""}
+        assert_rejected(**incomplete)
     assert_rejected(module=module, title="x", content_type="text", file_name="a.pdf")
     assert_rejected(module=module, title="x", content_type="text", file_size=10)
 
@@ -265,14 +275,24 @@ def test_cascade_delete_removes_files(
     assert not any(path.exists() for path in stored)
 
 
-def test_rolled_back_delete_keeps_file(module: Module, media_in_tmp: Path) -> None:
-    """การลบถูกยกเลิก (rollback) → แถวและไฟล์ยังอยู่ทั้งคู่"""
+def test_rolled_back_delete_keeps_file(
+    module: Module, media_in_tmp: Path, django_capture_on_commit_callbacks
+) -> None:
+    """
+    การลบถูกยกเลิก (rollback) → แถวและไฟล์ยังอยู่ทั้งคู่
+
+    ระหว่าง test ฐานข้อมูลไม่เคยบันทึกจริง คำสั่งที่รอ "หลังบันทึกเสร็จ" จึงไม่ทำงานเองอยู่แล้ว
+    — ต้องดักคำสั่งเหล่านั้น (capture + execute) เพื่อพิสูจน์ว่าการยกเลิกทิ้งคำสั่งลบไฟล์ไปจริง
+    (ถ้าคำสั่งลบหลุดรอดมา ตัวดักจะสั่งทำงานแล้วไฟล์จะหาย → test ไม่ผ่าน)
+    """
     content = make_file_content(module)
     stored = media_in_tmp / content.file_url.name
 
-    with pytest.raises(RuntimeError), transaction.atomic():
-        Content.objects.filter(pk=content.pk).get().delete()
-        raise RuntimeError("ยกเลิก")
+    with django_capture_on_commit_callbacks(execute=True) as callbacks:
+        with pytest.raises(RuntimeError), transaction.atomic():
+            Content.objects.filter(pk=content.pk).get().delete()
+            raise RuntimeError("ยกเลิก")
 
+    assert callbacks == []
     assert Content.objects.filter(pk=content.pk).exists()
     assert stored.exists()
