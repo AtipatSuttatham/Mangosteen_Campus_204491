@@ -13,7 +13,7 @@
  *      เปลี่ยนรหัสผ่าน → acceptSession() ใช้บัตรชุดใหม่ (แท็บอื่นของเบราว์เซอร์นี้แลกบัตรจาก cookie ใหม่ได้เอง)
  */
 import { useQueryClient } from '@tanstack/react-query'
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { login as apiLogin, logout as apiLogout, type TokenResponse, type User } from '../api/auth'
 import { AuthContext, type AuthContextValue, type AuthStatus } from './AuthContext'
 import { onSessionExpired, refreshSession, setAccessToken } from './session'
@@ -39,8 +39,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sessionExpired: false,
   })
   // ใช้อ่านสถานะล่าสุดในตัวฟังเหตุการณ์ (ไม่ต้องสมัครฟังใหม่ทุกครั้งที่สถานะเปลี่ยน)
+  // useLayoutEffect (ไม่ใช่ useEffect): อัปเดตทันทีในจังหวะเดียวกับที่หน้าจอเปลี่ยน — ถ้าใช้ useEffect
+  // จะมีช่วงสั้น ๆ ที่หน้าแสดงว่าเข้าสู่ระบบแล้ว แต่ statusRef ยังเป็นค่าเดิม ข้อความ "ออกจากระบบ"
+  // จากแท็บอื่นที่มาในช่วงนั้นจะถูกทิ้ง (พบจาก test ที่ตกบน CI เป็นครั้งคราว — ดู auth-flow.test.tsx)
   const statusRef = useRef<AuthStatus>(state.status)
-  useEffect(() => {
+  useLayoutEffect(() => {
     statusRef.current = state.status
   }, [state.status])
 

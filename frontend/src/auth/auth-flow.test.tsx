@@ -239,6 +239,24 @@ describe('ออกจากระบบ / ถูกให้ออก', () => {
     expect(await screen.findByRole('heading', { name: 'เข้าสู่ระบบ' })).toBeInTheDocument()
   })
 
+  it('แท็บอื่นออกจากระบบทันทีที่หน้าแรกขึ้นจอ (ก่อน effect ของ React ทำงาน) → ยังออกจากระบบ', async () => {
+    // จำลองจังหวะที่ทำให้ test ข้างบนตกบน CI เป็นครั้งคราว (3 ครั้ง ต.ค.–พ.ย. 2569):
+    // ส่งข้อความทันทีที่หัวข้อหน้าแรกโผล่ใน DOM — ก่อนที่ useEffect หลังวาดหน้าจะได้ทำงาน
+    // เดิมสถานะ "เข้าสู่ระบบแล้ว" ใน statusRef อัปเดตใน useEffect → ข้อความถูกทิ้ง ไม่ออกจากระบบ
+    fakeBackend({ hasSession: true })
+    const observer = new MutationObserver(() => {
+      if (screen.queryByRole('heading', { name: 'สวัสดี สมใจ' })) {
+        observer.disconnect()
+        FakeChannel.instances.at(-1)?.receive({ type: 'logout' })
+      }
+    })
+    observer.observe(document.body, { childList: true, subtree: true })
+    renderApp('/')
+
+    expect(await screen.findByRole('heading', { name: 'เข้าสู่ระบบ' })).toBeInTheDocument()
+    observer.disconnect()
+  })
+
   it('แท็บอื่นแก้ข้อมูลส่วนตัว → ชื่อในแท็บนี้เปลี่ยนตาม (ไม่ต้องรีเฟรช)', async () => {
     fakeBackend({ hasSession: true })
     renderApp('/')
