@@ -6,7 +6,7 @@
  *   ไม่งั้นระงับผู้สอนแล้วกลับไปหน้ารายวิชาทันที ช่องเลือกอาจยังให้เลือกคนที่ถูกระงับ (backend ปฏิเสธอยู่ดี)
  */
 import type { QueryClient } from '@tanstack/react-query'
-import { ADMIN_TEACHERS_KEY } from '../../courses/adminCourseData'
+import { ADMIN_TEACHERS_KEY } from '../../courses/courseCache'
 
 export function invalidateUserLists(queryClient: QueryClient): Promise<void> {
   return Promise.all([

@@ -6,6 +6,7 @@ import { useCallback } from 'react'
 import { useOutletContext } from 'react-router'
 import type { Course } from '../../api/courses'
 import type { NoticeValue } from './courseBits'
+import { refreshCourse } from './courseCache'
 
 export type CoursePageContext = {
   course: Course
@@ -23,14 +24,5 @@ export function useCoursePage(): CoursePageContext {
 /** โหลดข้อมูลของวิชานี้ใหม่ทั้งหมด: หัวรายวิชา, รายชื่อ, ผลค้นหาผู้เรียน, หน้ารายวิชาของฉัน / จัดการรายวิชา */
 export function useRefreshCourse(courseId: number) {
   const queryClient = useQueryClient()
-  return useCallback(async () => {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['course', courseId] }),
-      queryClient.invalidateQueries({ queryKey: ['roster', courseId] }),
-      queryClient.invalidateQueries({ queryKey: ['enrollment-candidates', courseId] }),
-      queryClient.invalidateQueries({ queryKey: ['my-courses'] }),
-      // รายการทั้งระบบของผู้ดูแลระบบ (ขั้น 3.8 — ชื่อเดียวกับ ADMIN_COURSES_KEY)
-      queryClient.invalidateQueries({ queryKey: ['admin-courses'] }),
-    ])
-  }, [queryClient, courseId])
+  return useCallback(() => refreshCourse(queryClient, courseId), [queryClient, courseId])
 }

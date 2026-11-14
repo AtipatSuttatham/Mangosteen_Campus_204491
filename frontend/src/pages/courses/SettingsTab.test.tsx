@@ -196,6 +196,55 @@ describe('แท็บตั้งค่า', () => {
     await waitFor(() => expect(fetchCourse).toHaveBeenCalledTimes(2))
   })
 
+  // ---- กติกากลางของปุ่ม (settings/useSettingsActions.ts — รอบปรับโครงสร้างหลังขั้น 3.8) ----
+
+  it('ระหว่างรอผลของปุ่มหนึ่ง ปุ่มของส่วนอื่นกดไม่ได้ (ล็อกร่วมกัน)', async () => {
+    fetchCourse.mockResolvedValue(makeCourse({ is_published: false }))
+    let finish: (course: coursesApi.Course) => void = () => {}
+    runCourseAction.mockReturnValue(new Promise((resolve) => (finish = resolve)))
+    const { user } = renderPage('/courses/5/settings')
+
+    await user.click(await screen.findByRole('button', { name: 'เผยแพร่รายวิชา' }))
+
+    // ยังรอผลเผยแพร่ → สวิตช์ในส่วนรหัสเข้าร่วมกดไม่ได้
+    expect(screen.getByRole('switch', { name: 'เปิดให้ผู้เรียนเข้าร่วมด้วยรหัส' })).toBeDisabled()
+    finish(makeCourse())
+    await waitFor(() =>
+      expect(screen.getByRole('switch', { name: 'เปิดให้ผู้เรียนเข้าร่วมด้วยรหัส' })).toBeEnabled(),
+    )
+  })
+
+  it('ผลมีได้ทีละป้าย: กดปุ่มส่วนอื่น → ป้ายของส่วนเดิมหาย', async () => {
+    fetchCourse.mockResolvedValue(makeCourse({ is_published: false }))
+    runCourseAction.mockResolvedValue(makeCourse())
+    const { user } = renderPage('/courses/5/settings')
+
+    await user.click(await screen.findByRole('button', { name: 'เผยแพร่รายวิชา' }))
+    expect(await screen.findByText('เผยแพร่รายวิชาแล้ว')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('switch', { name: 'เปิดให้ผู้เรียนเข้าร่วมด้วยรหัส' }))
+
+    await waitFor(() => expect(runCourseAction).toHaveBeenCalledTimes(2))
+    expect(screen.queryByText('เผยแพร่รายวิชาแล้ว')).not.toBeInTheDocument()
+  })
+
+  it('ลบไม่สำเร็จเพราะวิชาเพิ่งถูกเผยแพร่ → หน้าต่างยังเป็นหน้าต่างลบ (ไม่กลายเป็นหน้าต่างปิดรายวิชา)', async () => {
+    fetchCourse
+      .mockResolvedValueOnce(makeCourse({ is_published: false, can_delete: true }))
+      .mockResolvedValue(makeCourse({ is_published: true, can_delete: false }))
+    deleteCourse.mockRejectedValue(new ApiError(409, 'course_not_deletable'))
+    const { user } = renderPage('/courses/5/settings')
+
+    await user.click(await screen.findByRole('button', { name: 'ลบรายวิชา' }))
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'ลบรายวิชา' }))
+
+    // ข้อมูลใหม่มาแล้ว (การ์ดแดงเปลี่ยนเป็นปุ่มปิดรายวิชา) แต่หน้าต่างที่เปิดอยู่ยังเป็นหน้าต่างลบพร้อมข้อความ
+    expect(await screen.findByRole('button', { name: 'ปิดรายวิชา' })).toBeInTheDocument()
+    const dialog = screen.getByRole('alertdialog')
+    expect(within(dialog).getByText('ลบรายวิชา Python พื้นฐาน?')).toBeInTheDocument()
+    expect(within(dialog).getByRole('alert')).toHaveTextContent('ลบรายวิชานี้ไม่ได้')
+  })
+
   it('วิชายังไม่เผยแพร่และลบไม่ได้ → ไม่มีปุ่มลบและปุ่มปิด', async () => {
     fetchCourse.mockResolvedValue(makeCourse({ is_published: false, can_delete: false }))
     renderPage('/courses/5/settings')
