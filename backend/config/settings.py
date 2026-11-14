@@ -64,6 +64,8 @@ INSTALLED_APPS = [
     "academics",
     # app ของโปรเจกต์: การลงทะเบียนของผู้เรียนในรายวิชา Enrollment (ก้อน 3)
     "enrollment",
+    # app ของโปรเจกต์: หน่วยการเรียน Module + เนื้อหา Content (ก้อน 4)
+    "content",
 ]
 
 # ใช้ตารางผู้ใช้ของเราเอง (accounts.User) แทนตารางผู้ใช้สำเร็จรูปของ Django
