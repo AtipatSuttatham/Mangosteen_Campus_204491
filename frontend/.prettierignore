@@ -1,0 +1,4 @@
+# ไฟล์ที่ Prettier ไม่ต้องจัดรูปแบบ (นอกจาก node_modules ที่ข้ามเองอยู่แล้ว)
+dist
+pnpm-lock.yaml
+public
