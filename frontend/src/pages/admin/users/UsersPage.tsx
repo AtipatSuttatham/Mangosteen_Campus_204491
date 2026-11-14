@@ -206,16 +206,8 @@ export default function UsersPage() {
             className={isFetching ? 'opacity-60 motion-safe:transition-opacity' : ''}
           >
             {/* จอใหญ่ = ตาราง ; จอเล็ก = การ์ด (สลับที่ 1024px — จุดเดียวกับ sidebar ↔ เมนูมือถือ) */}
-            <UsersTable
-              users={data.results}
-              currentUserId={currentUser?.id ?? 0}
-              actions={rowActions}
-            />
-            <UsersCards
-              users={data.results}
-              currentUserId={currentUser?.id ?? 0}
-              actions={rowActions}
-            />
+            <UsersTable users={data.results} currentUserId={currentUser?.id ?? 0} actions={rowActions} />
+            <UsersCards users={data.results} currentUserId={currentUser?.id ?? 0} actions={rowActions} />
           </div>
         )}
 

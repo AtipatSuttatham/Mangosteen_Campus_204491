@@ -147,13 +147,17 @@ export function ReviewList({ rows, disabled, onRemove }: ReviewListProps) {
         {rows.map((row) => (
           <li key={row.identifier} className="flex flex-col gap-1 py-3 pr-1.5 pl-3.5">
             <div className="flex items-center gap-2">
-              <span className="grow text-[14.5px] font-semibold tabular-nums wrap-anywhere">{rowId(row)}</span>
+              <span className="grow text-[14.5px] font-semibold tabular-nums wrap-anywhere">
+                {rowId(row)}
+              </span>
               {removeButton(row)}
             </div>
             {row.student && (
               <>
                 <div className="text-[15px] font-semibold">{name(row)}</div>
-                <div className="text-[13.5px] leading-[1.6] wrap-anywhere text-ink-muted">{row.student.email}</div>
+                <div className="text-[13.5px] leading-[1.6] wrap-anywhere text-ink-muted">
+                  {row.student.email}
+                </div>
               </>
             )}
             <div>{resultBadge(row)}</div>

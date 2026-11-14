@@ -1,0 +1,6 @@
+# commit ที่เปลี่ยนแค่รูปแบบโค้ด (ไม่เปลี่ยนการทำงาน) — git blame และหน้า Blame ของ GitHub จะข้าม commit เหล่านี้
+# แล้วแสดง commit ที่แก้เนื้อหาบรรทัดนั้นจริงแทน
+# ในเครื่อง: git config blame.ignoreRevsFile .git-blame-ignore-revs (ตั้งครั้งเดียว — ดู WORKFLOW_GUIDE.md หัวข้อ 3.4)
+
+# Format frontend code with Prettier (PR #43 — จัดรูปแบบหน้าเว็บทั้งหมดครั้งแรก)
+24f1fe9d814c407b9484888b4b87a5c6ae6be63d

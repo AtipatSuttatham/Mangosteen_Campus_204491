@@ -29,7 +29,11 @@ export function JoinCodeSection({ actions, className }: { actions: SettingsActio
 
   return (
     <>
-      <Section title={t('courseSettings.joinTitle')} body={t('courseSettings.joinBody')} className={className}>
+      <Section
+        title={t('courseSettings.joinTitle')}
+        body={t('courseSettings.joinBody')}
+        className={className}
+      >
         <div className="flex items-center gap-3.5">
           <Switch
             checked={enabled}

@@ -124,7 +124,9 @@ describe('Dialog', () => {
   it('เติมช่องว่างเท่าแถบเลื่อนที่หายไป หน้าด้านหลังจึงไม่ขยับ — ปิดแล้วคืนค่าเดิม (ขั้น 3.6 รอบ 3)', async () => {
     const user = userEvent.setup()
     // จำลองแถบเลื่อนกว้าง 15px: หน้าต่างเบราว์เซอร์กว้างกว่าพื้นที่เนื้อหา 15px
-    const clientWidth = vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(window.innerWidth - 15)
+    const clientWidth = vi
+      .spyOn(document.documentElement, 'clientWidth', 'get')
+      .mockReturnValue(window.innerWidth - 15)
     render(<DialogHarness />)
 
     await user.click(screen.getByRole('button', { name: 'เปิดหน้าต่าง' }))
@@ -190,8 +192,6 @@ describe('ConfirmDialog', () => {
   it('ทำไม่สำเร็จ: แสดงข้อความ error ในหน้าต่าง', () => {
     renderConfirm({ error: 'ต้องเหลือผู้ดูแลระบบที่ใช้งานได้อย่างน้อย 1 คน' })
 
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'ต้องเหลือผู้ดูแลระบบที่ใช้งานได้อย่างน้อย 1 คน',
-    )
+    expect(screen.getByRole('alert')).toHaveTextContent('ต้องเหลือผู้ดูแลระบบที่ใช้งานได้อย่างน้อย 1 คน')
   })
 })

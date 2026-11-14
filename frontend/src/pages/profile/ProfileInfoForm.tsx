@@ -92,10 +92,7 @@ export function ProfileInfoForm() {
       onSubmit={handleSubmit(onSubmit)}
       className="flex flex-col gap-[18px]"
     >
-      <h2
-        id="profile-info-title"
-        className="m-0 font-display text-xl leading-[1.4] font-semibold"
-      >
+      <h2 id="profile-info-title" className="m-0 font-display text-xl leading-[1.4] font-semibold">
         {t('profile.infoTitle')}
       </h2>
 

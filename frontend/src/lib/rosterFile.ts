@@ -28,13 +28,7 @@ const EMAIL_HEADERS = ['อีเมล', 'email']
 
 /** สาเหตุที่อ่านไฟล์ไม่ได้ (หน้าจอแปลเป็นข้อความจาก th.ts) */
 export type RosterFileProblem =
-  | 'wrong_type'
-  | 'old_excel'
-  | 'too_large'
-  | 'unreadable'
-  | 'empty'
-  | 'no_column'
-  | 'too_many'
+  'wrong_type' | 'old_excel' | 'too_large' | 'unreadable' | 'empty' | 'no_column' | 'too_many'
 
 /** อ่านไฟล์ไม่ได้ — total = จำนวนรายการที่พบ (เฉพาะ too_many) */
 export class RosterFileError extends Error {

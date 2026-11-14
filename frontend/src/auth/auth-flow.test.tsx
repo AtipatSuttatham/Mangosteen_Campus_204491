@@ -260,9 +260,7 @@ describe('ออกจากระบบ / ถูกให้ออก', () => {
       .at(-1)
       ?.receive({ type: 'user-updated', user: { ...STUDENT, id: 99, first_name: 'คนอื่น' } })
 
-    await waitFor(() =>
-      expect(screen.getByRole('heading', { name: 'สวัสดี สมใจ' })).toBeInTheDocument(),
-    )
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'สวัสดี สมใจ' })).toBeInTheDocument())
   })
 
   it('บัตรหมดอายุกลางคันและแลกไม่ได้ → หน้าเข้าสู่ระบบพร้อม "หมดเวลาการใช้งาน"', async () => {
@@ -284,9 +282,7 @@ describe('ออกจากระบบ / ถูกให้ออก', () => {
       </Routes>,
     )
 
-    expect(
-      await screen.findByText('หมดเวลาการใช้งาน กรุณาเข้าสู่ระบบอีกครั้ง'),
-    ).toBeInTheDocument()
+    expect(await screen.findByText('หมดเวลาการใช้งาน กรุณาเข้าสู่ระบบอีกครั้ง')).toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'เข้าสู่ระบบ' })).toBeInTheDocument()
   })
 })
@@ -322,9 +318,7 @@ describe('ยามหน้าประตูตามบทบาท', () => {
     renderApp('/users')
 
     expect(await screen.findByRole('heading', { name: /สวัสดี/ })).toBeInTheDocument()
-    expect(
-      screen.queryByRole('heading', { name: 'จัดการบัญชีผู้ใช้' }),
-    ).not.toBeInTheDocument()
+    expect(screen.queryByRole('heading', { name: 'จัดการบัญชีผู้ใช้' })).not.toBeInTheDocument()
     // ไม่มีคำขอรายชื่อผู้ใช้ออกไปเลย
     expect(calls.some((url) => url.includes('/admin/users/'))).toBe(false)
   })

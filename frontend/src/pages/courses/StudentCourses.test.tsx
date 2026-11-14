@@ -87,7 +87,14 @@ describe('รายวิชาของฉัน (ผู้เรียน)', (
   it('แสดงวิชาแยกตามภาคเรียน ชื่อผู้สอน และป้ายวิชาที่ปิดแล้ว ; มีวิชาแล้วส่วนเข้าร่วมพับอยู่', async () => {
     fetchMyStudentCourses.mockResolvedValue([
       makeStudentCourse(),
-      makeStudentCourse({ id: 6, code: '204100', name: 'วิชาเก่า', academic_year: 2568, semester: 2, is_closed: true }),
+      makeStudentCourse({
+        id: 6,
+        code: '204100',
+        name: 'วิชาเก่า',
+        academic_year: 2568,
+        semester: 2,
+        is_closed: true,
+      }),
     ])
     const { user } = renderAt('/courses')
 
@@ -165,7 +172,9 @@ describe('รายวิชาของฉัน (ผู้เรียน)', (
     await user.type(input, 'K7Q2XM9B')
     await user.click(screen.getByRole('button', { name: 'เข้าร่วมรายวิชา' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('ใช้รหัสนี้เข้าร่วมไม่ได้ ตรวจรหัสกับผู้สอนอีกครั้ง')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'ใช้รหัสนี้เข้าร่วมไม่ได้ ตรวจรหัสกับผู้สอนอีกครั้ง',
+    )
     expect(input).toHaveAttribute('aria-invalid', 'true')
     expect(joinButton()).toHaveAttribute('aria-expanded', 'true')
     // พิมพ์แก้ → ข้อความผิดหาย
@@ -216,7 +225,9 @@ describe('รายวิชาของฉัน (ผู้เรียน)', (
   })
 
   it('โหลดรายการไม่สำเร็จ → ข้อความผิดพลาด + ลองอีกครั้ง (ส่วนเข้าร่วมยังใช้ได้)', async () => {
-    fetchMyStudentCourses.mockRejectedValueOnce(new ApiError(0, 'network_error')).mockResolvedValue([makeStudentCourse()])
+    fetchMyStudentCourses
+      .mockRejectedValueOnce(new ApiError(0, 'network_error'))
+      .mockResolvedValue([makeStudentCourse()])
     const { user } = renderAt('/courses')
 
     expect(await screen.findByRole('alert')).toHaveTextContent('โหลดรายวิชาไม่สำเร็จ')
@@ -237,7 +248,9 @@ describe('รายวิชาของฉัน (ผู้เรียน)', (
 
 describe('หน้ารายวิชา (ผู้เรียน)', () => {
   it('หัวรายวิชา + เกี่ยวกับรายวิชาแบบ Markdown + กล่องยังไม่มีเนื้อหา', async () => {
-    fetchStudentCourse.mockResolvedValue(makeStudentCourse({ description: 'ปูพื้นฐาน **Python**\n\n- ตัวแปร\n- ฟังก์ชัน' }))
+    fetchStudentCourse.mockResolvedValue(
+      makeStudentCourse({ description: 'ปูพื้นฐาน **Python**\n\n- ตัวแปร\n- ฟังก์ชัน' }),
+    )
     renderAt('/courses/5')
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Python พื้นฐาน' })).toBeInTheDocument()
@@ -262,7 +275,9 @@ describe('หน้ารายวิชา (ผู้เรียน)', () => {
   })
 
   it('โหลดหน้ารายวิชาไม่สำเร็จ → ข้อความผิดพลาด + ลองอีกครั้ง', async () => {
-    fetchStudentCourse.mockRejectedValueOnce(new ApiError(500, 'server_error')).mockResolvedValue(makeStudentCourse())
+    fetchStudentCourse
+      .mockRejectedValueOnce(new ApiError(500, 'server_error'))
+      .mockResolvedValue(makeStudentCourse())
     const { user } = renderAt('/courses/5')
 
     expect(await screen.findByRole('alert')).toHaveTextContent('โหลดรายวิชาไม่สำเร็จ')

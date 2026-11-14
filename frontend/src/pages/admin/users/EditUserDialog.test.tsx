@@ -109,7 +109,9 @@ describe('หน้าต่างแก้ไขข้อมูลผู้ใ�
   })
 
   it('ลดบทบาทผู้ดูแลระบบคนสุดท้าย (last_active_admin) → ข้อความรวมเหนือปุ่ม', async () => {
-    fetchAdminUsers.mockResolvedValue(page([makeUser(9, { role: 'admin', first_name: 'อรุณี', last_name: 'ผู้ดูแล' }), SELF]))
+    fetchAdminUsers.mockResolvedValue(
+      page([makeUser(9, { role: 'admin', first_name: 'อรุณี', last_name: 'ผู้ดูแล' }), SELF]),
+    )
     updateAdminUser.mockRejectedValue(new ApiError(409, 'last_active_admin'))
     const { user, dialog } = await openEdit('อรุณี ผู้ดูแล')
 
@@ -142,6 +144,8 @@ describe('หน้าต่างแก้ไข — บัญชีตัว�
 
     await waitFor(() => expect(updateUser).toHaveBeenCalledOnce())
     expect(updateAdminUser).toHaveBeenCalledWith(ADMIN.id, { first_name: 'สุดารัตน์' })
-    expect(updateUser).toHaveBeenCalledWith(expect.objectContaining({ first_name: 'สุดารัตน์', role: 'admin' }))
+    expect(updateUser).toHaveBeenCalledWith(
+      expect.objectContaining({ first_name: 'สุดารัตน์', role: 'admin' }),
+    )
   })
 })

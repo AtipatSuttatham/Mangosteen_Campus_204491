@@ -81,8 +81,7 @@ export function UserPanel({ variant, onNavigate }: NavMenuProps) {
   return (
     <div
       className={
-        'flex flex-col border-t border-white/16 pt-[18px] ' +
-        (variant === 'drawer' ? 'gap-1' : 'gap-3')
+        'flex flex-col border-t border-white/16 pt-[18px] ' + (variant === 'drawer' ? 'gap-1' : 'gap-3')
       }
     >
       <div className={`flex items-center gap-2.5 ${variant === 'drawer' ? 'mb-2' : ''}`}>

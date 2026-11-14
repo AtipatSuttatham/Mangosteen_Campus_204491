@@ -26,9 +26,7 @@ async function catchApiError(promise: Promise<unknown>): Promise<ApiError> {
 
 describe('apiFetch — กรณีสำเร็จ', () => {
   it('ต่อที่อยู่เป็น /api/v1/... และคืนข้อมูล JSON', async () => {
-    const fetchMock = vi
-      .spyOn(globalThis, 'fetch')
-      .mockResolvedValue(jsonResponse([{ id: 1 }], 200))
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse([{ id: 1 }], 200))
 
     const data = await apiFetch<{ id: number }[]>('/courses/')
 
@@ -109,9 +107,7 @@ describe('apiFetch — กรณี error', () => {
   })
 
   it('ได้หน้า HTML แทน JSON (เช่น proxy ตอบ 502) → เดาเป็น server_error', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      new Response('<h1>Bad Gateway</h1>', { status: 502 }),
-    )
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response('<h1>Bad Gateway</h1>', { status: 502 }))
 
     const error = await catchApiError(apiFetch('/courses/'))
 

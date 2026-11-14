@@ -20,12 +20,7 @@ type ButtonProps = ComponentProps<'button'> & {
 }
 
 /** ปุ่มมาตรฐาน */
-export function Button({
-  variant = 'primary',
-  type = 'button',
-  className = '',
-  ...props
-}: ButtonProps) {
+export function Button({ variant = 'primary', type = 'button', className = '', ...props }: ButtonProps) {
   return (
     <button
       // ค่าเริ่มต้นเป็น type="button" กันฟอร์มถูกส่งโดยไม่ตั้งใจ (ปุ่มส่งฟอร์มให้ระบุ type="submit")

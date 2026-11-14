@@ -63,9 +63,7 @@ export class ApiError extends Error {
 export type ApiFetchOptions = Omit<RequestInit, 'body'> & { body?: unknown; auth?: boolean }
 
 /** ตรวจว่าข้อมูลที่ backend ส่งมามีรูปแบบ error กลาง ({ code: "..." }) หรือไม่ */
-function isErrorBody(
-  body: unknown,
-): body is { code: string; detail?: unknown; fields?: unknown } {
+function isErrorBody(body: unknown): body is { code: string; detail?: unknown; fields?: unknown } {
   return (
     typeof body === 'object' &&
     body !== null &&
@@ -100,10 +98,7 @@ function codeFromStatus(status: number): string {
  * @returns ข้อมูล JSON ที่ backend ตอบ (หรือ undefined ถ้าไม่มีข้อมูล เช่น 204)
  * @throws ApiError ทุกกรณีที่ไม่สำเร็จ
  */
-export async function apiFetch<T = unknown>(
-  path: string,
-  options: ApiFetchOptions = {},
-): Promise<T> {
+export async function apiFetch<T = unknown>(path: string, options: ApiFetchOptions = {}): Promise<T> {
   return (await apiFetchWithStatus<T>(path, options)).data
 }
 

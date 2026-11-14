@@ -126,7 +126,11 @@ describe('UsersPage — รายชื่อ', () => {
     expect(screen.getByText('ทั้งหมด 248 บัญชี')).toBeInTheDocument()
     // แถวหัวตาราง + 2 แถวข้อมูล
     expect(rows).toHaveLength(3)
-    expect(within(must(rows[0])).getAllByRole('columnheader').map((cell) => cell.textContent)).toEqual([
+    expect(
+      within(must(rows[0]))
+        .getAllByRole('columnheader')
+        .map((cell) => cell.textContent),
+    ).toEqual([
       'ชื่อและอีเมล',
       'รหัสนักศึกษา/พนักงาน',
       'บทบาท',

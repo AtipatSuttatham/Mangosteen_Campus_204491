@@ -108,10 +108,10 @@ describe('แท็บผู้เรียน', () => {
     const { user } = renderPage()
     await screen.findByRole('table')
     fetchRoster.mockResolvedValue(
-      roster(
-        [makeEnrollment(3, { status: 'dropped', dropped_at: '2026-07-01T03:00:00Z' })],
-        { active: 2, dropped: 1 },
-      ),
+      roster([makeEnrollment(3, { status: 'dropped', dropped_at: '2026-07-01T03:00:00Z' })], {
+        active: 2,
+        dropped: 1,
+      }),
     )
 
     await user.click(screen.getByRole('button', { name: /ถูกถอน/ }))
@@ -136,7 +136,9 @@ describe('แท็บผู้เรียน', () => {
 
     await user.click(within(await screen.findByRole('table')).getByRole('button', { name: 'เพิ่มกลับ' }))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('เพิ่ม ชื่อ3 สกุล3 กลับไม่สำเร็จ: บัญชีถูกระงับ')
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'เพิ่ม ชื่อ3 สกุล3 กลับไม่สำเร็จ: บัญชีถูกระงับ',
+    )
   })
 
   it('ถอนต้องยืนยัน → ถอนแล้วมีแถบเขียวและโหลดข้อมูลใหม่', async () => {
@@ -180,9 +182,7 @@ describe('หน้าต่างเพิ่มผู้เรียน', () =
   /** ไปแท็บรายการ แล้ววางข้อความ */
   async function openList(text: string) {
     const opened = await openDialog()
-    await opened.user.click(
-      within(opened.dialog).getByRole('button', { name: 'วางรายการหรือเลือกไฟล์' }),
-    )
+    await opened.user.click(within(opened.dialog).getByRole('button', { name: 'วางรายการหรือเลือกไฟล์' }))
     if (text) {
       await opened.user.type(
         within(opened.dialog).getByLabelText('รหัสนักศึกษาหรืออีเมล บรรทัดละ 1 คน'),
@@ -346,7 +346,9 @@ describe('หน้าต่างเพิ่มผู้เรียน', () =
     expect(addStudents).toHaveBeenCalledWith(5, ['670519', '670512', '670513'])
     // จำนวนรวมนับคนที่เพิ่มกลับด้วย ตรงกับตัวเลขบนปุ่ม (ขั้น 3.6 รอบ 3 แบบ ธ1)
     expect(await within(dialog).findByText('เพิ่มผู้เรียน 1 คนแล้ว')).toBeInTheDocument()
-    expect(within(dialog).getByText(/^รวมเพิ่มกลับ 1 คนที่เคยถูกถอน \(6705112 ชื่อ12 สกุล12\)/)).toBeInTheDocument()
+    expect(
+      within(dialog).getByText(/^รวมเพิ่มกลับ 1 คนที่เคยถูกถอน \(6705112 ชื่อ12 สกุล12\)/),
+    ).toBeInTheDocument()
     expect(within(dialog).getByText('รายการซ้ำ 1 รายการ นับครั้งเดียว')).toBeInTheDocument()
     expect(within(dialog).getByLabelText('รหัสนักศึกษาหรืออีเมล บรรทัดละ 1 คน')).toHaveValue('670519')
   })

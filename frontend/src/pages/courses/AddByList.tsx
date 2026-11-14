@@ -50,13 +50,7 @@ type AddByListProps = {
   onWideChange: (wide: boolean) => void
 }
 
-export function AddByList({
-  course,
-  active,
-  onDone,
-  onBusyChange,
-  onWideChange,
-}: AddByListProps) {
+export function AddByList({ course, active, onDone, onBusyChange, onWideChange }: AddByListProps) {
   const { t } = useTranslation()
   const listId = useId()
   const hintId = useId()
@@ -76,8 +70,7 @@ export function AddByList({
   useEffect(() => onBusyChange(busy), [busy, onBusyChange])
   useEffect(() => onWideChange(review !== null), [review, onWideChange])
 
-  const apiMessage = (caught: unknown) =>
-    errorMessage(caught instanceof ApiError ? caught.code : 'unknown')
+  const apiMessage = (caught: unknown) => errorMessage(caught instanceof ApiError ? caught.code : 'unknown')
 
   /** ส่งรายการไปตรวจ แล้วเปิดตาราง */
   async function check(identifiers: string[]) {

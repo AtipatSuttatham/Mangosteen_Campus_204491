@@ -58,7 +58,9 @@ export default function StudentCoursePage() {
         <Card>
           <StateMessage>
             <div role="alert">
-              <p className="m-0 font-display text-xl font-semibold text-ink">{t('coursePage.notFoundTitle')}</p>
+              <p className="m-0 font-display text-xl font-semibold text-ink">
+                {t('coursePage.notFoundTitle')}
+              </p>
               <p className="m-0 mt-1">{t('coursePage.notFoundBody')}</p>
             </div>
           </StateMessage>
@@ -105,7 +107,9 @@ function CourseContent({ course }: { course: StudentCourse }) {
         <CourseBadge code={course.code} state={state} size="md" className="lg:hidden" />
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-            <h1 className="m-0 font-display text-2xl leading-[1.3] font-semibold lg:text-[32px]">{course.name}</h1>
+            <h1 className="m-0 font-display text-2xl leading-[1.3] font-semibold lg:text-[32px]">
+              {course.name}
+            </h1>
             {course.is_closed && (
               <StatusBadge tone="mute" icon={<LockIcon />}>
                 {t('courses.closed')}
@@ -122,7 +126,9 @@ function CourseContent({ course }: { course: StudentCourse }) {
             <span>{t('coursePage.teacher', { name: teacher })}</span>
           </div>
           {course.is_closed && (
-            <p className="m-0 mt-1.5 text-[13.5px] leading-[1.55] text-ink-muted">{t('studentCourses.closedBody')}</p>
+            <p className="m-0 mt-1.5 text-[13.5px] leading-[1.55] text-ink-muted">
+              {t('studentCourses.closedBody')}
+            </p>
           )}
         </div>
       </section>
@@ -130,7 +136,9 @@ function CourseContent({ course }: { course: StudentCourse }) {
       {/* เกี่ยวกับรายวิชา — ผู้สอนไม่ได้เขียนคำอธิบายก็ไม่แสดงส่วนนี้ */}
       {description && (
         <section className="rounded-card border border-line bg-surface px-[18px] py-[18px] lg:px-7 lg:py-[22px]">
-          <h2 className="m-0 mb-2 font-display text-lg font-semibold lg:text-[19px]">{t('studentCourses.about')}</h2>
+          <h2 className="m-0 mb-2 font-display text-lg font-semibold lg:text-[19px]">
+            {t('studentCourses.about')}
+          </h2>
           <Markdown text={description} className="max-w-[720px] lg:text-[15.5px] lg:leading-[1.75]" />
         </section>
       )}

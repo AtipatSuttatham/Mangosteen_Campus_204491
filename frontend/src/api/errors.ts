@@ -38,9 +38,7 @@ export function errorMessage(code: string): string {
 /** ข้อความภาษาไทยของรหัส error รายช่อง (ช่อง "fields") — ไม่มีรหัส = ไม่มีข้อความ */
 export function fieldErrorMessage(code: string | undefined): string | undefined {
   if (code === undefined) return undefined
-  return isKnownFieldErrorCode(code)
-    ? i18n.t(`fieldErrors.${code}`)
-    : i18n.t('fieldErrors.unknown')
+  return isKnownFieldErrorCode(code) ? i18n.t(`fieldErrors.${code}`) : i18n.t('fieldErrors.unknown')
 }
 
 /**

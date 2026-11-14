@@ -93,7 +93,13 @@ export default function CsvImportPage() {
       setState(
         newReport
           ? // ข้อมูลในระบบเปลี่ยนระหว่างตรวจกับนำเข้า → แสดงรายงานใหม่ (ไม่มีบัญชีใดถูกสร้าง)
-            { step: 'review', file, report: newReport, importing: false, notice: t('csvImport.changedSinceCheck') }
+            {
+              step: 'review',
+              file,
+              report: newReport,
+              importing: false,
+              notice: t('csvImport.changedSinceCheck'),
+            }
           : { step: 'review', file, report, importing: false, notice: messageOf(caught) },
       )
     }

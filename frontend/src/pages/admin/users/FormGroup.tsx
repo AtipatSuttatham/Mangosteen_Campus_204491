@@ -27,9 +27,7 @@ export function FormGroup({ title, icon, as: Tag = 'div', children }: FormGroupP
       className={
         'm-0 flex min-w-0 flex-col gap-4 rounded-card border border-line bg-surface px-4 pt-[18px] pb-5 ' +
         // จอใหญ่: กล่องหายไป ; fieldset ใช้ contents ไม่ได้ (legend จะเว้นระยะผิด) จึงแค่ลบกรอบ/พื้น/ขอบใน
-        (Tag === 'fieldset'
-          ? 'lg:block lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0'
-          : 'lg:contents')
+        (Tag === 'fieldset' ? 'lg:block lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0' : 'lg:contents')
       }
     >
       {/* หัวกล่อง: fieldset ซ่อนจากโปรแกรมอ่านหน้าจอ (legend บอกชื่อกลุ่มแล้ว) */}

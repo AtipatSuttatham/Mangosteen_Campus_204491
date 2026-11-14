@@ -14,12 +14,7 @@
  */
 import { useQueryClient } from '@tanstack/react-query'
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
-import {
-  login as apiLogin,
-  logout as apiLogout,
-  type TokenResponse,
-  type User,
-} from '../api/auth'
+import { login as apiLogin, logout as apiLogout, type TokenResponse, type User } from '../api/auth'
 import { AuthContext, type AuthContextValue, type AuthStatus } from './AuthContext'
 import { onSessionExpired, refreshSession, setAccessToken } from './session'
 

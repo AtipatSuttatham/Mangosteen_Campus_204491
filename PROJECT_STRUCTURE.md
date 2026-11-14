@@ -15,6 +15,7 @@ Mangosteen_Campus_204491/
 ├── PROJECT_STRUCTURE.md      ไฟล์นี้ — อธิบายโครงสร้างไฟล์/โฟลเดอร์ทั้งหมด
 ├── WORKFLOW_GUIDE.md         คู่มือขั้นตอนการทำงานสำหรับผู้ใช้ (ทีละขั้น อ่านง่าย)
 ├── .gitignore                รายการไฟล์ที่ไม่นำขึ้น GitHub (รายงาน .docx, .env, โฟลเดอร์ที่สร้างอัตโนมัติ)
+├── .git-blame-ignore-revs    รายการ commit ที่เปลี่ยนแค่รูปแบบโค้ด — git blame / GitHub ข้ามไป แสดง commit ที่แก้เนื้อหาจริงแทน
 ├── .gitattributes            บังคับการขึ้นบรรทัดแบบ LF ทุกเครื่อง (กันไฟล์ "เปลี่ยน" ระหว่าง Windows กับ CI)
 ├── .env.example              ตัวอย่างค่าตั้งค่า (ไม่มีค่าจริง) — คัดลอกเป็น .env ก่อนรันระบบ
 ├── docker-compose.yml        รันฐานข้อมูล PostgreSQL 18 ในเครื่องด้วย Docker (พอร์ตตั้งได้ใน .env)
@@ -23,7 +24,7 @@ Mangosteen_Campus_204491/
 │   └── workflows/
 │       └── ci.yml            CI บน GitHub Actions — 2 job รันพร้อมกัน:
 │                             backend (ruff + Django check + pytest บน PostgreSQL จริง)
-│                             frontend (tsc + eslint + vitest)
+│                             frontend (tsc + eslint + ตรวจรูปแบบ Prettier + vitest)
 │
 ├── backend/                  ส่วนหลังบ้าน: Django 5.2 + Django REST Framework (จัดการแพ็กเกจด้วย uv)
 │   ├── manage.py             ตัวสั่งงาน Django ผ่าน command line (runserver, migrate ฯลฯ)
@@ -132,6 +133,8 @@ Mangosteen_Campus_204491/
 │   ├── pnpm-lock.yaml        ล็อกเวอร์ชันแพ็กเกจทุกตัว — pnpm สร้างให้ ห้ามแก้มือ
 │   ├── vite.config.ts        ตั้งค่า Vite: พอร์ต 5180, ส่งต่อ /api ไป backend (8008), Tailwind, ตั้งค่า Vitest
 │   ├── eslint.config.js      ตั้งค่า ESLint (ตรวจคุณภาพโค้ด TypeScript/React)
+│   ├── .prettierrc.json      ตั้งค่า Prettier (จัดรูปแบบโค้ด): ไม่ใส่ ; , เครื่องหมายคำพูดเดี่ยว, บรรทัดไม่เกิน 110 ตัวอักษร
+│   ├── .prettierignore       ไฟล์ที่ Prettier ข้าม (dist, pnpm-lock.yaml, public)
 │   ├── tsconfig.json         ไฟล์รวมที่ชี้ไปตั้งค่า TypeScript 2 ชุดด้านล่าง
 │   ├── tsconfig.app.json     ตั้งค่า TypeScript ของโค้ดแอป (src/) — โหมดเข้มงวด
 │   ├── tsconfig.node.json    ตั้งค่า TypeScript ของไฟล์ตั้งค่าที่รันบน Node.js (vite.config.ts)
@@ -338,6 +341,8 @@ Mangosteen_Campus_204491/
 | `pnpm build` | ตรวจชนิดข้อมูล แล้วสร้างไฟล์สำหรับใช้งานจริงลง `dist/` |
 | `pnpm typecheck` | ตรวจชนิดข้อมูล TypeScript (`tsc -b` — ตรวจอย่างเดียว ไม่สร้างไฟล์) |
 | `pnpm lint` | ตรวจคุณภาพโค้ดด้วย ESLint |
+| `pnpm format` | จัดรูปแบบโค้ดทุกไฟล์ด้วย Prettier (แก้ไฟล์ให้เลย — ไม่เปลี่ยนการทำงาน) |
+| `pnpm format:check` | ตรวจว่าทุกไฟล์จัดรูปแบบแล้ว (ไม่แก้ไฟล์ — CI ใช้คำสั่งนี้) |
 | `pnpm test` | รัน test ทั้งหมด 1 รอบ (Vitest) |
 | `pnpm test:watch` | รัน test ค้างไว้ แก้โค้ดแล้ว test รันใหม่อัตโนมัติ |
 | `pnpm preview` | เปิดดูผลลัพธ์จาก `pnpm build` ในเครื่อง |

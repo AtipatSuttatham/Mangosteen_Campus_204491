@@ -76,7 +76,9 @@ export default function CoursePage({ isAdmin = false }: { isAdmin?: boolean }) {
         <Card>
           <StateMessage>
             <div role="alert">
-              <p className="m-0 font-display text-xl font-semibold text-ink">{t('coursePage.notFoundTitle')}</p>
+              <p className="m-0 font-display text-xl font-semibold text-ink">
+                {t('coursePage.notFoundTitle')}
+              </p>
               <p className="m-0 mt-1">{t('coursePage.notFoundBody')}</p>
             </div>
           </StateMessage>

@@ -66,8 +66,26 @@ const RESULT: ImportResult = {
   created: 2,
   by_role: { student: 1, teacher: 1 },
   users: [
-    { row: 2, id: 31, email: 's2@example.com', student_or_staff_id: '690000002', first_name: 'ก', last_name: 'ข', role: 'student', password: 'hT7kPq4wNx9e' },
-    { row: 3, id: 32, email: 't3@example.com', student_or_staff_id: null, first_name: 'ค', last_name: 'ง', role: 'teacher', password: 'Wm4rXc8tLp3a' },
+    {
+      row: 2,
+      id: 31,
+      email: 's2@example.com',
+      student_or_staff_id: '690000002',
+      first_name: 'ก',
+      last_name: 'ข',
+      role: 'student',
+      password: 'hT7kPq4wNx9e',
+    },
+    {
+      row: 3,
+      id: 32,
+      email: 't3@example.com',
+      student_or_staff_id: null,
+      first_name: 'ค',
+      last_name: 'ง',
+      role: 'teacher',
+      password: 'Wm4rXc8tLp3a',
+    },
   ],
 }
 
@@ -274,7 +292,13 @@ describe('csvProblemText', () => {
       'ข้อความยาวเกินกำหนด',
     )
     expect(
-      csvProblemText({ row: 4, column: 'student_or_staff_id', code: 'duplicate_in_file', value: '1', duplicate_of: 2 }),
+      csvProblemText({
+        row: 4,
+        column: 'student_or_staff_id',
+        code: 'duplicate_in_file',
+        value: '1',
+        duplicate_of: 2,
+      }),
     ).toBe('รหัสซ้ำกับแถว 2 ในไฟล์นี้')
   })
 })

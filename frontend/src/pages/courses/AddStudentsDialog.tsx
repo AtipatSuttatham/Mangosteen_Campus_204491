@@ -63,12 +63,7 @@ export function AddStudentsDialog({ course, onClose }: AddStudentsDialogProps) {
           className="grid grid-cols-[auto_minmax(0,1fr)] lg:inline-flex"
         />
       </div>
-      <AddBySearch
-        course={course}
-        active={tab === 'search'}
-        inputRef={searchRef}
-        onDone={requestClose}
-      />
+      <AddBySearch course={course} active={tab === 'search'} inputRef={searchRef} onDone={requestClose} />
       <AddByList
         course={course}
         active={tab === 'list'}

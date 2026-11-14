@@ -100,10 +100,7 @@ export function searchCandidates(courseId: number, search: string): Promise<Cand
 }
 
 /** ตรวจรายการก่อนเพิ่ม — อ่านอย่างเดียว ยังไม่เพิ่มใคร */
-export function previewStudents(
-  courseId: number,
-  identifiers: string[],
-): Promise<EnrollmentPreview> {
+export function previewStudents(courseId: number, identifiers: string[]): Promise<EnrollmentPreview> {
   return apiFetch<EnrollmentPreview>(`/courses/${courseId}/enrollments/preview/`, {
     method: 'POST',
     body: { identifiers },

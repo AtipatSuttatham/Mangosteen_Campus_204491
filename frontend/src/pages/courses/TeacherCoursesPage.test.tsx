@@ -218,9 +218,7 @@ describe('หน้าต่างสร้างรายวิชา', () => {
 
   it('รหัสวิชาซ้ำในภาค → ข้อความใต้ช่องรหัสวิชา และหน้าต่างยังเปิดอยู่', async () => {
     const { user, dialog } = await openDialog()
-    createCourse.mockRejectedValue(
-      new ApiError(400, 'validation_error', { code: ['course_code_duplicate'] }),
-    )
+    createCourse.mockRejectedValue(new ApiError(400, 'validation_error', { code: ['course_code_duplicate'] }))
     await user.type(within(dialog).getByLabelText('รหัสวิชา'), '204212')
     await user.type(within(dialog).getByLabelText('ชื่อรายวิชา'), 'โครงสร้างข้อมูล')
 

@@ -70,9 +70,7 @@ export function UsersTable({ users, currentUserId, actions }: UsersTableProps) {
             <tr key={user.id}>
               <td className={`${TD} pl-6 ${tone}`}>
                 <UserName user={user} isSelf={user.id === currentUserId} />
-                <div className="text-[13.5px] leading-[1.6] break-all text-ink-muted">
-                  {user.email}
-                </div>
+                <div className="text-[13.5px] leading-[1.6] break-all text-ink-muted">{user.email}</div>
               </td>
               <td className={`${TD} ${tone}`}>
                 {user.student_or_staff_id ?? (

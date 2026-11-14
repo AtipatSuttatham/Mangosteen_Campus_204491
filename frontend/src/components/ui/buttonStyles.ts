@@ -16,17 +16,14 @@ const FOCUS = 'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visi
 /** หน้าตาเฉพาะของแต่ละแบบ (hover ใช้ not-disabled: แทน enabled: เพื่อให้ใช้กับลิงก์ได้ด้วย — ลิงก์ไม่มีสถานะ enabled) */
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
   primary:
-    'h-[46px] px-5 rounded-control bg-brand text-white text-[15px] ' +
-    'not-disabled:hover:bg-brand-hover',
+    'h-[46px] px-5 rounded-control bg-brand text-white text-[15px] ' + 'not-disabled:hover:bg-brand-hover',
   secondary:
     'h-11 px-[18px] rounded-control border border-line-strong bg-surface text-brand text-[14.5px] ' +
     'not-disabled:hover:border-brand',
   text: 'h-10 px-2 bg-transparent text-brand text-[14.5px]',
   'danger-text': 'h-10 px-2 bg-transparent text-bad text-[14.5px]',
   // ปุ่มแดงทึบ (ขั้น 2.6): ปุ่มยืนยันการกระทำที่ย้อนยากในหน้าต่างยืนยัน เช่น "ระงับบัญชี"
-  danger:
-    'h-[46px] px-5 rounded-control bg-bad text-white text-[15px] ' +
-    'not-disabled:hover:bg-bad-hover',
+  danger: 'h-[46px] px-5 rounded-control bg-bad text-white text-[15px] ' + 'not-disabled:hover:bg-bad-hover',
 }
 
 /**

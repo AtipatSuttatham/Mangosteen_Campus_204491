@@ -13,10 +13,5 @@ type CardProps = HTMLAttributes<HTMLElement> & {
 
 /** การ์ดพื้นขาว */
 export function Card({ as: Component = 'div', className = '', ...props }: CardProps) {
-  return (
-    <Component
-      className={`rounded-card border border-line bg-surface ${className}`}
-      {...props}
-    />
-  )
+  return <Component className={`rounded-card border border-line bg-surface ${className}`} {...props} />
 }

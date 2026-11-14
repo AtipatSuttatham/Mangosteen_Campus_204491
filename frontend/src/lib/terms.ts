@@ -47,7 +47,12 @@ export function groupByTerm<T extends Term>(items: T[]): TermGroup<T>[] {
     const key = termKey(item)
     const last = groups.at(-1)
     if (last && last.key === key) last.items.push(item)
-    else groups.push({ key, term: { academic_year: item.academic_year, semester: item.semester }, items: [item] })
+    else
+      groups.push({
+        key,
+        term: { academic_year: item.academic_year, semester: item.semester },
+        items: [item],
+      })
   }
   return groups
 }

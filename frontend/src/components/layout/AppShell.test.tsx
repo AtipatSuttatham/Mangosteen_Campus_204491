@@ -75,19 +75,14 @@ describe('AppShell — sidebar', () => {
   it('เมนูของหน้าปัจจุบันถูกทำเครื่องหมาย (aria-current) — หน้าแรก', () => {
     renderShell('/')
 
-    expect(within(sidebarNav()).getByRole('link', { name: 'ภาพรวม' })).toHaveAttribute(
-      'aria-current',
-      'page',
-    )
+    expect(within(sidebarNav()).getByRole('link', { name: 'ภาพรวม' })).toHaveAttribute('aria-current', 'page')
   })
 
   it('อยู่หน้าข้อมูลส่วนตัว → เมนู ภาพรวม ไม่ถูกทำเครื่องหมาย', () => {
     renderShell('/profile')
 
     expect(screen.getByRole('heading', { name: 'หน้าข้อมูลส่วนตัวทดสอบ' })).toBeInTheDocument()
-    expect(within(sidebarNav()).getByRole('link', { name: 'ภาพรวม' })).not.toHaveAttribute(
-      'aria-current',
-    )
+    expect(within(sidebarNav()).getByRole('link', { name: 'ภาพรวม' })).not.toHaveAttribute('aria-current')
   })
 
   it('กดออกจากระบบ → เรียก logout()', async () => {
@@ -101,10 +96,7 @@ describe('AppShell — sidebar', () => {
   it('มีลิงก์ "ข้ามไปเนื้อหาหลัก" ชี้ไปที่พื้นที่เนื้อหา', () => {
     renderShell('/')
 
-    expect(screen.getByRole('link', { name: 'ข้ามไปเนื้อหาหลัก' })).toHaveAttribute(
-      'href',
-      '#main-content',
-    )
+    expect(screen.getByRole('link', { name: 'ข้ามไปเนื้อหาหลัก' })).toHaveAttribute('href', '#main-content')
     expect(screen.getByRole('main')).toHaveAttribute('id', 'main-content')
   })
 })
@@ -159,9 +151,7 @@ describe('AppShell — เมนูลิ้นชักบนมือถือ
     const { user } = renderShell('/')
     await user.click(menuButton())
 
-    await user.click(
-      within(screen.getByRole('dialog')).getByRole('link', { name: 'ข้อมูลส่วนตัว' }),
-    )
+    await user.click(within(screen.getByRole('dialog')).getByRole('link', { name: 'ข้อมูลส่วนตัว' }))
 
     expect(screen.getByRole('heading', { name: 'หน้าข้อมูลส่วนตัวทดสอบ' })).toBeInTheDocument()
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
@@ -230,17 +220,12 @@ describe('AppShell — เมนูตามบทบาท', () => {
   it('ผู้เรียนไม่เห็นเมนู จัดการผู้ใช้', () => {
     renderShell('/')
 
-    expect(
-      within(sidebarNav()).queryByRole('link', { name: 'จัดการผู้ใช้' }),
-    ).not.toBeInTheDocument()
+    expect(within(sidebarNav()).queryByRole('link', { name: 'จัดการผู้ใช้' })).not.toBeInTheDocument()
   })
 
   it('ผู้ดูแลระบบเห็นเมนู จัดการผู้ใช้ ชี้ไป /users', () => {
     renderShell('/', vi.fn(), ADMIN)
 
-    expect(within(sidebarNav()).getByRole('link', { name: 'จัดการผู้ใช้' })).toHaveAttribute(
-      'href',
-      '/users',
-    )
+    expect(within(sidebarNav()).getByRole('link', { name: 'จัดการผู้ใช้' })).toHaveAttribute('href', '/users')
   })
 })

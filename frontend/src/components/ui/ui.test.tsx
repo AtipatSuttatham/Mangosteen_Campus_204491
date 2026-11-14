@@ -140,10 +140,7 @@ describe('PasswordField', () => {
     expect(input).toHaveAttribute('type', 'password')
     await user.click(screen.getByRole('button', { name: 'แสดงรหัสผ่าน' }))
     expect(input).toHaveAttribute('type', 'text')
-    expect(screen.getByRole('button', { name: 'ซ่อนรหัสผ่าน' })).toHaveAttribute(
-      'aria-pressed',
-      'true',
-    )
+    expect(screen.getByRole('button', { name: 'ซ่อนรหัสผ่าน' })).toHaveAttribute('aria-pressed', 'true')
     await user.click(screen.getByRole('button', { name: 'ซ่อนรหัสผ่าน' }))
     expect(input).toHaveAttribute('type', 'password')
   })
@@ -260,9 +257,7 @@ describe('Avatar', () => {
   })
 
   it('แบบ ring (แถบบัตรประจำตัว) → ขอบเขียว + พื้นม่วงเข้ม และตัวอักษรตามสัดส่วนวงใหญ่', () => {
-    const { container } = render(
-      <Avatar user={{ ...user, avatar_url: null }} size={128} variant="ring" />,
-    )
+    const { container } = render(<Avatar user={{ ...user, avatar_url: null }} size={128} variant="ring" />)
 
     const circle = container.firstElementChild as HTMLElement
     expect(circle.className).toContain('border-accent')
@@ -271,9 +266,7 @@ describe('Avatar', () => {
   })
 
   it('มีรูป → แสดงรูปแทนตัวอักษรย่อ', () => {
-    const { container } = render(
-      <Avatar user={{ ...user, avatar_url: '/media/avatars/3.webp' }} size={36} />,
-    )
+    const { container } = render(<Avatar user={{ ...user, avatar_url: '/media/avatars/3.webp' }} size={36} />)
 
     const image = container.querySelector('img')
     expect(image).toHaveAttribute('src', '/media/avatars/3.webp')

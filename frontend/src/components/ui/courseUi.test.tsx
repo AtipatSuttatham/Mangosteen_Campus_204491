@@ -66,7 +66,12 @@ describe('badgeLines / badgeFontSize', () => {
 function Harness({ initiallyOpen }: { initiallyOpen: boolean }) {
   const [open, setOpen] = useState(initiallyOpen)
   return (
-    <Collapsible title="ปีการศึกษา 2569 ภาคเรียนที่ 1" trailing="3 รายวิชา" open={open} onToggle={() => setOpen(!open)}>
+    <Collapsible
+      title="ปีการศึกษา 2569 ภาคเรียนที่ 1"
+      trailing="3 รายวิชา"
+      open={open}
+      onToggle={() => setOpen(!open)}
+    >
       <p>เนื้อหาในกลุ่ม</p>
     </Collapsible>
   )

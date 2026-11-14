@@ -133,13 +133,7 @@ export async function resetAdminUserPassword(id: number, newPassword: string): P
 // ---------- ขั้น 2.7: นำเข้าบัญชีจาก CSV (docs/api.md §7.4) ----------
 
 /** คอลัมน์ที่ไฟล์ CSV ต้องมี (ลำดับนี้ใช้ในไฟล์ตัวอย่างและไฟล์รหัสผ่าน) */
-export const CSV_COLUMNS = [
-  'email',
-  'student_or_staff_id',
-  'first_name',
-  'last_name',
-  'role',
-] as const
+export const CSV_COLUMNS = ['email', 'student_or_staff_id', 'first_name', 'last_name', 'role'] as const
 export type CsvColumn = (typeof CSV_COLUMNS)[number]
 
 /** บทบาทที่สร้างจาก CSV ได้ (ผู้ดูแลระบบสร้างทีละคนเท่านั้น) */

@@ -8,12 +8,7 @@ import userEvent from '@testing-library/user-event'
 import type { ReactNode } from 'react'
 import { createMemoryRouter, RouterProvider } from 'react-router'
 import type { Course } from '../../api/courses'
-import type {
-  AddStudentsResult,
-  EnrolledStudent,
-  Enrollment,
-  Roster,
-} from '../../api/enrollments'
+import type { AddStudentsResult, EnrolledStudent, Enrollment, Roster } from '../../api/enrollments'
 import CoursePage from './CoursePage'
 import StudentsTab from './StudentsTab'
 

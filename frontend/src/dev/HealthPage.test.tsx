@@ -28,9 +28,7 @@ describe('HealthPage (หน้าทดสอบสุขภาพระบบ)
   })
 
   it('backend ปกติ → "ระบบพร้อมใช้งาน" และแสดง JSON ที่ได้รับ', async () => {
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
-      jsonResponse({ status: 'ok', database: 'ok' }, 200),
-    )
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(jsonResponse({ status: 'ok', database: 'ok' }, 200))
 
     render(<HealthPage />)
 
