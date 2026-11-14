@@ -60,13 +60,14 @@
 |---|---|
 | `module` | อยู่หน่วยไหน |
 | `title` | ชื่อหัวข้อ |
-| `content_type` | ชนิด: `text` / `file` / `image` / `video` / `audio` / `link` |
-| `body` | เนื้อหาแบบข้อความ (ชนิด text) |
+| `content_type` | ชนิด: `text` / `file` / `image` / `video` / `audio` / `link` — ระบบตั้งเองจากไฟล์ / ลิงก์ เปลี่ยนภายหลังไม่ได้ |
+| `body` | เนื้อหาแบบข้อความ (ชนิด text) หรือคำอธิบายเหนือไฟล์ / ลิงก์ (ไม่บังคับ) |
 | `order` | ลำดับในหน่วย |
 | `is_published` | เผยแพร่แล้วไหม |
-| `file_url` | ตำแหน่งไฟล์ (ระบบสร้างลิงก์ให้) — ชนิด file / image / audio / video ที่อัปโหลด |
-| `file_name`, `file_size`, `mime_type` | ข้อมูลไฟล์: ชื่อ / ขนาด (ไบต์) / ประเภท |
-| `external_url` | ลิงก์ภายนอก — ชนิด link หรือ video จากเว็บอื่น เช่น YouTube |
+| `file_url` | ตำแหน่งไฟล์ชื่อสุ่ม (ระบบสร้างลิงก์ให้) — ชนิด file / image / audio / video ที่อัปโหลด |
+| `file_name`, `file_size`, `mime_type` | ข้อมูลไฟล์: ชื่อเดิม (ใช้ตอนดาวน์โหลด) / ขนาด (ไบต์) / ประเภท |
+| `external_url` | ลิงก์ภายนอก — ชนิด link หรือ video จาก YouTube |
+| `allow_download` | ให้ผู้เรียนดาวน์โหลดไฟล์ได้ไหม (ค่าเริ่มต้นได้ — v2.7) |
 
 ---
 

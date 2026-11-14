@@ -96,10 +96,10 @@ Quiz/Assignment --เผยแพร่ (is_graded)--> GradeItem --(ผู้เ
 
 #### `Content`
 - **หน้าที่**: เนื้อหา 1 ชิ้น — ข้อความ / ไฟล์ / รูป / วิดีโอ / เสียง / ลิงก์ (`content_type`)
-- **เขียนโดย**: ผู้สอน — อัปโหลดไฟล์ผ่าน backend ไปบริการจัดเก็บไฟล์ภายนอก แล้วเก็บ URL ; ชนิด/ขนาดไม่ผ่าน หรืออัปโหลดล้มเหลว → ไม่บันทึก
-- **อ่านโดย**: หน้าเรียนของผู้เรียน (กรอง `is_published`)
-- **field ตามชนิด**: `text` → `body` ; `file`/`image`/`audio`/`video` (อัปโหลด) → `file_url` + metadata ; `link` / `video` จาก YouTube → `external_url`
-- **invariant**: 1 Content = 1 ไฟล์หลัก
+- **เขียนโดย**: ผู้สอน — อัปโหลดไฟล์ผ่าน backend ไปบริการจัดเก็บไฟล์ภายนอก แล้วเก็บตำแหน่งไฟล์ (ชื่อสุ่ม) ; ระบบตั้งชนิดเองจากไฟล์ / ลิงก์ ; ชนิด/ขนาดไม่ผ่าน หรืออัปโหลดล้มเหลว → ไม่บันทึก (v2.7) ; ผู้ดูแลระบบดูอย่างเดียว
+- **อ่านโดย**: หน้าเรียนของผู้เรียน (กรอง `is_published` ของทั้งหน่วยและเนื้อหา ; `allow_download=False` → ไม่ส่งลิงก์ดาวน์โหลด) + ตัวอย่างในแท็บเนื้อหาของผู้สอน
+- **field ตามชนิด**: `text` → `body` ; `file`/`image`/`audio`/`video` (อัปโหลด) → `file_url` + metadata ; `link` / `video` จาก YouTube → `external_url` (ฐานข้อมูลบังคับให้ตรงชนิด — v2.7)
+- **invariant**: 1 Content = 1 ไฟล์หลัก ; ลบแถว → ลบไฟล์ตามหลังบันทึกเสร็จ (รวม cascade)
 
 ---
 
@@ -320,8 +320,9 @@ is_published = False (draft)  ──► True (ผู้เรียนเห็�
 
 ### W6 — สร้างเนื้อหา (UC-09)
 1. `POST /courses/{id}/modules` → `Module(order=next, is_published=False)`
-2. `POST /modules/{id}/contents` → อัปโหลดไฟล์ผ่าน backend → บริการจัดเก็บไฟล์ภายนอก → เก็บ `file_url` (หรือใส่ `external_url` สำหรับลิงก์/YouTube)
+2. `POST /modules/{id}/contents` → อัปโหลดไฟล์ผ่าน backend → บริการจัดเก็บไฟล์ภายนอก → เก็บ `file_url` (หรือใส่ `external_url` สำหรับลิงก์/YouTube) ; ระบบตั้ง `content_type` เอง + หัวข้อจากชื่อไฟล์ถ้าไม่กรอก ; หลายไฟล์ = 1 คำขอต่อไฟล์ (v2.7)
 3. อัปโหลดล้มเหลว → ไม่บันทึก ให้อัปโหลดใหม่ ; เผยแพร่ → ผู้เรียนเห็น
+4. ลบหน่วย / เนื้อหา → `AuditLog(action=delete)` + ลบไฟล์ตามหลังบันทึกเสร็จ (v2.7)
 
 ### W7 — สร้าง + เผยแพร่แบบทดสอบ → GradeItem (UC-10)
 1. `POST /courses/{id}/quizzes` → `Quiz(is_published=False, is_graded=True)` + หมวดคะแนน
@@ -370,7 +371,7 @@ is_published = False (draft)  ──► True (ผู้เรียนเห็�
 ### W15 — การลบ / ซ่อนของ
 | สิ่งที่จะลบ | เงื่อนไข | ผล |
 |---|---|---|
-| Module / Content | — | ลบได้ (Content cascade ; Quiz/Assignment ที่ผูกอยู่ → `module=NULL`) |
+| Module / Content | — | ลบได้ (Content cascade ; Quiz/Assignment ที่ผูกอยู่ → `module=NULL` ; ไฟล์บนที่เก็บไฟล์ถูกลบตาม — v2.7) → `AuditLog(delete)` |
 | Quiz / Assignment **ที่ไม่เคยเผยแพร่** | `is_published=False` + ไม่มี `GradeItem` + ไม่มี attempt/submission | ลบจริงได้ (+ cascade Question/Choice/MatchingPair/Attachment) |
 | Quiz / Assignment **ที่เคยเผยแพร่แล้ว** (มี `GradeItem` หรือมีข้อมูลผู้เรียน) | — | ลบไม่ได้ → ยกเลิกเผยแพร่ |
 | GradeItem ที่มี Score | — | ลบไม่ได้ (PROTECT) |
