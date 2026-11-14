@@ -1,7 +1,7 @@
 /** test ของ invalidateUserLists: แก้บัญชีแล้วต้องล้างทั้งรายชื่อผู้ใช้และรายชื่อผู้สอนของหน้ารายวิชา (ขั้น 3.8 รอบเก็บงาน) */
 import { QueryClient } from '@tanstack/react-query'
 import { describe, expect, it } from 'vitest'
-import { ADMIN_TEACHERS_KEY, ADMIN_TERMS_KEY } from '../../courses/adminCourseData'
+import { ADMIN_TEACHERS_KEY, ADMIN_TERMS_KEY } from '../../courses/courseCache'
 import { invalidateUserLists } from './invalidateUsers'
 
 describe('invalidateUserLists', () => {

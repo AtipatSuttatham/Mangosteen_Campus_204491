@@ -7,16 +7,11 @@
  */
 import { useQuery } from '@tanstack/react-query'
 import { fetchAdminTeachers, fetchAdminTerms } from '../../api/courses'
-
-/** ที่เก็บข้อมูลของ TanStack Query (โหลดใหม่หลังสร้างวิชา / เปลี่ยนผู้สอน — จำนวนวิชาเปลี่ยน) */
-export const ADMIN_TEACHERS_KEY = ['admin-teachers'] as const
-export const ADMIN_TERMS_KEY = ['admin-terms'] as const
-/** รายการรายวิชาทั้งระบบ (คำต่อท้ายคือตัวกรอง) */
-export const ADMIN_COURSES_KEY = ['admin-courses'] as const
+import { ADMIN_TEACHERS_KEY, ADMIN_TERMS_KEY } from './courseCache'
 
 /**
  * ใช้ข้อมูลที่โหลดไว้ต่อได้ 5 นาทีโดยไม่ขอใหม่ (เดิมขอใหม่ทุกครั้งที่เปิดหน้า / หน้าต่าง)
- * ปลอดภัยเพราะทุกจุดที่เปลี่ยนข้อมูลชุดนี้ล้างแคชเอง: สร้าง / แก้ปีภาค / ลบวิชา / เปลี่ยนผู้สอน (หน้ารายวิชา)
+ * ปลอดภัยเพราะทุกจุดที่เปลี่ยนข้อมูลชุดนี้ล้างแคชเอง: สร้าง / แก้ปีภาค / ลบวิชา / เปลี่ยนผู้สอน (`courseCache.ts`)
  * และสร้าง / แก้ / ระงับ / เปิดใช้งาน / นำเข้าบัญชี (invalidateUserLists ในหน้าจัดการผู้ใช้)
  */
 const ADMIN_LOOKUP_STALE_MS = 5 * 60 * 1000

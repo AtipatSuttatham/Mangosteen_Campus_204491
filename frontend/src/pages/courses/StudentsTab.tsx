@@ -28,6 +28,7 @@ import { Button, ConfirmDialog, Pagination, SearchInput, StatusBadge } from '../
 import { formatDateTime } from '../../lib/datetime'
 import { AddStudentsDialog } from './AddStudentsDialog'
 import { Segmented, StateMessage } from './courseBits'
+import { rosterKey } from './courseCache'
 import { BlockedIcon, PlusIcon } from './icons'
 import { useCoursePage, useRefreshCourse } from './useCoursePage'
 
@@ -103,7 +104,7 @@ export default function StudentsTab() {
   }, [searchText, filters.search, change])
 
   const { data, error, isPending, isFetching, refetch } = useQuery({
-    queryKey: ['roster', course.id, filters],
+    queryKey: [...rosterKey(course.id), filters],
     queryFn: () => fetchRoster(course.id, filters),
     placeholderData: keepPreviousData,
   })

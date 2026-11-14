@@ -19,7 +19,7 @@ import { ApiError } from '../../api/client'
 import { createCourse, type Course } from '../../api/courses'
 import { fieldErrorMessage, fieldErrorsMessage } from '../../api/errors'
 import { Button, Dialog, DialogBody, DialogFooter, DialogHeader } from '../../components/ui'
-import { ADMIN_COURSES_KEY, ADMIN_TEACHERS_KEY, ADMIN_TERMS_KEY } from './adminCourseData'
+import { ADMIN_TEACHERS_KEY, afterCourseCreated } from './courseCache'
 import { CourseFields } from './CourseFields'
 import { applyCourseSaveError, emptyCourseForm, toCourseData, type CourseFormValues } from './courseForm'
 import { InfoIcon } from './icons'
@@ -95,11 +95,7 @@ export function CreateCourseDialog({ onClose, onCreated, chooseTeacher = false }
       const data = toCourseData(values)
       const course = await createCourse(chooseTeacher ? { ...data, teacher: Number(teacher) } : data)
       // รายการที่มีวิชานี้ต้องโหลดใหม่เมื่อกลับมา (ผู้สอน: รายวิชาของฉัน ; ผู้ดูแลระบบ: รายการทั้งระบบ + ตัวกรอง)
-      await Promise.all(
-        [['my-courses'], ADMIN_COURSES_KEY, ADMIN_TERMS_KEY, ADMIN_TEACHERS_KEY].map((queryKey) =>
-          queryClient.invalidateQueries({ queryKey }),
-        ),
-      )
+      await afterCourseCreated(queryClient)
       onCreated(course)
     } catch (caught) {
       // ผู้สอนที่เลือกใช้ไม่ได้แล้ว (เช่น เพิ่งถูกระงับ) → ข้อความใต้ช่องผู้สอน

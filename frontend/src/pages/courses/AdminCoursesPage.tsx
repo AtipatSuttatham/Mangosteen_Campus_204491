@@ -24,7 +24,7 @@ import { ADMIN_COURSES_PAGE_SIZE, fetchAdminCourses, type Course } from '../../a
 import { errorMessage } from '../../api/errors'
 import { Button, Pagination } from '../../components/ui'
 import { AdminCourseFilterBar } from './AdminCourseFilterBar'
-import { ADMIN_COURSES_KEY } from './adminCourseData'
+import { ADMIN_COURSES_KEY } from './courseCache'
 import { AdminCourseList } from './AdminCourseList'
 import { Notice } from './courseBits'
 import { CreateCourseDialog } from './CreateCourseDialog'

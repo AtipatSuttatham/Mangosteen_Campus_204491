@@ -34,13 +34,8 @@ import { errorMessage, fieldErrorsMessage } from '../../api/errors'
 import { Button, ConfirmDialog, StatusBadge } from '../../components/ui'
 import { formatDateTime } from '../../lib/datetime'
 import { CopyButton } from '../admin/users/CopyButton'
-import {
-  ADMIN_COURSES_KEY,
-  ADMIN_TEACHERS_KEY,
-  ADMIN_TERMS_KEY,
-  teacherName,
-  useAdminTeachers,
-} from './adminCourseData'
+import { teacherName, useAdminTeachers } from './adminCourseData'
+import { ADMIN_COURSES_KEY, ADMIN_TEACHERS_KEY, ADMIN_TERMS_KEY } from './courseCache'
 import { CourseFields } from './CourseFields'
 import {
   applyCourseSaveError,

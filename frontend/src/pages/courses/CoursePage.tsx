@@ -24,6 +24,7 @@ import { fetchCourse } from '../../api/courses'
 import { errorMessage } from '../../api/errors'
 import { Button, Card } from '../../components/ui'
 import { ManagingBanner, Notice, StateMessage, type NoticeValue } from './courseBits'
+import { courseKey } from './courseCache'
 import { CourseHeader } from './CourseHeader'
 import { BackIcon } from './icons'
 import type { CoursePageContext } from './useCoursePage'
@@ -45,7 +46,7 @@ export default function CoursePage({ isAdmin = false }: { isAdmin?: boolean }) {
   }
 
   const { data, error, isPending, refetch } = useQuery({
-    queryKey: ['course', id],
+    queryKey: courseKey(id),
     queryFn: () => fetchCourse(id),
     enabled: validId,
   })

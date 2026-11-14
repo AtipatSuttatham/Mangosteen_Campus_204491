@@ -25,6 +25,7 @@ import { errorMessage } from '../../api/errors'
 import { Button, Collapsible } from '../../components/ui'
 import { groupByTerm, type Term } from '../../lib/terms'
 import { useStoredState } from '../../lib/useStoredState'
+import { MY_COURSES_KEY } from './courseCache'
 import { CourseRow } from './CourseRow'
 import { CreateCourseDialog } from './CreateCourseDialog'
 import { CheckIcon, PlusIcon } from './icons'
@@ -48,7 +49,7 @@ export default function TeacherCoursesPage() {
   const [openTerms, setOpenTerms] = useStoredState<Record<string, boolean>>(OPEN_TERMS_KEY, {})
 
   const { data, error, isPending, refetch } = useQuery({
-    queryKey: ['my-courses'],
+    queryKey: MY_COURSES_KEY,
     queryFn: fetchMyCourses,
   })
 

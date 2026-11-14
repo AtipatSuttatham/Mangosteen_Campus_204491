@@ -22,6 +22,7 @@ import { errorMessage } from '../../api/errors'
 import { Button, Card, CourseBadge, Markdown, StatusBadge } from '../../components/ui'
 import { CalyxPattern } from '../../components/brand/CalyxPattern'
 import { StateMessage } from './courseBits'
+import { studentCourseKey } from './courseCache'
 import { BackIcon, LockIcon } from './icons'
 
 export default function StudentCoursePage() {
@@ -33,7 +34,7 @@ export default function StudentCoursePage() {
   const validId = Number.isInteger(id) && id > 0 && !onTeacherOnlyPath
 
   const { data, error, isPending, refetch } = useQuery({
-    queryKey: ['student-course', id],
+    queryKey: studentCourseKey(id),
     queryFn: () => fetchStudentCourse(id),
     enabled: validId,
   })

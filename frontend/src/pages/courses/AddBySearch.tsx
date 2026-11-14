@@ -17,6 +17,7 @@ import { addStudents, searchCandidates, type Candidate } from '../../api/enrollm
 import { errorMessage } from '../../api/errors'
 import { Button, DialogBody, DialogFooter, SearchInput, StatusBadge } from '../../components/ui'
 import { initials } from '../../lib/names'
+import { candidatesKey } from './courseCache'
 import { CheckIcon } from './icons'
 import { useRefreshCourse } from './useCoursePage'
 
@@ -53,7 +54,7 @@ export function AddBySearch({ course, active, inputRef, onDone }: AddBySearchPro
 
   const searching = term.length >= MIN_SEARCH
   const { data, isFetching, error: searchError } = useQuery({
-    queryKey: ['enrollment-candidates', course.id, term],
+    queryKey: [...candidatesKey(course.id), term],
     queryFn: () => searchCandidates(course.id, term),
     enabled: searching,
     placeholderData: keepPreviousData,

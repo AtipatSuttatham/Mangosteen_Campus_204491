@@ -25,6 +25,7 @@ import { Button, Card, Collapsible } from '../../components/ui'
 import { groupByTerm, termKey, type Term } from '../../lib/terms'
 import { useStoredState } from '../../lib/useStoredState'
 import { Notice, StateMessage, type NoticeValue } from './courseBits'
+import { STUDENT_COURSES_KEY } from './courseCache'
 import { JoinCourseSection } from './JoinCourseSection'
 import { StudentCourseRow } from './StudentCourseRow'
 
@@ -32,9 +33,6 @@ import { StudentCourseRow } from './StudentCourseRow'
 const OPEN_TERMS_KEY = 'student-courses:open-terms'
 /** true / false = ผู้ใช้ที่มีวิชาแล้วกดไว้ ; null = ยังไม่เคยกด (ใช้ค่าเริ่มต้น = พับ) */
 const JOIN_OPEN_KEY = 'student-courses:join-open'
-
-/** ที่เก็บข้อมูลของ TanStack Query (แยกจากรายวิชาของผู้สอน — ข้อมูลคนละรูปแบบ) */
-const STUDENT_COURSES_KEY = ['my-student-courses'] as const
 
 export default function StudentCoursesPage() {
   const { t } = useTranslation()
