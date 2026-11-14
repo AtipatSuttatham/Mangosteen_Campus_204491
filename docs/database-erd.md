@@ -106,6 +106,7 @@ erDiagram
         int      file_size "nullable"
         string   mime_type "nullable"
         string   external_url "nullable (link / YouTube)"
+        bool     allow_download "ผู้เรียนดาวน์โหลดได้ไหม (v2.7)"
     }
     COURSE ||--o{ MODULE  : ""
     MODULE ||--o{ CONTENT : ""
