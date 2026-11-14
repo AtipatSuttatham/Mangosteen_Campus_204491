@@ -128,6 +128,11 @@ jobs:
       - name: Lint (eslint)
         run: pnpm lint
 
+      # ตรวจรูปแบบโค้ดด้วย Prettier (ตรวจอย่างเดียว ไม่แก้ไฟล์ — จัดให้อัตโนมัติด้วย pnpm format)
+      # อยู่ใน job เดิม ชื่อ check ที่กฎป้องกัน main ต้องการจึงไม่เปลี่ยน
+      - name: Format check (prettier)
+        run: pnpm format:check
+
       # รัน test ทั้งหมด
       - name: Run tests (vitest)
         run: pnpm test

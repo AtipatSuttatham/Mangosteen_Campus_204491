@@ -220,9 +220,17 @@ uv run pytest                  ← รัน test ทั้งหมด (ต้�
 cd frontend
 pnpm typecheck                 ← ตรวจชนิดข้อมูล TypeScript
 pnpm lint                      ← ตรวจคุณภาพโค้ด (ESLint)
+pnpm format:check              ← ตรวจรูปแบบโค้ด (ใช้ pnpm format เพื่อจัดให้อัตโนมัติ)
 pnpm test                      ← รัน test ทั้งหมด (ไม่ต้องเปิด backend — test จำลองคำตอบเอง)
 ```
 คำอธิบายคำสั่งอื่นของ frontend: ดู [`PROJECT_STRUCTURE.md`](PROJECT_STRUCTURE.md) หัวข้อ "คำสั่งใน frontend/package.json"
+
+**จัดรูปแบบโค้ดหน้าเว็บอัตโนมัติ (Prettier — เพิ่มหลังขั้น 3.8):**
+- แก้โค้ดเสร็จแล้วสั่ง `pnpm format` ในโฟลเดอร์ `frontend` → โค้ดทุกไฟล์จัดเป็นแบบเดียวกัน (เว้นวรรค, ขึ้นบรรทัด, เครื่องหมายคำพูด) ไม่เปลี่ยนการทำงาน
+- ถ้าลืม CI จะไม่ผ่านที่ขั้น **Format check (prettier)** → สั่ง `pnpm format` แล้ว commit ใหม่
+- ให้จัดเองทุกครั้งที่กดบันทึกใน VS Code (ไม่บังคับ): ติดตั้งส่วนเสริม **Prettier - Code formatter** → เปิด Settings → ค้น `Format On Save` ติ๊กถูก → ค้น `Default Formatter` เลือก Prettier ; ส่วนเสริมจะอ่านค่าจาก `frontend/.prettierrc.json` เอง
+- ค่าที่ตั้ง (ตามแบบที่โค้ดใช้อยู่แล้ว): ไม่ใส่ `;` ท้ายบรรทัด, ใช้ `'` , บรรทัดยาวไม่เกิน 110 ตัวอักษร — อยู่ใน `frontend/.prettierrc.json`
+- **git blame ข้าม commit จัดรูปแบบ:** commit ที่จัดรูปแบบทั้งโปรเจกต์อยู่ใน `.git-blame-ignore-revs` ; หน้า Blame บน GitHub ข้ามให้เอง ; ในเครื่องสั่งครั้งเดียว `git config blame.ignoreRevsFile .git-blame-ignore-revs`
 
 ### 3.5 เพิ่ม/แก้ข้อความบนหน้าจอ
 
