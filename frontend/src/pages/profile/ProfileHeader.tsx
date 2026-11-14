@@ -16,14 +16,7 @@
  * ลบรูป → ลบทันที ไม่ถามยืนยัน (ผู้ใช้เลือกแบบ ก ขั้น 1.8 — อัปโหลดใหม่ได้ทุกเมื่อ)
  * error ของรูปส่งให้หน้าหลัก (onAvatarError) แสดงในการ์ดด้านล่าง
  */
-import {
-  useEffect,
-  useId,
-  useRef,
-  useState,
-  type ChangeEvent,
-  type KeyboardEvent,
-} from 'react'
+import { useEffect, useId, useRef, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { deleteAvatar, uploadAvatar } from '../../api/auth'
 import { ApiError } from '../../api/client'
@@ -151,10 +144,7 @@ export function ProfileHeader({ onAvatarError }: ProfileHeaderProps) {
   return (
     <div className="relative flex flex-col gap-3.5 rounded-t-card bg-brand px-5 pt-[22px] pb-5 lg:block lg:h-[136px] lg:p-0">
       {/* ลายกลีบเลี้ยงสีเขียวเส้นบาง (ตัดขอบตามมุมโค้งของแถบ — รูปประจำตัวยื่นออกนอกแถบได้) */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0 overflow-hidden rounded-t-card"
-      >
+      <div aria-hidden="true" className="pointer-events-none absolute inset-0 overflow-hidden rounded-t-card">
         <CalyxPattern
           size={300}
           strokeWidth={0.35}

@@ -120,7 +120,9 @@ export default function StudentCoursesPage() {
       ) : groups.length === 0 ? (
         <StateBox>
           <div>
-            <p className="m-0 font-display text-xl font-semibold text-ink">{t('studentCourses.emptyTitle')}</p>
+            <p className="m-0 font-display text-xl font-semibold text-ink">
+              {t('studentCourses.emptyTitle')}
+            </p>
             <p className="m-0 mt-1">{t('studentCourses.emptyBody')}</p>
           </div>
         </StateBox>

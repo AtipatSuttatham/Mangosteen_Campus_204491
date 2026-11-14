@@ -53,7 +53,11 @@ export function AddBySearch({ course, active, inputRef, onDone }: AddBySearchPro
   }, [text])
 
   const searching = term.length >= MIN_SEARCH
-  const { data, isFetching, error: searchError } = useQuery({
+  const {
+    data,
+    isFetching,
+    error: searchError,
+  } = useQuery({
     queryKey: [...candidatesKey(course.id), term],
     queryFn: () => searchCandidates(course.id, term),
     enabled: searching,

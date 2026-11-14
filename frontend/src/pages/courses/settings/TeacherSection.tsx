@@ -61,7 +61,11 @@ export function TeacherSection({ actions, className }: { actions: SettingsAction
 
   return (
     <>
-      <Section title={t('courseSettings.teacherTitle')} body={t('courseSettings.teacherBody')} className={className}>
+      <Section
+        title={t('courseSettings.teacherTitle')}
+        body={t('courseSettings.teacherBody')}
+        className={className}
+      >
         <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:gap-2.5">
           <div className="min-w-0 grow">
             <TeacherSelect

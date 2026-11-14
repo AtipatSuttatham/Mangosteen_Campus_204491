@@ -50,7 +50,10 @@ const COMPONENTS: Components = {
     />
   ),
   blockquote: (props) => (
-    <blockquote className="m-0 border-l-[3px] border-line-strong pl-3.5 text-ink-muted" {...withoutNode(props)} />
+    <blockquote
+      className="m-0 border-l-[3px] border-line-strong pl-3.5 text-ink-muted"
+      {...withoutNode(props)}
+    />
   ),
   code: (props) => (
     <code className="rounded-md bg-canvas px-1.5 py-px text-[0.92em]" {...withoutNode(props)} />

@@ -63,7 +63,12 @@ export function CourseInfoSection({ className }: { className: string }) {
   return (
     <Section title={t('courseSettings.infoTitle')} body={t('courseSettings.infoBody')} className={className}>
       <form noValidate onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-        <CourseFields register={register} errors={errors} disabled={closed || isSubmitting} readOnlyView={closed} />
+        <CourseFields
+          register={register}
+          errors={errors}
+          disabled={closed || isSubmitting}
+          readOnlyView={closed}
+        />
         {/* ผู้ดูแลระบบมีส่วน "ผู้สอน" แยกอยู่แล้ว → ไม่ต้องบอกซ้ำ */}
         {!isAdmin && <Hint>{t('courseSettings.teacherHint', { name: teacher })}</Hint>}
         {formError && (

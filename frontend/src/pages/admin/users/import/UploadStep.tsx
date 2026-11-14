@@ -149,10 +149,7 @@ export function UploadStep({ onFile, checkingName, error }: UploadStepProps) {
           <li>{t('csvImport.noteEncoding')}</li>
         </ul>
         <div>
-          <Button
-            variant="secondary"
-            onClick={() => downloadCsv(t('csvImport.sampleFileName'), sampleCsv())}
-          >
+          <Button variant="secondary" onClick={() => downloadCsv(t('csvImport.sampleFileName'), sampleCsv())}>
             <DownloadIcon />
             {t('csvImport.downloadSample')}
           </Button>

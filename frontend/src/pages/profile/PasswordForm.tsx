@@ -88,10 +88,7 @@ export function PasswordForm() {
       className="flex flex-col gap-[18px]"
     >
       <div>
-        <h2
-          id="profile-password-title"
-          className="m-0 font-display text-xl leading-[1.4] font-semibold"
-        >
+        <h2 id="profile-password-title" className="m-0 font-display text-xl leading-[1.4] font-semibold">
           {t('profile.passwordTitle')}
         </h2>
         <p id="profile-password-note" className="m-0 mt-0.5 text-sm leading-[1.6] text-ink-muted">

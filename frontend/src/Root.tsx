@@ -22,8 +22,7 @@ function createQueryClient(): QueryClient {
         // error ที่ลองใหม่ไปก็ไม่หาย (ไม่มีสิทธิ์ / ไม่พบ / ไม่ได้เข้าสู่ระบบ) → ไม่ลองซ้ำ ;
         // error อื่น (เช่น เน็ตหลุด) ลองซ้ำได้ 1 ครั้ง
         retry: (failureCount, error) =>
-          !(error instanceof ApiError && error.status >= 400 && error.status < 500) &&
-          failureCount < 1,
+          !(error instanceof ApiError && error.status >= 400 && error.status < 500) && failureCount < 1,
         // ไม่ดึงข้อมูลใหม่ทุกครั้งที่สลับกลับมาที่แท็บ (ลดคำขอไปที่เซิร์ฟเวอร์ฟรี)
         refetchOnWindowFocus: false,
       },

@@ -150,7 +150,10 @@ export function AdminCourseList({ courses }: { courses: Course[] }) {
       </table>
 
       {/* มือถือ: การ์ดละวิชา ทั้งการ์ดเป็นลิงก์ */}
-      <ul aria-label={t('adminCourses.listLabel')} className="m-0 flex list-none flex-col gap-2.5 p-0 lg:hidden">
+      <ul
+        aria-label={t('adminCourses.listLabel')}
+        className="m-0 flex list-none flex-col gap-2.5 p-0 lg:hidden"
+      >
         {courses.map((course) => {
           const state = courseState(course)
           return (

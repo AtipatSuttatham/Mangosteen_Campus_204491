@@ -20,7 +20,8 @@ import { csvProblemText } from './csvProblem'
 import { ColumnCode } from './UploadStep'
 
 /** หัวตาราง (ตาม th ใน canvas) */
-const TH = 'border-b border-line px-4 py-3 text-left text-sm font-semibold whitespace-nowrap text-ink-muted first:pl-6'
+const TH =
+  'border-b border-line px-4 py-3 text-left text-sm font-semibold whitespace-nowrap text-ink-muted first:pl-6'
 /** ช่องข้อมูล */
 const TD = 'border-b border-line-soft px-4 py-3 align-middle text-[15px] first:pl-6'
 
@@ -84,7 +85,10 @@ export function ReviewStep({
                   ['csvImport.statTeachers', report.by_role.teacher],
                 ] as const
               ).map(([label, value]) => (
-                <div key={label} className="flex flex-col-reverse rounded-xl border border-line px-[18px] py-3 sm:min-w-[120px]">
+                <div
+                  key={label}
+                  className="flex flex-col-reverse rounded-xl border border-line px-[18px] py-3 sm:min-w-[120px]"
+                >
                   <dt className="text-sm text-ink-muted">{t(label)}</dt>
                   <dd className="m-0 font-display text-[30px] leading-[1.2] font-semibold text-brand">
                     {formatCount(value)}
@@ -130,9 +134,7 @@ export function ReviewStep({
                 {t('csvImport.chooseAgain')}
               </Button>
               <Button onClick={onImport} disabled={importing}>
-                {importing
-                  ? t('csvImport.importing')
-                  : t('csvImport.importButton', { count: report.total })}
+                {importing ? t('csvImport.importing') : t('csvImport.importButton', { count: report.total })}
               </Button>
             </>
           ) : (
@@ -251,14 +253,19 @@ function PreviewList({ report }: { report: CsvReport }) {
       </table>
       <ul aria-label={t('csvImport.previewTableLabel')} className="m-0 list-none p-0 lg:hidden">
         {report.preview.map((row) => (
-          <li key={row.row} className="flex flex-col gap-0.5 border-b border-line-soft px-5 py-3 last:border-b-0">
+          <li
+            key={row.row}
+            className="flex flex-col gap-0.5 border-b border-line-soft px-5 py-3 last:border-b-0"
+          >
             <span className="font-semibold">
               {row.first_name} {row.last_name}
             </span>
             <span className="text-sm [overflow-wrap:anywhere] text-ink-muted">{row.email}</span>
             <span className="flex flex-wrap gap-x-5 text-sm text-ink-muted">
               <span>{t(`roles.${row.role}`)}</span>
-              {row.student_or_staff_id && <span>{t('adminUsers.idShort', { id: row.student_or_staff_id })}</span>}
+              {row.student_or_staff_id && (
+                <span>{t('adminUsers.idShort', { id: row.student_or_staff_id })}</span>
+              )}
               <span>{t('csvImport.rowLabel', { row: row.row })}</span>
             </span>
           </li>

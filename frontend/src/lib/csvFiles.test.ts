@@ -25,7 +25,10 @@ const lines = (content: string) => content.slice(1).split('\r\n').slice(0, -1)
 
 describe('toCsv', () => {
   it('ขึ้นต้นด้วย BOM ของ UTF-8 และขึ้นบรรทัดแบบ CRLF', () => {
-    const content = toCsv([['a', 'b'], ['c', 'd']])
+    const content = toCsv([
+      ['a', 'b'],
+      ['c', 'd'],
+    ])
     expect(content.startsWith('﻿')).toBe(true)
     expect(content).toBe('﻿a,b\r\nc,d\r\n')
   })
@@ -38,7 +41,7 @@ describe('toCsv', () => {
 })
 
 describe('guardFormula (กันสูตร Excel)', () => {
-  it.each(['=1+1', '+66812345678', '-5', '@SUM(A1)', '\t=cmd'])('ใส่ \' นำหน้า %j', (value) => {
+  it.each(['=1+1', '+66812345678', '-5', '@SUM(A1)', '\t=cmd'])("ใส่ ' นำหน้า %j", (value) => {
     expect(guardFormula(value)).toBe(`'${value}`)
   })
 

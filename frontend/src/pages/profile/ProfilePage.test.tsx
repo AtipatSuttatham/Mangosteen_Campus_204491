@@ -114,7 +114,11 @@ describe('ProfilePage — แถบบัตรประจำตัว', () => 
   })
 
   it.each([
-    ['ไฟล์ไม่ใช่รูปที่รับ', imageFile('application/pdf', 1000, 'a.pdf'), 'ใช้ได้เฉพาะไฟล์รูป JPG, PNG หรือ WebP'],
+    [
+      'ไฟล์ไม่ใช่รูปที่รับ',
+      imageFile('application/pdf', 1000, 'a.pdf'),
+      'ใช้ได้เฉพาะไฟล์รูป JPG, PNG หรือ WebP',
+    ],
     [
       'ไฟล์ใหญ่เกิน 2 MB',
       imageFile('image/jpeg', 2 * 1024 * 1024 + 1, 'big.jpg'),
@@ -135,9 +139,7 @@ describe('ProfilePage — แถบบัตรประจำตัว', () => 
 
     await user.upload(screen.getByTestId('avatar-file-input'), imageFile('image/jpeg'))
 
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'ใช้ได้เฉพาะไฟล์รูป JPG, PNG หรือ WebP',
-    )
+    expect(await screen.findByRole('alert')).toHaveTextContent('ใช้ได้เฉพาะไฟล์รูป JPG, PNG หรือ WebP')
     expect(auth.updateUser).not.toHaveBeenCalled()
   })
 

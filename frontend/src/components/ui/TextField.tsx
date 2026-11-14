@@ -73,11 +73,7 @@ export function TextField({
   // ขอบแดงเมื่อมีข้อความ error ของตัวเอง หรือถูกบอกว่า invalid
   const showInvalid = hasError || invalid
   // ข้อความที่โปรแกรมอ่านหน้าจอต้องอ่านคู่กับช่องนี้
-  const describedBy = [
-    hasError ? errorId : undefined,
-    showHint ? hintId : undefined,
-    errorDescribedBy,
-  ]
+  const describedBy = [hasError ? errorId : undefined, showHint ? hintId : undefined, errorDescribedBy]
     .filter(Boolean)
     .join(' ')
 

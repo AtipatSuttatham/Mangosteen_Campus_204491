@@ -53,11 +53,7 @@ export function TempPasswordField({
       error={error}
       actions={
         <>
-          <Button
-            variant="secondary"
-            className="h-[46px]"
-            onClick={() => onGenerate(generateTempPassword())}
-          >
+          <Button variant="secondary" className="h-[46px]" onClick={() => onGenerate(generateTempPassword())}>
             <DiceIcon />
             {t('userForm.generate')}
           </Button>

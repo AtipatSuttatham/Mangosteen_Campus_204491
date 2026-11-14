@@ -106,7 +106,9 @@ export function JoinCourseSection({ open, onToggle, onJoined, onFailed }: JoinCo
           <span className="flex size-[34px] shrink-0 items-center justify-center rounded-full bg-canvas text-brand">
             <PlusIcon />
           </span>
-          <span className="font-display text-lg font-semibold lg:text-xl">{t('studentCourses.joinTitle')}</span>
+          <span className="font-display text-lg font-semibold lg:text-xl">
+            {t('studentCourses.joinTitle')}
+          </span>
           <Chevron open={open} />
         </button>
       </h2>

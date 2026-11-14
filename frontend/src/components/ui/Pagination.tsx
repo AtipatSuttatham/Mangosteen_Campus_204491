@@ -46,13 +46,7 @@ function Chevron({ direction }: { direction: 'left' | 'right' }) {
 }
 
 /** แถบเปลี่ยนหน้า */
-export function Pagination({
-  page,
-  pageCount,
-  onPageChange,
-  summary,
-  className = '',
-}: PaginationProps) {
+export function Pagination({ page, pageCount, onPageChange, summary, className = '' }: PaginationProps) {
   const { t } = useTranslation()
   const hasPages = pageCount > 1
 

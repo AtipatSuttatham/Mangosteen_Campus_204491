@@ -93,9 +93,7 @@ export function UserFilterBar({ filters, onChange }: UserFilterBarProps) {
           <Select
             id={`${id}-status`}
             value={filters.status ?? ''}
-            onChange={(event) =>
-              onChange({ status: event.target.value as UserStatusFilter | '' })
-            }
+            onChange={(event) => onChange({ status: event.target.value as UserStatusFilter | '' })}
             className="w-full lg:h-[42px] lg:w-auto"
           >
             <option value="">{t('adminUsers.statusAll')}</option>

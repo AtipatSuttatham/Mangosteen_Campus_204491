@@ -27,7 +27,11 @@ export function PublishSection({ actions, className }: { actions: SettingsAction
 
   return (
     <>
-      <Section title={t('courseSettings.publishTitle')} body={t('courseSettings.publishBody')} className={className}>
+      <Section
+        title={t('courseSettings.publishTitle')}
+        body={t('courseSettings.publishBody')}
+        className={className}
+      >
         <div className="flex flex-col gap-3 lg:flex-row lg:flex-wrap lg:items-center lg:gap-3.5">
           <StatusBadge
             tone={published ? 'ok' : 'mute'}
@@ -40,7 +44,12 @@ export function PublishSection({ actions, className }: { actions: SettingsAction
             {published ? t('courseSettings.publishedNote') : t('courseSettings.draftNote')}
           </span>
           {published ? (
-            <Button variant="secondary" disabled={actions.running} onClick={dialog.show} className="lg:ml-auto">
+            <Button
+              variant="secondary"
+              disabled={actions.running}
+              onClick={dialog.show}
+              className="lg:ml-auto"
+            >
               {t('courseSettings.unpublish')}
             </Button>
           ) : (

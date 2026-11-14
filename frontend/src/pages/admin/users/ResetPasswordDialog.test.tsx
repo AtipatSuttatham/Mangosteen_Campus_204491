@@ -36,9 +36,7 @@ beforeEach(() => {
 async function openReset() {
   const rendered = renderUsersPage()
   const table = await screen.findByRole('table')
-  await rendered.user.click(
-    within(table).getByRole('button', { name: 'รีเซ็ตรหัสผ่าน กันต์พงษ์ วิไลรัตน์' }),
-  )
+  await rendered.user.click(within(table).getByRole('button', { name: 'รีเซ็ตรหัสผ่าน กันต์พงษ์ วิไลรัตน์' }))
   return { ...rendered, dialog: screen.getByRole('dialog', { name: 'รีเซ็ตรหัสผ่าน' }) }
 }
 
@@ -49,8 +47,12 @@ describe('ปุ่ม "รีเซ็ตรหัสผ่าน" ในรา
     renderUsersPage()
     const table = await screen.findByRole('table')
 
-    expect(within(table).getByRole('button', { name: 'รีเซ็ตรหัสผ่าน กันต์พงษ์ วิไลรัตน์' })).toBeInTheDocument()
-    expect(within(table).queryByRole('button', { name: 'รีเซ็ตรหัสผ่าน สุดา แก้วมณี' })).not.toBeInTheDocument()
+    expect(
+      within(table).getByRole('button', { name: 'รีเซ็ตรหัสผ่าน กันต์พงษ์ วิไลรัตน์' }),
+    ).toBeInTheDocument()
+    expect(
+      within(table).queryByRole('button', { name: 'รีเซ็ตรหัสผ่าน สุดา แก้วมณี' }),
+    ).not.toBeInTheDocument()
   })
 })
 

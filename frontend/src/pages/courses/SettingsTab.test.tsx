@@ -68,9 +68,7 @@ describe('แท็บตั้งค่า', () => {
   })
 
   it('รหัสวิชาซ้ำ → ข้อความใต้ช่อง', async () => {
-    updateCourse.mockRejectedValue(
-      new ApiError(400, 'validation_error', { code: ['course_code_duplicate'] }),
-    )
+    updateCourse.mockRejectedValue(new ApiError(400, 'validation_error', { code: ['course_code_duplicate'] }))
     const { user } = renderPage('/courses/5/settings')
     const code = await screen.findByLabelText('รหัสวิชา')
 

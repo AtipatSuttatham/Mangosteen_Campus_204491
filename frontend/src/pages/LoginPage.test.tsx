@@ -147,8 +147,6 @@ describe('LoginPage', () => {
   it('ถูกให้ออกจากระบบกลางคัน → แถบ "หมดเวลาการใช้งาน"', () => {
     renderLogin(vi.fn(), true)
 
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'หมดเวลาการใช้งาน กรุณาเข้าสู่ระบบอีกครั้ง',
-    )
+    expect(screen.getByRole('status')).toHaveTextContent('หมดเวลาการใช้งาน กรุณาเข้าสู่ระบบอีกครั้ง')
   })
 })

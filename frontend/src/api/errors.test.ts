@@ -32,15 +32,9 @@ describe('errorMessage', () => {
     expect(errorMessage('csv_unreadable')).toBe(
       'อ่านไฟล์ไม่ได้ กรุณาบันทึกจาก Excel เป็นไฟล์ CSV แล้วลองใหม่',
     )
-    expect(errorMessage('csv_too_large')).toBe(
-      'ไฟล์มีขนาดใหญ่เกินไป กรุณาใช้ไฟล์ที่มีขนาดไม่เกิน 1 MB',
-    )
-    expect(errorMessage('csv_too_many_rows')).toBe(
-      'ไฟล์มีรายชื่อเกิน 500 แถว กรุณาแบ่งเป็นหลายไฟล์',
-    )
-    expect(errorMessage('csv_empty')).toBe(
-      'ไม่พบรายชื่อในไฟล์ กรุณาตรวจสอบว่ามีข้อมูลใต้แถวหัวตาราง',
-    )
+    expect(errorMessage('csv_too_large')).toBe('ไฟล์มีขนาดใหญ่เกินไป กรุณาใช้ไฟล์ที่มีขนาดไม่เกิน 1 MB')
+    expect(errorMessage('csv_too_many_rows')).toBe('ไฟล์มีรายชื่อเกิน 500 แถว กรุณาแบ่งเป็นหลายไฟล์')
+    expect(errorMessage('csv_empty')).toBe('ไม่พบรายชื่อในไฟล์ กรุณาตรวจสอบว่ามีข้อมูลใต้แถวหัวตาราง')
     expect(errorMessage('csv_missing_columns')).toBe(
       'ไฟล์ขาดคอลัมน์ที่จำเป็น กรุณาใช้หัวตารางตามไฟล์ตัวอย่าง',
     )

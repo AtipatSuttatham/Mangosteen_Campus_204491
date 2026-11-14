@@ -191,7 +191,9 @@ describe('หน้าจัดการรายวิชา', () => {
     await screen.findByRole('option', { name: 'กมล ทดลอง (T7)' })
     // ไปหน้าตั้งค่าของวิชา (ใช้รายชื่อผู้สอนเหมือนกัน) แล้วกลับมา
     await router.navigate('/courses/5/settings')
-    await within(await screen.findByLabelText('ผู้สอนที่รับผิดชอบ')).findByRole('option', { name: 'วรวุฒิ ทดลอง (T9)' })
+    await within(await screen.findByLabelText('ผู้สอนที่รับผิดชอบ')).findByRole('option', {
+      name: 'วรวุฒิ ทดลอง (T9)',
+    })
     await router.navigate('/courses')
     await screen.findByRole('option', { name: 'กมล ทดลอง (T7)' })
     expect(fetchAdminTeachers).toHaveBeenCalledTimes(1)
@@ -243,7 +245,9 @@ describe('สร้างรายวิชาแทนผู้สอน', () =
   })
 
   it('ต้องเลือกผู้สอน ; ตัวเลือกเฉพาะบัญชีที่ใช้งานได้ ; สร้างแล้วพาไปหน้ารายวิชา', async () => {
-    createCourse.mockResolvedValue(makeCourse({ id: 21, teacher: { id: 9, first_name: 'วรวุฒิ', last_name: 'ทดลอง', is_active: true } }))
+    createCourse.mockResolvedValue(
+      makeCourse({ id: 21, teacher: { id: 9, first_name: 'วรวุฒิ', last_name: 'ทดลอง', is_active: true } }),
+    )
     fetchCourse.mockResolvedValue(makeCourse({ id: 21 }))
     const { user, router } = renderAt('/courses')
 
@@ -316,7 +320,11 @@ describe('หน้ารายวิชาของผู้ดูแลระ�
   })
 
   it('วิชาที่ปิดแล้ว → ส่วนสถานะ "ปิดเมื่อ … โดย …" ; เปิดคืนทันทีแล้วขึ้นแถบเขียวด้านบน', async () => {
-    const closed = makeCourse({ is_closed: true, closed_at: '2026-04-28T09:05:00Z', closed_by: 'กมล ศรีวงศ์' })
+    const closed = makeCourse({
+      is_closed: true,
+      closed_at: '2026-04-28T09:05:00Z',
+      closed_by: 'กมล ศรีวงศ์',
+    })
     fetchCourse.mockResolvedValue(closed)
     runCourseAction.mockResolvedValue(makeCourse())
     const { user } = renderAt('/courses/5/settings')
@@ -360,7 +368,9 @@ describe('หน้ารายวิชาของผู้ดูแลระ�
   it('เลือกผู้สอนค้างไว้แล้วไปตั้งค่าของวิชาอื่นโดยตรง → ช่องกลับเป็นผู้สอนของวิชาใหม่ ปุ่มกดไม่ได้', async () => {
     // ทั้ง 2 วิชาสอนโดยกมล (7) — ค่าที่ค้าง (วรวุฒิ) จึงต่างจากผู้สอนของวิชาใหม่ และปุ่มจะกดได้ถ้าค่าค้าง
     fetchCourse.mockImplementation((id) =>
-      Promise.resolve(id === 6 ? makeCourse({ id: 6, code: '204252', name: 'โครงสร้างข้อมูล' }) : makeCourse()),
+      Promise.resolve(
+        id === 6 ? makeCourse({ id: 6, code: '204252', name: 'โครงสร้างข้อมูล' }) : makeCourse(),
+      ),
     )
     // เคยเปิดวิชา 6 มาก่อน → ข้อมูลอยู่ในแคช กลับไปแล้วไม่มีช่วง "กำลังโหลด" ที่ถอดแท็บออก
     const { user, router } = renderAt('/courses/6/settings')

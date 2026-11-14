@@ -159,9 +159,7 @@ export default function LoginPage() {
                 {t('login.title')}
               </h1>
               {/* คำอธิบายใต้หัวข้อ: จอใหญ่เท่านั้น (board มือถือตัดออก เพราะป้ายของช่องบอกอยู่แล้ว) */}
-              <p className="m-0 mt-0.5 hidden text-[15px] text-ink-muted lg:block">
-                {t('login.subtitle')}
-              </p>
+              <p className="m-0 mt-0.5 hidden text-[15px] text-ink-muted lg:block">{t('login.subtitle')}</p>
             </div>
 
             {/* ถูกให้ออกจากระบบกลางคัน */}

@@ -148,9 +148,7 @@ export default function TeacherCoursesPage() {
         </section>
       )}
 
-      {creating && (
-        <CreateCourseDialog onClose={() => setCreating(false)} onCreated={handleCreated} />
-      )}
+      {creating && <CreateCourseDialog onClose={() => setCreating(false)} onCreated={handleCreated} />}
     </div>
   )
 }

@@ -68,7 +68,11 @@ export function CourseStatusSection({ actions, className }: { actions: SettingsA
   }
 
   return (
-    <Section title={t('courseSettings.statusTitle')} body={t('courseSettings.statusBody')} className={className}>
+    <Section
+      title={t('courseSettings.statusTitle')}
+      body={t('courseSettings.statusBody')}
+      className={className}
+    >
       <div className="flex flex-col gap-3.5 lg:flex-row lg:items-center lg:gap-4">
         <div className="grow">
           <StatusBadge tone="mute" icon={<LockIcon />} className="mb-1.5 w-fit">
@@ -77,7 +81,12 @@ export function CourseStatusSection({ actions, className }: { actions: SettingsA
           {note && <p className="m-0 text-[15px] leading-[1.6] font-semibold">{note}</p>}
           <p className="m-0 text-sm leading-[1.6] text-ink-muted">{t('courseSettings.reopenNote')}</p>
         </div>
-        <Button variant="secondary" disabled={actions.running} onClick={() => void reopen()} className="shrink-0">
+        <Button
+          variant="secondary"
+          disabled={actions.running}
+          onClick={() => void reopen()}
+          className="shrink-0"
+        >
           {reopening ? t('courseSettings.reopening') : t('courseSettings.reopen')}
         </Button>
       </div>
