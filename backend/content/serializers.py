@@ -2,12 +2,13 @@
 ตัวแปลง / ตรวจข้อมูล (serializer) ของ API เนื้อหารายวิชา (ขั้น 4.3) — อ้างอิง docs/api.md §10
 
 ขาออก:
-- ContentSerializer: เนื้อหา 1 ชิ้น (+ รหัส YouTube, ลิงก์ดูไฟล์)
+- ContentSerializer: เนื้อหา 1 ชิ้น (+ รหัส YouTube, ลิงก์ดูไฟล์, ลิงก์ดาวน์โหลด)
 - ModuleSerializer: หน่วย 1 หน่วย + เนื้อหาทุกชิ้นในหน่วย (ผู้สอน / ผู้ดูแลระบบเห็นทุกสถานะ)
 ขาเข้า:
 - ModuleWriteSerializer: เพิ่ม / แก้หน่วย
 - TextWriteSerializer / LinkWriteSerializer: เพิ่มเนื้อหาแบบข้อความ / ลิงก์
 - ContentUpdateSerializer: แก้เนื้อหา (ส่งเฉพาะช่องที่แก้)
+- FileUploadSerializer / FileReplaceSerializer: อัปโหลด / เปลี่ยนไฟล์ (ขั้น 4.3 ข)
 - MoveSerializer: ทิศทางการเลื่อน
 """
 
@@ -15,6 +16,7 @@ from django.core.validators import URLValidator
 from rest_framework import serializers
 
 from content.models import Content, Module
+from content.services import download_url
 from content.youtube import youtube_video_id
 
 # ความยาวสูงสุดตามตาราง (models.py)
@@ -31,6 +33,8 @@ class ContentSerializer(serializers.ModelSerializer):
     youtube_id = serializers.SerializerMethodField()
     # ลิงก์ดูไฟล์ (ตอนพัฒนา /media/… ; ตอน deploy ลิงก์ชั่วคราวของ B2) ; ไม่มีไฟล์ = null
     file_link = serializers.SerializerMethodField()
+    # ลิงก์ดาวน์โหลดที่ได้ชื่อไฟล์เดิม (ผู้สอนได้เสมอ — allow_download มีผลกับผู้เรียนในขั้น 4.4)
+    download_link = serializers.SerializerMethodField()
 
     class Meta:
         model = Content
@@ -46,6 +50,7 @@ class ContentSerializer(serializers.ModelSerializer):
             "file_size",
             "mime_type",
             "file_link",
+            "download_link",
             "external_url",
             "youtube_id",
             "allow_download",
@@ -61,6 +66,9 @@ class ContentSerializer(serializers.ModelSerializer):
 
     def get_file_link(self, content: Content) -> str | None:
         return content.file_url.url if content.file_url else None
+
+    def get_download_link(self, content: Content) -> str | None:
+        return download_url(content)
 
 
 class ModuleSerializer(serializers.ModelSerializer):
@@ -113,6 +121,23 @@ class ContentUpdateSerializer(serializers.Serializer):
     allow_download = serializers.BooleanField(required=False)
     url = HttpUrlField(required=False)
     module = serializers.IntegerField(required=False, min_value=1)
+
+
+class FileUploadSerializer(serializers.Serializer):
+    """
+    อัปโหลด 1 ไฟล์ (multipart): file บังคับ ; หัวข้อ / คำอธิบายไม่บังคับ (ไม่กรอก → ชื่อไฟล์ตัดนามสกุล)
+    ไฟล์ว่าง / ชนิด / ขนาด / เนื้อไฟล์ ตรวจใน file_types.py (ให้ได้รหัส error เฉพาะเรื่อง)
+    """
+
+    file = serializers.FileField(allow_empty_file=True, use_url=False)
+    title = serializers.CharField(max_length=TITLE_MAX, required=False, allow_blank=True)
+    body = serializers.CharField(required=False, allow_blank=True)
+
+
+class FileReplaceSerializer(serializers.Serializer):
+    """เปลี่ยนไฟล์ (multipart): file บังคับ — หัวข้อเดิมคงไว้ (กธ1)"""
+
+    file = serializers.FileField(allow_empty_file=True, use_url=False)
 
 
 class MoveSerializer(serializers.Serializer):

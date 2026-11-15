@@ -11,7 +11,8 @@ API เนื้อหารายวิชาของผู้สอน (UC-09
 - contents/{id}/                         PATCH แก้เนื้อหา / DELETE ลบเนื้อหา
 - contents/{id}/publish/ · unpublish/    เผยแพร่ / ยกเลิกการเผยแพร่เนื้อหา
 - contents/{id}/move/                    เลื่อนเนื้อหา {direction: up|down}
-(อัปโหลด / เปลี่ยนไฟล์มาในขั้น 4.3 ข)
+- modules/{id}/contents/file/            อัปโหลด 1 ไฟล์ (multipart) — ระบบตั้งชนิดเอง (ขั้น 4.3 ข)
+- contents/{id}/file/                    เปลี่ยนไฟล์ชนิดเดิม หัวข้อคงเดิม (ขั้น 4.3 ข)
 
 สิทธิ์ผ่าน content/access.py: ดู = ผู้สอนเจ้าของ + ผู้ดูแลระบบ ; แก้ = ผู้สอนเจ้าของเท่านั้น
 ทุกการแก้อยู่ใน transaction เดียว (ล็อกแถววิชา) — จด AuditLog ไม่สำเร็จ = การลบถูกยกเลิก
@@ -20,6 +21,7 @@ API เนื้อหารายวิชาของผู้สอน (UC-09
 from django.db import transaction
 from django.db.models import Prefetch
 from rest_framework import status
+from rest_framework.parsers import MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -31,6 +33,8 @@ from content.models import Content, Module
 from content.serializers import (
     ContentSerializer,
     ContentUpdateSerializer,
+    FileReplaceSerializer,
+    FileUploadSerializer,
     LinkWriteSerializer,
     ModuleSerializer,
     ModuleWriteSerializer,
@@ -197,4 +201,54 @@ class ContentActionView(APIView):
                 services.move_content(content, serializer.validated_data["direction"])
             else:
                 services.set_published(content, self.action == "publish")
+        return content_response(content)
+
+
+class ContentFileUploadView(APIView):
+    """
+    POST …/modules/{id}/contents/file/   อัปโหลด 1 ไฟล์ (multipart: file, title?, body?)
+         หน้าเว็บอัปโหลดหลายไฟล์ = ส่งทีละไฟล์ (กญ1) ; ระบบตั้งชนิดจากไฟล์ ; ไม่กรอกหัวข้อ → ชื่อไฟล์ตัดนามสกุล
+    → 201 เนื้อหาใหม่ (ต่อท้ายหน่วย ยังไม่เผยแพร่ ดาวน์โหลดได้)
+    ไม่ผ่าน → 400 content_file_type_not_allowed / content_file_empty / content_file_too_large /
+              content_file_mismatch ; 503 file_upload_failed (เก็บไฟล์ไม่ได้ — กน1)
+    บันทึกไม่สำเร็จด้วยเหตุใดก็ตาม → ไฟล์ที่เพิ่งเก็บถูกลบทิ้ง (ไม่มีไฟล์ค้าง)
+    """
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    def post(self, request: Request, pk: int, module_id: int) -> Response:
+        serializer = FileUploadSerializer(data=request.data)
+        with services.remove_files_on_failure() as stored, transaction.atomic():
+            course = get_course_for_content(request.user, pk, write=True)
+            module = get_module(course, module_id)
+            serializer.is_valid(raise_exception=True)
+            data = serializer.validated_data
+            content = services.create_file(
+                module,
+                data["file"],
+                stored,
+                title=data.get("title", ""),
+                body=data.get("body", ""),
+            )
+        return content_response(content, status.HTTP_201_CREATED)
+
+
+class ContentFileReplaceView(APIView):
+    """
+    POST …/contents/{id}/file/   เปลี่ยนไฟล์ (multipart: file) — ชนิดเดิมเท่านั้น, หัวข้อเดิมคงไว้ (กธ1)
+    → 200 เนื้อหา ; ไฟล์เก่าถูกลบหลังบันทึกเสร็จ
+    ไม่ผ่าน → 400 (เหมือนอัปโหลด) ; 409 content_kind_mismatch (คนละชนิด / เนื้อหาที่ไม่มีไฟล์) ; 503
+    """
+
+    permission_classes = [IsAuthenticated]
+    parser_classes = [MultiPartParser]
+
+    def post(self, request: Request, pk: int, content_id: int) -> Response:
+        serializer = FileReplaceSerializer(data=request.data)
+        with services.remove_files_on_failure() as stored, transaction.atomic():
+            course = get_course_for_content(request.user, pk, write=True)
+            content = get_content(course, content_id)
+            serializer.is_valid(raise_exception=True)
+            services.replace_file(content, serializer.validated_data["file"], stored)
         return content_response(content)
