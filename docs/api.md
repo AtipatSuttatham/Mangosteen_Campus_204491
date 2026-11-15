@@ -127,7 +127,12 @@ raise ApiError("quiz_time_over", status_code=409)
 | `course_not_deletable` | 409 | รายวิชา: ลบวิชาที่เผยแพร่แล้ว หรือเคยมีผู้เรียน (รวมที่ถูกถอน) (§8) | 3 |
 | `join_code_invalid` | 400 | เข้าร่วมด้วยรหัส: ใช้รหัสนี้ไม่ได้ — ข้อความเดียวทุกกรณี (ไม่มีรหัส / ปิดรหัส / ยังไม่เผยแพร่ / ปิดวิชา / เคยถูกถอน) (§9) | 3 |
 | `content_read_only` | 403 | เนื้อหารายวิชา: ผู้ดูแลระบบสั่งแก้ / เพิ่ม / ลบ / เลื่อน / เผยแพร่ — ดูได้อย่างเดียว (§10) | 4 |
-| `content_kind_mismatch` | 409 | เนื้อหารายวิชา: แก้ลิงก์แล้วชนิดเปลี่ยน (YouTube ↔ ลิงก์อื่น) หรือส่งลิงก์ให้เนื้อหาที่ไม่ใช่ลิงก์ (§10) | 4 |
+| `content_kind_mismatch` | 409 | เนื้อหารายวิชา: แก้ลิงก์แล้วชนิดเปลี่ยน (YouTube ↔ ลิงก์อื่น) / ส่งลิงก์ให้เนื้อหาที่ไม่ใช่ลิงก์ / เปลี่ยนไฟล์เป็นคนละชนิด หรือเปลี่ยนไฟล์ของเนื้อหาที่ไม่มีไฟล์ (§10) | 4 |
+| `content_file_type_not_allowed` | 400 | อัปโหลดไฟล์เนื้อหา: นามสกุลไม่อยู่ในรายการที่รับ (§10.4) | 4 |
+| `content_file_mismatch` | 400 | อัปโหลดไฟล์เนื้อหา: เนื้อไฟล์จริง (ไบต์ต้นไฟล์) ไม่ตรงกับนามสกุล (§10.4) | 4 |
+| `content_file_too_large` | 400 | อัปโหลดไฟล์เนื้อหา: เกิน 20 MB (วิดีโอ 100 MB) — แนบ `max_bytes` (§10.4) | 4 |
+| `content_file_empty` | 400 | อัปโหลดไฟล์เนื้อหา: ไฟล์ 0 ไบต์ (§10.4) | 4 |
+| `file_upload_failed` | 503 | อัปโหลดไฟล์: เก็บไฟล์ลงที่เก็บไฟล์ไม่ได้ (เช่น B2 เต็ม — กน1) (§10.4) | 4 |
 
 > token ใช้ไม่ได้ทุกแบบ (หมดอายุ / ลายเซ็นผิด / ถูกยกเลิก / บัญชีถูกระงับระหว่างใช้งาน / ออกก่อนเปลี่ยนรหัสผ่าน) ตอบ `authentication_failed` (401) รหัสเดียว — รหัสย่อยของ Simple JWT (`token_not_valid`, `user_inactive` ฯลฯ) ถูกรวมใน `api_exception_handler`
 
@@ -399,11 +404,12 @@ cookie ตั้งค่า: `HttpOnly` ; `Path=/api/v1/auth/` (ส่งเฉ
 | `POST modules/{module_id}/move/` | `{direction: "up" \| "down"}` | 200 `module` — สลับกับตัวข้างเคียงแล้วจัดลำดับใหม่ 0, 1, 2, … ; ตัวแรก ↑ / ตัวสุดท้าย ↓ = ไม่เปลี่ยน | 400 (`invalid_choice`) / 403 / 404 / 409 |
 | `POST modules/{module_id}/contents/text/` | `{title, body?}` — หัวข้อบังคับ | 201 `content` ชนิด `text` ต่อท้ายหน่วย ยังไม่เผยแพร่ | 400 / 403 / 404 / 409 |
 | `POST modules/{module_id}/contents/link/` | `{url, title?, body?}` — `url` http / https ≤ 500 ตัว | 201 `content` — **YouTube → ชนิด `video`** (ลิงก์เก็บเป็น `https://www.youtube.com/watch?v=<รหัส>`) ; อื่น ๆ → `link` ; ไม่กรอกหัวข้อ → "วิดีโอจาก YouTube" / ชื่อเว็บไซต์ (เช่น `docs.python.org`) | 400 (`url`: `invalid` / `blank`) / 403 / 404 / 409 |
+| `POST modules/{module_id}/contents/file/` | **multipart**: `file` (บังคับ), `title?`, `body?` — 1 ไฟล์ต่อคำขอ (หน้าเว็บอัปโหลดหลายไฟล์ = ส่งทีละไฟล์ — กญ1) | 201 `content` — **ระบบตั้งชนิดจากไฟล์** ; ไม่กรอกหัวข้อ → ชื่อไฟล์ตัดนามสกุล ; ยังไม่เผยแพร่ ; ดาวน์โหลดได้ | 400 (`file`: `required` / รหัสไฟล์ §10.4) / 403 / 404 / 409 / 503 `file_upload_failed` |
+| `POST contents/{content_id}/file/` | **multipart**: `file` | 200 `content` — เปลี่ยนไฟล์ **ชนิดเดิมเท่านั้น** ; **หัวข้อเดิมคงไว้** (กธ1) ; ไฟล์เก่าถูกลบหลังบันทึกเสร็จ | 400 / 403 / 404 / 409 `content_kind_mismatch` / 503 |
 | `PATCH contents/{content_id}/` | `{title?, body?, allow_download?, url?, module?}` — `module` = ย้ายไปต่อท้ายหน่วยนั้น ; `url` = แก้ลิงก์ (ชนิดต้องเดิม) | 200 `content` | 400 (`title` ว่าง ฯลฯ) / 403 / 404 (รวมหน่วยของวิชาอื่น) / 409 `course_closed` / 409 `content_kind_mismatch` |
 | `DELETE contents/{content_id}/` | – | 204 — ไฟล์หายตามหลังบันทึกเสร็จ | 403 / 404 / 409 |
 | `POST contents/{content_id}/publish/` · `unpublish/` · `move/` | `move`: `{direction}` | 200 `content` | 400 / 403 / 404 / 409 |
 
-> อัปโหลด / เปลี่ยนไฟล์ (`…/contents/file/`) เพิ่มในขั้น 4.3 ข
 
 ### 10.2 รูปแบบข้อมูล
 
@@ -412,6 +418,7 @@ cookie ตั้งค่า: `HttpOnly` ; `Path=/api/v1/auth/` (ส่งเฉ
   - `content_type`: `text` / `file` / `image` / `video` / `audio` / `link` — **ระบบตั้งเอง เปลี่ยนภายหลังไม่ได้**
   - `body`: ชนิด `text` = เนื้อความ ; ชนิดอื่น = คำอธิบายเหนือไฟล์ / ลิงก์ (Markdown, ว่างได้)
   - `file_link`: ลิงก์ดูไฟล์ (ตอนพัฒนา `/media/…` ; ตอน deploy ลิงก์ชั่วคราว) ; ไม่มีไฟล์ = `null`
+  - `download_link`: ลิงก์ดาวน์โหลดที่ได้ชื่อไฟล์เดิม — ที่เก็บไฟล์แบบ S3 / B2 ใส่ `ResponseContentDisposition: attachment; filename*=UTF-8''…` ในลิงก์ชั่วคราว ; ที่เก็บในเครื่องตอนพัฒนาได้ลิงก์เดียวกับ `file_link` (หน้าเว็บใช้ `<a download>` เพราะโดเมนเดียวกัน) ; ผู้สอนได้เสมอ (`allow_download` มีผลกับผู้เรียน — ขั้น 4.4)
   - `youtube_id`: รหัสวิดีโอ 11 ตัว (หน้าเว็บฝังผ่าน `youtube-nocookie.com`) ; ไม่ใช่ YouTube = `null`
 
 ### 10.3 สิ่งที่จดลง AuditLog
@@ -422,3 +429,17 @@ cookie ตั้งค่า: `HttpOnly` ; `Path=/api/v1/auth/` (ส่งเฉ
 |---|---|---|---|
 | ลบหน่วย | `delete` | `ฟังก์ชัน (204111)` | `{"title": ["ฟังก์ชัน", null], "content_count": [3, null]}` |
 | ลบเนื้อหา | `delete` | `สรุป (204111)` | `{"title": [...], "content_type": ["text", null], "module": [12, null]}` |
+
+### 10.4 ตรวจไฟล์ที่อัปโหลด (`content/file_types.py` — กถ1)
+
+ตรวจ 3 ชั้นตามลำดับ (อ่านแค่ 8 KB แรก ไม่อ่านทั้งไฟล์เข้าหน่วยความจำ ; zip อ่านสารบัญโดยไม่แตกไฟล์):
+
+| ชั้น | ตรวจอะไร | ไม่ผ่าน |
+|---|---|---|
+| 1 | นามสกุล (ไม่สนตัวพิมพ์) อยู่ในรายการ: `.pdf .docx .pptx .xlsx .txt .py .zip` (เอกสาร `file`) · `.jpg .jpeg .png .gif .webp` (`image`) · `.mp3 .m4a` (`audio`) · `.mp4 .webm` (`video`) — **ไม่รับ .html / .svg** | `content_file_type_not_allowed` |
+| 2 | ไม่ว่าง และไม่เกิน `CONTENT_MAX_BYTES` 20 MB (วิดีโอ `CONTENT_VIDEO_MAX_BYTES` 100 MB — `settings.py`) | `content_file_empty` / `content_file_too_large` (+ `max_bytes`) |
+| 3 | **เนื้อไฟล์ตรงนามสกุล**: PDF `%PDF-` · JPEG `FF D8 FF` · PNG ลายเซ็น 8 ไบต์ · GIF `GIF87a/89a` · WebP `RIFF…WEBP` · MP3 `ID3` หรือรหัสเริ่มเฟรม · MP4 / M4A กล่อง `ftyp` · WebM `1A 45 DF A3` · .docx / .pptx / .xlsx = zip ที่มี `[Content_Types].xml` + โฟลเดอร์ `word/` / `ppt/` / `xl/` · .zip = zip ที่อ่านได้ · .txt / .py = ไม่มีไบต์ศูนย์ (ข้อความ UTF-16 จึงไม่รับ) | `content_file_mismatch` |
+
+- `mime_type` ที่บันทึกมาจากตารางนี้ (ไม่เชื่อค่าที่เบราว์เซอร์ส่งมา) ; ชื่อไฟล์เดิมตัดโฟลเดอร์ทิ้ง ยาวไม่เกิน 255 ตัว
+- เก็บไฟล์ก่อนบันทึกแถว → **บันทึกไม่สำเร็จด้วยเหตุใดก็ตาม ไฟล์ที่เพิ่งเก็บถูกลบทิ้ง** (`services.remove_files_on_failure`) ; เก็บไฟล์ไม่ได้ → 503 `file_upload_failed`
+- ขนาดไฟล์ตรวจหลังรับไฟล์ครบแล้ว (Django เขียนไฟล์ใหญ่กว่า 2.5 MB ลงไฟล์ชั่วคราว ไม่ค้างในหน่วยความจำ) — หน้าเว็บควรตรวจขนาดก่อนส่ง ; **ตอน deploy วัดการอัปโหลด 100 MB บน Render จริง**
