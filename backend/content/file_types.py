@@ -133,6 +133,18 @@ RULES: dict[str, FileRule] = {
 }
 
 
+# ชนิดไฟล์ (MIME) ที่เบราว์เซอร์ "เปิดดู" ได้เอง — กดลิงก์เปิดดูแล้วแสดงในเบราว์เซอร์ ไม่ดาวน์โหลด
+# ชนิดอื่น (Word / PowerPoint / Excel / zip / .py) เบราว์เซอร์ดาวน์โหลดทันทีเมื่อเปิด
+# → สวิตช์ "ปิดดาวน์โหลด" ใช้ได้เฉพาะชนิดในกลุ่มนี้ (ผู้ใช้เลือกแบบ กพ1 หลังตรวจขั้น 4.4)
+_PREVIEWABLE_PREFIXES = ("image/", "audio/", "video/")
+_PREVIEWABLE_EXACT = {"application/pdf", "text/plain"}
+
+
+def can_preview_in_browser(mime: str) -> bool:
+    """เบราว์เซอร์เปิดดูไฟล์ชนิดนี้ได้เองไหม (PDF, รูป, เสียง, วิดีโอ, .txt)"""
+    return mime in _PREVIEWABLE_EXACT or mime.startswith(_PREVIEWABLE_PREFIXES)
+
+
 @dataclass(frozen=True)
 class FileInfo:
     """ผลตรวจไฟล์ที่ผ่าน: ชนิดเนื้อหา, ชนิดไฟล์, ขนาด, ชื่อเดิม, หัวข้อตั้งต้น (ชื่อไฟล์ตัดนามสกุล)"""

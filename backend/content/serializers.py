@@ -44,6 +44,10 @@ class ContentSerializer(serializers.ModelSerializer):
     file_link = serializers.SerializerMethodField()
     # ลิงก์ดาวน์โหลดที่ได้ชื่อไฟล์เดิม (ผู้สอนได้เสมอ — allow_download มีผลกับผู้เรียนในขั้น 4.4)
     download_link = serializers.SerializerMethodField()
+    # ค่าที่มีผลจริง (กพ1) — ไฟล์ชนิดที่ปิดดาวน์โหลดไม่ได้ = True เสมอ
+    allow_download = serializers.BooleanField(source="effective_allow_download", read_only=True)
+    # หน้าต่างแก้ไขแสดงสวิตช์ "ให้ผู้เรียนดาวน์โหลดได้" ไหม (กพ1 — เฉพาะ PDF / รูป / เสียง / วิดีโอ / .txt)
+    can_disable_download = serializers.BooleanField(read_only=True)
 
     class Meta:
         model = Content
@@ -63,6 +67,7 @@ class ContentSerializer(serializers.ModelSerializer):
             "external_url",
             "youtube_id",
             "allow_download",
+            "can_disable_download",
             "created_at",
             "updated_at",
         ]
@@ -93,12 +98,15 @@ class StudentContentSerializer(serializers.ModelSerializer):
     """
     เนื้อหา 1 ชิ้นที่ผู้เรียนเห็น (ขั้น 4.4) — ไม่มีข้อมูลภายใน (สถานะเผยแพร่ / ลำดับ / เวลา)
     download_link: ผู้สอนปิดการดาวน์โหลด (allow_download=False — กฑ2) → null เสมอ
+    (ปิดได้เฉพาะไฟล์ที่เบราว์เซอร์เปิดดูได้ — กพ1 ; ชนิดอื่นดาวน์โหลดได้เสมอ)
     (backend ไม่ส่งลิงก์ดาวน์โหลดเลย ไม่ใช่แค่ซ่อนปุ่ม) ; file_link ยังมีไว้เปิดดู / เล่นในหน้า
     """
 
     youtube_id = serializers.SerializerMethodField()
     file_link = serializers.SerializerMethodField()
     download_link = serializers.SerializerMethodField()
+    # ค่าที่มีผลจริง (กพ1) — หน้าจอใช้แสดง "ผู้สอนปิดการดาวน์โหลดไฟล์นี้"
+    allow_download = serializers.BooleanField(source="effective_allow_download", read_only=True)
 
     class Meta:
         model = Content
@@ -125,7 +133,7 @@ class StudentContentSerializer(serializers.ModelSerializer):
         return content.file_url.url if content.file_url else None
 
     def get_download_link(self, content: Content) -> str | None:
-        return download_url(content) if content.allow_download else None
+        return download_url(content) if content.effective_allow_download else None
 
 
 class StudentModuleSerializer(serializers.ModelSerializer):

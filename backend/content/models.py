@@ -18,6 +18,7 @@ from django.db.models import Q
 
 from academics.models import Course
 from common.models import TimeStampedModel
+from content.file_types import can_preview_in_browser
 from content.uploads import content_upload_path
 
 
@@ -146,3 +147,17 @@ class Content(TimeStampedModel):
     def has_file(self) -> bool:
         """มีไฟล์บนที่เก็บไฟล์ไหม (เอกสาร / รูป / เสียง / วิดีโอที่อัปโหลด)"""
         return bool(self.file_url)
+
+    @property
+    def can_disable_download(self) -> bool:
+        """
+        ผู้สอนปิดการดาวน์โหลดได้ไหม (กพ1): ต้องมีไฟล์ และเป็นชนิดที่เบราว์เซอร์เปิดดูได้
+        (PDF / รูป / เสียง / วิดีโอ / .txt) — Word / PowerPoint / Excel / zip / .py เปิดแล้วดาวน์โหลดทันที
+        ปิดไปก็ไม่มีผลจริง จึงดาวน์โหลดได้เสมอ ; ข้อความ / ลิงก์ไม่มีไฟล์ให้ดาวน์โหลด
+        """
+        return self.has_file and can_preview_in_browser(self.mime_type)
+
+    @property
+    def effective_allow_download(self) -> bool:
+        """ค่าที่มีผลจริง: ปิดได้เฉพาะไฟล์ที่ปิดได้ (ค่า False ที่ค้างในชนิดอื่นถือว่าเปิด)"""
+        return self.allow_download or not self.can_disable_download
