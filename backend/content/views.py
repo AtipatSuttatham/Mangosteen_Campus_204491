@@ -1,0 +1,200 @@
+"""
+API เนื้อหารายวิชาของผู้สอน (UC-09 — ขั้น 4.3) — อ้างอิง docs/api.md §10 และ CLAUDE.md "การตัดสินใจก้อน 4"
+
+ที่อยู่ทั้งหมดอยู่ใต้ /api/v1/courses/{id วิชา}/ :
+- modules/                               GET รายการหน่วย + เนื้อหา / POST เพิ่มหน่วย
+- modules/{id}/                          PATCH แก้หน่วย / DELETE ลบหน่วย
+- modules/{id}/publish/ · unpublish/     เผยแพร่ / ยกเลิกการเผยแพร่หน่วย
+- modules/{id}/move/                     เลื่อนหน่วย {direction: up|down}
+- modules/{id}/contents/text/            เพิ่มเนื้อหาแบบข้อความ
+- modules/{id}/contents/link/            เพิ่มลิงก์ (YouTube → วิดีโอ)
+- contents/{id}/                         PATCH แก้เนื้อหา / DELETE ลบเนื้อหา
+- contents/{id}/publish/ · unpublish/    เผยแพร่ / ยกเลิกการเผยแพร่เนื้อหา
+- contents/{id}/move/                    เลื่อนเนื้อหา {direction: up|down}
+(อัปโหลด / เปลี่ยนไฟล์มาในขั้น 4.3 ข)
+
+สิทธิ์ผ่าน content/access.py: ดู = ผู้สอนเจ้าของ + ผู้ดูแลระบบ ; แก้ = ผู้สอนเจ้าของเท่านั้น
+ทุกการแก้อยู่ใน transaction เดียว (ล็อกแถววิชา) — จด AuditLog ไม่สำเร็จ = การลบถูกยกเลิก
+"""
+
+from django.db import transaction
+from django.db.models import Prefetch
+from rest_framework import status
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from content import services
+from content.access import get_content, get_course_for_content, get_module
+from content.models import Content, Module
+from content.serializers import (
+    ContentSerializer,
+    ContentUpdateSerializer,
+    LinkWriteSerializer,
+    ModuleSerializer,
+    ModuleWriteSerializer,
+    MoveSerializer,
+    TextWriteSerializer,
+)
+
+
+def module_response(module: Module, status_code: int = status.HTTP_200_OK) -> Response:
+    """ส่งหน่วย 1 หน่วยพร้อมเนื้อหาล่าสุด (อ่านใหม่จากฐานข้อมูล)"""
+    fresh = Module.objects.prefetch_related("contents").get(pk=module.pk)
+    return Response(ModuleSerializer(fresh).data, status=status_code)
+
+
+def content_response(content: Content, status_code: int = status.HTTP_200_OK) -> Response:
+    """ส่งเนื้อหา 1 ชิ้น (อ่านใหม่จากฐานข้อมูล)"""
+    return Response(ContentSerializer(Content.objects.get(pk=content.pk)).data, status=status_code)
+
+
+class ModuleListView(APIView):
+    """
+    GET  …/modules/   หน่วยทั้งหมดของวิชา เรียงตามลำดับ + เนื้อหาทุกชิ้น (ทุกสถานะ)
+                      ผู้สอนเจ้าของ / ผู้ดูแลระบบ (ดูอย่างเดียว) ; คนอื่น 404
+    POST …/modules/   เพิ่มหน่วย {title, description?} → 201 ต่อท้าย ยังไม่เผยแพร่
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request: Request, pk: int) -> Response:
+        course = get_course_for_content(request.user, pk)
+        modules = Module.objects.filter(course=course).prefetch_related(
+            Prefetch("contents", queryset=Content.objects.order_by("order", "id"))
+        )
+        return Response(ModuleSerializer(modules, many=True).data)
+
+    def post(self, request: Request, pk: int) -> Response:
+        serializer = ModuleWriteSerializer(data=request.data)
+        with transaction.atomic():
+            course = get_course_for_content(request.user, pk, write=True)
+            serializer.is_valid(raise_exception=True)
+            module = services.create_module(course, **serializer.validated_data)
+        return module_response(module, status.HTTP_201_CREATED)
+
+
+class ModuleDetailView(APIView):
+    """
+    PATCH  …/modules/{id}/   แก้ชื่อ / คำอธิบาย (ส่งเฉพาะช่องที่แก้) → 200 หน่วย
+    DELETE …/modules/{id}/   ลบหน่วย (เนื้อหา + ไฟล์หายตาม) → 204 + AuditLog delete
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request: Request, pk: int, module_id: int) -> Response:
+        serializer = ModuleWriteSerializer(data=request.data, partial=True)
+        with transaction.atomic():
+            course = get_course_for_content(request.user, pk, write=True)
+            module = get_module(course, module_id)
+            serializer.is_valid(raise_exception=True)
+            services.update_module(module, serializer.validated_data)
+        return module_response(module)
+
+    def delete(self, request: Request, pk: int, module_id: int) -> Response:
+        with transaction.atomic():
+            course = get_course_for_content(request.user, pk, write=True)
+            module = get_module(course, module_id)
+            services.delete_module(request.user, course, module)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ModuleActionView(APIView):
+    """
+    POST …/modules/{id}/publish/     เผยแพร่ (เป็นอยู่แล้ว = 200 เหมือนกัน)
+    POST …/modules/{id}/unpublish/   ยกเลิกการเผยแพร่
+    POST …/modules/{id}/move/        เลื่อน {direction: up|down} (ตัวแรก ↑ / ตัวสุดท้าย ↓ = ไม่เปลี่ยน)
+    ตอบ 200 หน่วยล่าสุด
+    """
+
+    permission_classes = [IsAuthenticated]
+    # "publish" / "unpublish" / "move" — กำหนดใน urls.py
+    action: str = "publish"
+
+    def post(self, request: Request, pk: int, module_id: int) -> Response:
+        with transaction.atomic():
+            course = get_course_for_content(request.user, pk, write=True)
+            module = get_module(course, module_id)
+            if self.action == "move":
+                serializer = MoveSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                services.move_module(course, module, serializer.validated_data["direction"])
+            else:
+                services.set_published(module, self.action == "publish")
+        return module_response(module)
+
+
+class ContentCreateView(APIView):
+    """
+    POST …/modules/{id}/contents/text/   เพิ่มข้อความ {title, body?}
+    POST …/modules/{id}/contents/link/   เพิ่มลิงก์ {url, title?, body?} — YouTube → ชนิด video
+    → 201 เนื้อหาใหม่ (ต่อท้ายหน่วย ยังไม่เผยแพร่)
+    """
+
+    permission_classes = [IsAuthenticated]
+    # "text" / "link" — กำหนดใน urls.py
+    kind: str = "text"
+
+    def post(self, request: Request, pk: int, module_id: int) -> Response:
+        serializer_class = TextWriteSerializer if self.kind == "text" else LinkWriteSerializer
+        serializer = serializer_class(data=request.data)
+        with transaction.atomic():
+            course = get_course_for_content(request.user, pk, write=True)
+            module = get_module(course, module_id)
+            serializer.is_valid(raise_exception=True)
+            create = services.create_text if self.kind == "text" else services.create_link
+            content = create(module, **serializer.validated_data)
+        return content_response(content, status.HTTP_201_CREATED)
+
+
+class ContentDetailView(APIView):
+    """
+    PATCH  …/contents/{id}/   แก้ {title?, body?, allow_download?, url?, module?} → 200 เนื้อหา
+           module = ย้ายไปต่อท้ายหน่วยนั้น (ต้องอยู่วิชาเดียวกัน ไม่งั้น 404)
+           url = แก้ลิงก์ (ชนิดต้องไม่เปลี่ยน ไม่งั้น 409 content_kind_mismatch)
+    DELETE …/contents/{id}/   ลบ (ไฟล์หายตาม) → 204 + AuditLog delete
+    """
+
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request: Request, pk: int, content_id: int) -> Response:
+        serializer = ContentUpdateSerializer(data=request.data)
+        with transaction.atomic():
+            course = get_course_for_content(request.user, pk, write=True)
+            content = get_content(course, content_id)
+            serializer.is_valid(raise_exception=True)
+            data = serializer.validated_data
+            new_module = get_module(course, data["module"]) if "module" in data else None
+            services.update_content(content, data, new_module=new_module)
+        return content_response(content)
+
+    def delete(self, request: Request, pk: int, content_id: int) -> Response:
+        with transaction.atomic():
+            course = get_course_for_content(request.user, pk, write=True)
+            content = get_content(course, content_id)
+            services.delete_content(request.user, course, content)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ContentActionView(APIView):
+    """
+    POST …/contents/{id}/publish/ · unpublish/   เผยแพร่ / ยกเลิกการเผยแพร่
+    POST …/contents/{id}/move/                   เลื่อนในหน่วย {direction: up|down}
+    ตอบ 200 เนื้อหาล่าสุด
+    """
+
+    permission_classes = [IsAuthenticated]
+    action: str = "publish"
+
+    def post(self, request: Request, pk: int, content_id: int) -> Response:
+        with transaction.atomic():
+            course = get_course_for_content(request.user, pk, write=True)
+            content = get_content(course, content_id)
+            if self.action == "move":
+                serializer = MoveSerializer(data=request.data)
+                serializer.is_valid(raise_exception=True)
+                services.move_content(content, serializer.validated_data["direction"])
+            else:
+                services.set_published(content, self.action == "publish")
+        return content_response(content)
