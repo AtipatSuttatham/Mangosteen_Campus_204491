@@ -414,7 +414,8 @@ cookie ตั้งค่า: `HttpOnly` ; `Path=/api/v1/auth/` (ส่งเฉ
 ### 10.2 รูปแบบข้อมูล
 
 - `module` = `{id, title, description, order, is_published, contents: [content]}`
-- `content` = `{id, module, title, content_type, body, order, is_published, file_name, file_size, mime_type, file_link, external_url, youtube_id, allow_download, created_at, updated_at}`
+- `content` = `{id, module, title, content_type, body, order, is_published, file_name, file_size, mime_type, file_link, download_link, external_url, youtube_id, allow_download, can_disable_download, created_at, updated_at}`
+  - `allow_download` = **ค่าที่มีผลจริง** ; `can_disable_download` = หน้าต่างแก้ไขแสดงสวิตช์ดาวน์โหลดไหม — `true` เฉพาะไฟล์ที่เบราว์เซอร์เปิดดูได้ (PDF / รูป / เสียง / วิดีโอ / .txt) ; Word / PowerPoint / Excel / zip / .py / ข้อความ / ลิงก์ = `false` → ส่ง `allow_download: false` มา ระบบไม่สนใจ (200 ค่าคงเปิด — กพ1) ; เปลี่ยนไฟล์เป็นชนิดที่ปิดไม่ได้ → กลับเป็นเปิด
   - `content_type`: `text` / `file` / `image` / `video` / `audio` / `link` — **ระบบตั้งเอง เปลี่ยนภายหลังไม่ได้**
   - `body`: ชนิด `text` = เนื้อความ ; ชนิดอื่น = คำอธิบายเหนือไฟล์ / ลิงก์ (Markdown, ว่างได้)
   - `file_link`: ลิงก์ดูไฟล์ (ตอนพัฒนา `/media/…` ; ตอน deploy ลิงก์ชั่วคราว) ; ไม่มีไฟล์ = `null`
@@ -452,5 +453,5 @@ cookie ตั้งค่า: `HttpOnly` ; `Path=/api/v1/auth/` (ส่งเฉ
 - **เห็นอะไร**: เฉพาะหน่วยที่เผยแพร่ + เนื้อหาที่เผยแพร่ในหน่วยนั้น เรียงตามลำดับ — เนื้อหาที่เผยแพร่แต่อยู่ในหน่วยที่ยังไม่เผยแพร่ **ไม่เห็น** ; หน่วยที่เผยแพร่แต่ยังไม่มีเนื้อหาเผยแพร่ **ยังแสดง** (`contents: []` — กฝ1)
 - `student_module` = `{id, title, description, contents: [student_content]}`
 - `student_content` = `{id, title, content_type, body, file_name, file_size, mime_type, file_link, download_link, external_url, youtube_id, allow_download}` — **ไม่มี** สถานะเผยแพร่ / ลำดับ / หน่วย / เวลา
-- **ดาวน์โหลด (กฑ2)**: `allow_download = false` → `download_link = null` เสมอ (backend ไม่ส่งลิงก์ ไม่ใช่แค่ซ่อนปุ่ม) แต่ `file_link` ยังมีให้เปิดดู / เล่นในหน้า (บันทึกไฟล์ที่เปิดดูได้ยังทำได้ — ไม่ได้กันการคัดลอก 100%) ; ลิงก์ / YouTube = `null`
+- **ดาวน์โหลด (กฑ2)**: `allow_download = false` → `download_link = null` เสมอ (backend ไม่ส่งลิงก์ ไม่ใช่แค่ซ่อนปุ่ม) แต่ `file_link` ยังมีให้เปิดดู / เล่นในหน้า (บันทึกไฟล์ที่เปิดดูได้ยังทำได้ — ไม่ได้กันการคัดลอก 100%) ; ลิงก์ / YouTube = `null` ; ปิดได้เฉพาะไฟล์ที่เบราว์เซอร์เปิดดูได้ — ชนิดอื่น (Word / zip / .py ฯลฯ) ได้ลิงก์ดาวน์โหลดเสมอ เพราะเปิดดูก็คือดาวน์โหลด (กพ1)
 - คำสั่งฐานข้อมูลคงที่ไม่ว่ามีกี่หน่วย (ดึงเนื้อหาทุกหน่วยในคำสั่งเดียว)
