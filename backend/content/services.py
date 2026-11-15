@@ -15,10 +15,11 @@
 import logging
 from collections.abc import Iterator
 from contextlib import contextmanager
+from dataclasses import dataclass
 from typing import Any, Literal
 from urllib.parse import quote
 
-from django.core.files.storage import default_storage
+from django.core.files.storage import Storage
 from django.core.files.uploadedfile import UploadedFile
 from django.db import transaction
 from django.db.models import Max, QuerySet
@@ -29,7 +30,7 @@ from accounts.models import User
 from audit.models import AuditAction
 from audit.services import log_action
 from common.exceptions import ApiError
-from content.file_types import inspect_upload
+from content.file_types import FileInfo, inspect_upload
 from content.models import Content, Module
 from content.youtube import (
     YOUTUBE_DEFAULT_TITLE,
@@ -209,32 +210,48 @@ def move_content(content: Content, direction: Direction) -> None:
 # ---------- ไฟล์ (ขั้น 4.3 ข) ----------
 
 
+@dataclass(frozen=True)
+class StoredUpload:
+    """ไฟล์ที่ตรวจผ่านและเก็บลงที่เก็บไฟล์แล้ว แต่ยังไม่ได้ผูกกับแถวใด"""
+
+    info: FileInfo
+    name: str
+
+
 @contextmanager
-def remove_files_on_failure() -> Iterator[list[str]]:
+def remove_files_on_failure() -> Iterator[list[tuple[Storage, str]]]:
     """
     ลบไฟล์ที่เพิ่งเก็บทิ้ง ถ้างานที่ตามมาไม่สำเร็จ (เรื่องที่ส่งต่อจากขั้น 4.2)
 
-    Django เก็บไฟล์ลงที่เก็บไฟล์ "ก่อน" บันทึกแถว ถ้าบันทึกแถวไม่ผ่าน (กฎในฐานข้อมูล / transaction
-    ถูกยกเลิก) ไฟล์จะค้างโดยไม่มีแถวอ้างถึง — ใช้ครอบ transaction.atomic() ทั้งก้อนใน views.py:
-        with remove_files_on_failure() as stored, transaction.atomic(): ...
-    ฟังก์ชันที่เก็บไฟล์ใส่ชื่อไฟล์ลงใน stored ; มี error หลุดออกมา → ลบทุกไฟล์ในรายการแล้วส่ง error ต่อ
+    ไฟล์ถูกเก็บ "ก่อน" บันทึกแถว ถ้าบันทึกแถวไม่ผ่าน (กฎในฐานข้อมูล / วิชาถูกปิดระหว่างนั้น /
+    transaction ถูกยกเลิก) ไฟล์จะค้างโดยไม่มีแถวอ้างถึง — ใช้ครอบทั้งการเก็บไฟล์และ transaction ใน views.py
+    store_upload() ใส่ (ที่เก็บไฟล์, ชื่อไฟล์) ลงในรายการ ; มี error หลุดออกมา → ลบทุกไฟล์ในรายการ
+    จากที่เก็บของมันเอง แล้วส่ง error ต่อ
     """
-    stored: list[str] = []
+    stored: list[tuple[Storage, str]] = []
     try:
         yield stored
     except BaseException:
-        for name in stored:
+        for storage, name in stored:
             try:
-                default_storage.delete(name)
+                storage.delete(name)
             except Exception:  # ลบไม่ได้ก็ไม่ปิดบัง error เดิม — บันทึกไว้ให้นักพัฒนาดู
                 logger.exception("Could not remove orphan upload %s", name)
         raise
 
 
-def _store(content: Content, upload: UploadedFile, stored: list[str]) -> None:
-    """เก็บไฟล์ลงที่เก็บไฟล์ (ชื่อสุ่ม — uploads.py) ; เก็บไม่สำเร็จ (เช่น B2 เต็ม) → file_upload_failed (กน1)"""
+def store_upload(
+    module: Module, upload: UploadedFile, stored: list[tuple[Storage, str]]
+) -> StoredUpload:
+    """
+    ตรวจไฟล์ (file_types.py) แล้วเก็บลงที่เก็บไฟล์ด้วยชื่อสุ่ม (uploads.py — โฟลเดอร์ตามวิชาของหน่วยนี้)
+    **เรียกนอก transaction / ก่อนล็อกวิชา** — การส่งไฟล์ใหญ่ขึ้น B2 อาจใช้หลายวินาที ไม่ควรถือล็อกวิชาไว้
+    เก็บไม่สำเร็จ (เช่น B2 เต็ม) → 503 file_upload_failed (กน1)
+    """
+    info = inspect_upload(upload)
+    holder = Content(module=module)
     try:
-        content.file_url.save(upload.name or "file", upload, save=False)
+        holder.file_url.save(upload.name or "file", upload, save=False)
     except Exception as error:
         logger.exception("Storing an uploaded content file failed")
         raise ApiError(
@@ -242,51 +259,53 @@ def _store(content: Content, upload: UploadedFile, stored: list[str]) -> None:
             "The file could not be stored (storage may be full or unavailable).",
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
         ) from error
-    stored.append(content.file_url.name)
+    stored.append((holder.file_url.storage, holder.file_url.name))
+    return StoredUpload(info=info, name=holder.file_url.name)
 
 
-def create_file(
-    module: Module, upload: UploadedFile, stored: list[str], *, title: str = "", body: str = ""
-) -> Content:
-    """
-    อัปโหลด 1 ไฟล์เป็นเนื้อหาใหม่ต่อท้ายหน่วย — ระบบตั้งชนิดเองจากไฟล์ (file_types.py)
-    ไม่กรอกหัวข้อ → ชื่อไฟล์ตัดนามสกุล ; ยังไม่เผยแพร่ ; ให้ดาวน์โหลดได้เป็นค่าเริ่มต้น
-    """
-    info = inspect_upload(upload)
-    content = Content(
-        module=module,
-        title=title or info.title,
-        content_type=info.kind,
-        body=body,
-        order=next_order(module.contents.all()),
-        file_name=info.name,
-        file_size=info.size,
-        mime_type=info.mime,
-    )
-    _store(content, upload, stored)
-    content.save()
-    return content
-
-
-def replace_file(content: Content, upload: UploadedFile, stored: list[str]) -> None:
-    """
-    เปลี่ยนไฟล์ของเนื้อหาเดิม — ไฟล์ใหม่ต้องเป็นชนิดเดิม ; หัวข้อเดิมคงไว้ (กธ1)
-    ไฟล์เก่าถูกลบหลังบันทึกเสร็จ (ยกเลิกกลางทาง = ไฟล์เก่ายังอยู่ ไฟล์ใหม่ถูกลบทิ้ง)
-    เนื้อหาที่ไม่มีไฟล์ (ข้อความ / ลิงก์ / วิดีโอ YouTube) → content_kind_mismatch
-    """
-    info = inspect_upload(upload)
+def ensure_same_kind(content: Content, info: FileInfo) -> None:
+    """เปลี่ยนไฟล์ได้เฉพาะเนื้อหาที่มีไฟล์ และไฟล์ใหม่ชนิดเดียวกัน → ไม่งั้น 409 content_kind_mismatch"""
     if not content.has_file or info.kind != content.content_type:
         raise ApiError(
             "content_kind_mismatch",
             "The new file must be the same kind as the current one.",
             status_code=status.HTTP_409_CONFLICT,
         )
+
+
+def create_file(
+    module: Module, upload: StoredUpload, *, title: str = "", body: str = ""
+) -> Content:
+    """
+    บันทึกไฟล์ที่เก็บแล้วเป็นเนื้อหาใหม่ต่อท้ายหน่วย (เรียกหลังล็อกวิชา) — ชนิดมาจากตัวตรวจไฟล์
+    ไม่กรอกหัวข้อ → ชื่อไฟล์ตัดนามสกุล ; ยังไม่เผยแพร่ ; ให้ดาวน์โหลดได้เป็นค่าเริ่มต้น
+    """
+    info = upload.info
+    return Content.objects.create(
+        module=module,
+        title=title or info.title,
+        content_type=info.kind,
+        body=body,
+        order=next_order(module.contents.all()),
+        file_url=upload.name,
+        file_name=info.name,
+        file_size=info.size,
+        mime_type=info.mime,
+    )
+
+
+def replace_file(content: Content, upload: StoredUpload) -> None:
+    """
+    ผูกไฟล์ใหม่ (เก็บแล้ว) แทนไฟล์เดิม (เรียกหลังล็อกวิชา) — ชนิดต้องเดิม ; หัวข้อเดิมคงไว้ (กธ1)
+    ไฟล์เก่าถูกลบหลังบันทึกเสร็จ (ยกเลิกกลางทาง = ไฟล์เก่ายังอยู่ ไฟล์ใหม่ถูกลบทิ้ง)
+    """
+    ensure_same_kind(content, upload.info)
     old_name = content.file_url.name
     storage = content.file_url.storage
-    _store(content, upload, stored)
-    content.file_name = info.name
-    content.file_size = info.size
-    content.mime_type = info.mime
+    content.file_url = upload.name
+    content.file_name = upload.info.name
+    content.file_size = upload.info.size
+    content.mime_type = upload.info.mime
     content.save(update_fields=["file_url", "file_name", "file_size", "mime_type", "updated_at"])
     transaction.on_commit(lambda: storage.delete(old_name))
 

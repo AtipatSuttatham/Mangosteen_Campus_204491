@@ -21,7 +21,7 @@ API เนื้อหารายวิชาของผู้สอน (UC-09
 from django.db import transaction
 from django.db.models import Prefetch
 from rest_framework import status
-from rest_framework.parsers import MultiPartParser
+from rest_framework.parsers import JSONParser, MultiPartParser
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -62,6 +62,8 @@ class ModuleListView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    # รับเฉพาะ JSON (แบบฟอร์มที่ส่งช่องว่างมา DRF จะข้ามช่องนั้นแทนการแจ้ง error — แก้หลังตรวจขั้น 4.3)
+    parser_classes = [JSONParser]
 
     def get(self, request: Request, pk: int) -> Response:
         course = get_course_for_content(request.user, pk)
@@ -86,6 +88,8 @@ class ModuleDetailView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    # รับเฉพาะ JSON (แบบฟอร์มที่ส่งช่องว่างมา DRF จะข้ามช่องนั้นแทนการแจ้ง error — แก้หลังตรวจขั้น 4.3)
+    parser_classes = [JSONParser]
 
     def patch(self, request: Request, pk: int, module_id: int) -> Response:
         serializer = ModuleWriteSerializer(data=request.data, partial=True)
@@ -113,6 +117,8 @@ class ModuleActionView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    # รับเฉพาะ JSON (แบบฟอร์มที่ส่งช่องว่างมา DRF จะข้ามช่องนั้นแทนการแจ้ง error — แก้หลังตรวจขั้น 4.3)
+    parser_classes = [JSONParser]
     # "publish" / "unpublish" / "move" — กำหนดใน urls.py
     action: str = "publish"
 
@@ -137,6 +143,8 @@ class ContentCreateView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    # รับเฉพาะ JSON (แบบฟอร์มที่ส่งช่องว่างมา DRF จะข้ามช่องนั้นแทนการแจ้ง error — แก้หลังตรวจขั้น 4.3)
+    parser_classes = [JSONParser]
     # "text" / "link" — กำหนดใน urls.py
     kind: str = "text"
 
@@ -161,6 +169,8 @@ class ContentDetailView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    # รับเฉพาะ JSON (แบบฟอร์มที่ส่งช่องว่างมา DRF จะข้ามช่องนั้นแทนการแจ้ง error — แก้หลังตรวจขั้น 4.3)
+    parser_classes = [JSONParser]
 
     def patch(self, request: Request, pk: int, content_id: int) -> Response:
         serializer = ContentUpdateSerializer(data=request.data)
@@ -189,6 +199,8 @@ class ContentActionView(APIView):
     """
 
     permission_classes = [IsAuthenticated]
+    # รับเฉพาะ JSON (แบบฟอร์มที่ส่งช่องว่างมา DRF จะข้ามช่องนั้นแทนการแจ้ง error — แก้หลังตรวจขั้น 4.3)
+    parser_classes = [JSONParser]
     action: str = "publish"
 
     def post(self, request: Request, pk: int, content_id: int) -> Response:
@@ -211,26 +223,32 @@ class ContentFileUploadView(APIView):
     → 201 เนื้อหาใหม่ (ต่อท้ายหน่วย ยังไม่เผยแพร่ ดาวน์โหลดได้)
     ไม่ผ่าน → 400 content_file_type_not_allowed / content_file_empty / content_file_too_large /
               content_file_mismatch ; 503 file_upload_failed (เก็บไฟล์ไม่ได้ — กน1)
-    บันทึกไม่สำเร็จด้วยเหตุใดก็ตาม → ไฟล์ที่เพิ่งเก็บถูกลบทิ้ง (ไม่มีไฟล์ค้าง)
+
+    ลำดับ (แก้หลังตรวจขั้น 4.3): ตรวจสิทธิ์ก่อนอ่านไฟล์ (ไม่ล็อก) → ตรวจ + เก็บไฟล์ (ไม่ล็อก) →
+    ล็อกวิชาสั้น ๆ ตรวจสิทธิ์ / หน่วยซ้ำ (เผื่อวิชาถูกปิด / หน่วยถูกลบระหว่างนั้น) แล้วบันทึกแถว
+    → ไม่ถือล็อกวิชา (ที่ผู้เรียนเข้าร่วมด้วยรหัสใช้ร่วม) ระหว่างส่งไฟล์ใหญ่ขึ้นที่เก็บ
+    ไม่สำเร็จที่ขั้นใดก็ตาม → ไฟล์ที่เพิ่งเก็บถูกลบทิ้ง (ไม่มีไฟล์ค้าง)
     """
 
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser]
 
     def post(self, request: Request, pk: int, module_id: int) -> Response:
+        # ตรวจสิทธิ์ก่อนแตะ request.data (ไม่มีสิทธิ์ = ไม่ต้องรับ / เขียนไฟล์ชั่วคราว)
+        course = get_course_for_content(request.user, pk, write=True, lock=False)
+        module = get_module(course, module_id)
         serializer = FileUploadSerializer(data=request.data)
-        with services.remove_files_on_failure() as stored, transaction.atomic():
-            course = get_course_for_content(request.user, pk, write=True)
-            module = get_module(course, module_id)
-            serializer.is_valid(raise_exception=True)
-            data = serializer.validated_data
-            content = services.create_file(
-                module,
-                data["file"],
-                stored,
-                title=data.get("title", ""),
-                body=data.get("body", ""),
-            )
+        serializer.is_valid(raise_exception=True)
+        data = serializer.validated_data
+
+        with services.remove_files_on_failure() as stored:
+            upload = services.store_upload(module, data["file"], stored)
+            with transaction.atomic():
+                course = get_course_for_content(request.user, pk, write=True)
+                module = get_module(course, module_id)
+                content = services.create_file(
+                    module, upload, title=data.get("title", ""), body=data.get("body", "")
+                )
         return content_response(content, status.HTTP_201_CREATED)
 
 
@@ -239,16 +257,26 @@ class ContentFileReplaceView(APIView):
     POST …/contents/{id}/file/   เปลี่ยนไฟล์ (multipart: file) — ชนิดเดิมเท่านั้น, หัวข้อเดิมคงไว้ (กธ1)
     → 200 เนื้อหา ; ไฟล์เก่าถูกลบหลังบันทึกเสร็จ
     ไม่ผ่าน → 400 (เหมือนอัปโหลด) ; 409 content_kind_mismatch (คนละชนิด / เนื้อหาที่ไม่มีไฟล์) ; 503
+    ลำดับเดียวกับการอัปโหลด: เก็บไฟล์นอกล็อก แล้วล็อกสั้น ๆ ตรวจซ้ำและผูกไฟล์ใหม่
     """
 
     permission_classes = [IsAuthenticated]
     parser_classes = [MultiPartParser]
 
     def post(self, request: Request, pk: int, content_id: int) -> Response:
+        course = get_course_for_content(request.user, pk, write=True, lock=False)
+        content = get_content(course, content_id)
         serializer = FileReplaceSerializer(data=request.data)
-        with services.remove_files_on_failure() as stored, transaction.atomic():
-            course = get_course_for_content(request.user, pk, write=True)
-            content = get_content(course, content_id)
-            serializer.is_valid(raise_exception=True)
-            services.replace_file(content, serializer.validated_data["file"], stored)
+        serializer.is_valid(raise_exception=True)
+
+        with services.remove_files_on_failure() as stored:
+            upload = services.store_upload(
+                content.module, serializer.validated_data["file"], stored
+            )
+            # ชนิดไม่ตรงรู้ได้ตั้งแต่ตอนนี้ → ปฏิเสธ (ไฟล์ที่เพิ่งเก็บถูกลบ) ไม่ต้องล็อกวิชา
+            services.ensure_same_kind(content, upload.info)
+            with transaction.atomic():
+                course = get_course_for_content(request.user, pk, write=True)
+                content = get_content(course, content_id)
+                services.replace_file(content, upload)
         return content_response(content)

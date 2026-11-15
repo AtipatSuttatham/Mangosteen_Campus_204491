@@ -5,20 +5,46 @@
 (test_models.py / test_admin.py มี fixture ชื่อซ้ำของตัวเอง — pytest ใช้ของในไฟล์นั้นก่อน)
 """
 
+import pytest
+from rest_framework.test import APIClient
+
 from academics.models import Course
 from academics.tests.conftest import (  # noqa: F401 — fixture ที่ pytest ค้นหาจากชื่อ
     admin,
-    admin_client,
-    client_for,
     course,
     make_course,
     other_teacher,
     student,
-    student_client,
     teacher,
-    teacher_client,
 )
+from academics.tests.conftest import client_for as base_client_for
+from accounts.models import User
 from content.models import Content, Module
+
+
+def client_for(user: User) -> APIClient:
+    """
+    เครื่องที่เข้าสู่ระบบเป็นผู้ใช้คนนี้ — ส่ง JSON เป็นค่าเริ่มต้น
+    (ที่อยู่ของเนื้อหารับเฉพาะ JSON ; อัปโหลดไฟล์ส่ง format="multipart" เอง)
+    """
+    client = base_client_for(user)
+    client.default_format = "json"
+    return client
+
+
+@pytest.fixture
+def admin_client(admin: User) -> APIClient:  # noqa: F811 — ชื่อพารามิเตอร์ = fixture
+    return client_for(admin)
+
+
+@pytest.fixture
+def teacher_client(teacher: User) -> APIClient:  # noqa: F811 — ชื่อพารามิเตอร์ = fixture
+    return client_for(teacher)
+
+
+@pytest.fixture
+def student_client(student: User) -> APIClient:  # noqa: F811 — ชื่อพารามิเตอร์ = fixture
+    return client_for(student)
 
 
 def modules_url(target: Course, action: str = "") -> str:

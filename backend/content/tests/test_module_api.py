@@ -143,3 +143,19 @@ def test_move_rejects_bad_direction(teacher_client: APIClient, course: Course) -
 
     assert response.status_code == 400
     assert response.data["fields"]["direction"] == ["invalid_choice"]
+
+
+def test_json_endpoints_reject_form_data(teacher_client: APIClient, course: Course) -> None:
+    """
+    ที่อยู่ที่ไม่ใช่ไฟล์รับเฉพาะ JSON (แก้หลังตรวจขั้น 4.3) — แบบฟอร์มที่ส่งช่องว่างมา DRF จะข้ามช่องนั้น
+    แทนการแจ้ง "ห้ามว่าง" จึงปฏิเสธแบบฟอร์มทั้งหมด → 415
+    """
+    module = make_module(course, "เดิม")
+
+    response = teacher_client.patch(
+        modules_url(course, f"{module.pk}/"), {"title": ""}, format="multipart"
+    )
+
+    assert response.status_code == 415
+    module.refresh_from_db()
+    assert module.title == "เดิม"
