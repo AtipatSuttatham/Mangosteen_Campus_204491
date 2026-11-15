@@ -102,6 +102,7 @@ def test_create_link_rejects_non_http(teacher_client: APIClient, course: Course,
 
 
 def test_update_fields(teacher_client: APIClient, course: Course) -> None:
+    """แก้หัวข้อ / เนื้อความ ; ข้อความไม่มีไฟล์ → สวิตช์ดาวน์โหลดถูกข้าม (กพ1 — ไม่ error)"""
     content = make_text(make_module(course), "เดิม", body="เดิม")
 
     response = teacher_client.patch(
@@ -111,7 +112,7 @@ def test_update_fields(teacher_client: APIClient, course: Course) -> None:
 
     assert response.status_code == 200
     content.refresh_from_db()
-    assert (content.title, content.body, content.allow_download) == ("ใหม่", "ใหม่", False)
+    assert (content.title, content.body, content.allow_download) == ("ใหม่", "ใหม่", True)
 
 
 def test_update_rejects_blank_title(teacher_client: APIClient, course: Course) -> None:

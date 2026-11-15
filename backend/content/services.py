@@ -162,10 +162,15 @@ def update_content(content: Content, data: dict[str, Any], *, new_module: Module
     - new_module: หน่วยปลายทาง (ตรวจแล้วว่าอยู่วิชาเดียวกัน) → ไปต่อท้ายหน่วยนั้น
     """
     fields: list[str] = []
-    for name in ("title", "body", "allow_download"):
+    for name in ("title", "body"):
         if name in data:
             setattr(content, name, data[name])
             fields.append(name)
+    # สวิตช์ดาวน์โหลด (กพ1): เนื้อหาที่ปิดดาวน์โหลดไม่ได้ (ไม่มีไฟล์ / เบราว์เซอร์เปิดดูไม่ได้)
+    # ไม่สนใจค่าที่ส่งมา (ไม่ error — หน้าจอที่ส่งค่าทั้งชุดจะได้ไม่พัง)
+    if "allow_download" in data and content.can_disable_download:
+        content.allow_download = data["allow_download"]
+        fields.append("allow_download")
 
     if "url" in data:
         kind, stored_url = link_kind_and_url(data["url"])
@@ -306,7 +311,12 @@ def replace_file(content: Content, upload: StoredUpload) -> None:
     content.file_name = upload.info.name
     content.file_size = upload.info.size
     content.mime_type = upload.info.mime
-    content.save(update_fields=["file_url", "file_name", "file_size", "mime_type", "updated_at"])
+    fields = ["file_url", "file_name", "file_size", "mime_type", "updated_at"]
+    if not content.can_disable_download and not content.allow_download:
+        # ไฟล์ใหม่เป็นชนิดที่ปิดดาวน์โหลดไม่ได้ (เช่น PDF → Word) → กลับเป็นดาวน์โหลดได้ (กพ1)
+        content.allow_download = True
+        fields.append("allow_download")
+    content.save(update_fields=fields)
     transaction.on_commit(lambda: storage.delete(old_name))
 
 
