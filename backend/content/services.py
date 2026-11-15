@@ -12,8 +12,15 @@
   เพราะหลังลบแล้วสืบกลับไม่ได้ว่าเป็นของวิชาไหน
 """
 
+import logging
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any, Literal
+from urllib.parse import quote
 
+from django.core.files.storage import default_storage
+from django.core.files.uploadedfile import UploadedFile
+from django.db import transaction
 from django.db.models import Max, QuerySet
 from rest_framework import status
 
@@ -22,6 +29,7 @@ from accounts.models import User
 from audit.models import AuditAction
 from audit.services import log_action
 from common.exceptions import ApiError
+from content.file_types import inspect_upload
 from content.models import Content, Module
 from content.youtube import (
     YOUTUBE_DEFAULT_TITLE,
@@ -31,6 +39,8 @@ from content.youtube import (
 )
 
 Direction = Literal["up", "down"]
+
+logger = logging.getLogger(__name__)
 
 
 def next_order(siblings: QuerySet) -> int:
@@ -194,3 +204,105 @@ def delete_content(user: User, course: Course, content: Content) -> None:
 
 def move_content(content: Content, direction: Direction) -> None:
     move(content, Content.objects.filter(module_id=content.module_id), direction)
+
+
+# ---------- ไฟล์ (ขั้น 4.3 ข) ----------
+
+
+@contextmanager
+def remove_files_on_failure() -> Iterator[list[str]]:
+    """
+    ลบไฟล์ที่เพิ่งเก็บทิ้ง ถ้างานที่ตามมาไม่สำเร็จ (เรื่องที่ส่งต่อจากขั้น 4.2)
+
+    Django เก็บไฟล์ลงที่เก็บไฟล์ "ก่อน" บันทึกแถว ถ้าบันทึกแถวไม่ผ่าน (กฎในฐานข้อมูล / transaction
+    ถูกยกเลิก) ไฟล์จะค้างโดยไม่มีแถวอ้างถึง — ใช้ครอบ transaction.atomic() ทั้งก้อนใน views.py:
+        with remove_files_on_failure() as stored, transaction.atomic(): ...
+    ฟังก์ชันที่เก็บไฟล์ใส่ชื่อไฟล์ลงใน stored ; มี error หลุดออกมา → ลบทุกไฟล์ในรายการแล้วส่ง error ต่อ
+    """
+    stored: list[str] = []
+    try:
+        yield stored
+    except BaseException:
+        for name in stored:
+            try:
+                default_storage.delete(name)
+            except Exception:  # ลบไม่ได้ก็ไม่ปิดบัง error เดิม — บันทึกไว้ให้นักพัฒนาดู
+                logger.exception("Could not remove orphan upload %s", name)
+        raise
+
+
+def _store(content: Content, upload: UploadedFile, stored: list[str]) -> None:
+    """เก็บไฟล์ลงที่เก็บไฟล์ (ชื่อสุ่ม — uploads.py) ; เก็บไม่สำเร็จ (เช่น B2 เต็ม) → file_upload_failed (กน1)"""
+    try:
+        content.file_url.save(upload.name or "file", upload, save=False)
+    except Exception as error:
+        logger.exception("Storing an uploaded content file failed")
+        raise ApiError(
+            "file_upload_failed",
+            "The file could not be stored (storage may be full or unavailable).",
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        ) from error
+    stored.append(content.file_url.name)
+
+
+def create_file(
+    module: Module, upload: UploadedFile, stored: list[str], *, title: str = "", body: str = ""
+) -> Content:
+    """
+    อัปโหลด 1 ไฟล์เป็นเนื้อหาใหม่ต่อท้ายหน่วย — ระบบตั้งชนิดเองจากไฟล์ (file_types.py)
+    ไม่กรอกหัวข้อ → ชื่อไฟล์ตัดนามสกุล ; ยังไม่เผยแพร่ ; ให้ดาวน์โหลดได้เป็นค่าเริ่มต้น
+    """
+    info = inspect_upload(upload)
+    content = Content(
+        module=module,
+        title=title or info.title,
+        content_type=info.kind,
+        body=body,
+        order=next_order(module.contents.all()),
+        file_name=info.name,
+        file_size=info.size,
+        mime_type=info.mime,
+    )
+    _store(content, upload, stored)
+    content.save()
+    return content
+
+
+def replace_file(content: Content, upload: UploadedFile, stored: list[str]) -> None:
+    """
+    เปลี่ยนไฟล์ของเนื้อหาเดิม — ไฟล์ใหม่ต้องเป็นชนิดเดิม ; หัวข้อเดิมคงไว้ (กธ1)
+    ไฟล์เก่าถูกลบหลังบันทึกเสร็จ (ยกเลิกกลางทาง = ไฟล์เก่ายังอยู่ ไฟล์ใหม่ถูกลบทิ้ง)
+    เนื้อหาที่ไม่มีไฟล์ (ข้อความ / ลิงก์ / วิดีโอ YouTube) → content_kind_mismatch
+    """
+    info = inspect_upload(upload)
+    if not content.has_file or info.kind != content.content_type:
+        raise ApiError(
+            "content_kind_mismatch",
+            "The new file must be the same kind as the current one.",
+            status_code=status.HTTP_409_CONFLICT,
+        )
+    old_name = content.file_url.name
+    storage = content.file_url.storage
+    _store(content, upload, stored)
+    content.file_name = info.name
+    content.file_size = info.size
+    content.mime_type = info.mime
+    content.save(update_fields=["file_url", "file_name", "file_size", "mime_type", "updated_at"])
+    transaction.on_commit(lambda: storage.delete(old_name))
+
+
+def download_url(content: Content) -> str | None:
+    """
+    ลิงก์ดาวน์โหลดที่ได้ชื่อไฟล์เดิม (Content-Disposition: attachment)
+    - ที่เก็บไฟล์แบบ S3 / B2 (django-storages ตอน deploy) รับ parameters → ลิงก์ชั่วคราวที่สั่งให้บันทึกไฟล์
+    - ที่เก็บไฟล์ในเครื่องตอนพัฒนาไม่รับ → ลิงก์ปกติ (หน้าเว็บใส่ชื่อเดิมด้วย <a download> เพราะโดเมนเดียวกัน)
+    """
+    if not content.has_file:
+        return None
+    disposition = f"attachment; filename*=UTF-8''{quote(content.file_name)}"
+    try:
+        return content.file_url.storage.url(
+            content.file_url.name, parameters={"ResponseContentDisposition": disposition}
+        )
+    except TypeError:
+        return content.file_url.url

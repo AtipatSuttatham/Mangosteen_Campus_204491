@@ -9,6 +9,8 @@ from content.views import (
     ContentActionView,
     ContentCreateView,
     ContentDetailView,
+    ContentFileReplaceView,
+    ContentFileUploadView,
     ModuleActionView,
     ModuleDetailView,
     ModuleListView,
@@ -44,8 +46,18 @@ urlpatterns = [
         ContentCreateView.as_view(kind="link"),
         name="content-create-link",
     ),
+    path(
+        "<int:pk>/modules/<int:module_id>/contents/file/",
+        ContentFileUploadView.as_view(),
+        name="content-create-file",
+    ),
     # ---------- เนื้อหา 1 ชิ้น ----------
     path("<int:pk>/contents/<int:content_id>/", ContentDetailView.as_view(), name="content-detail"),
+    path(
+        "<int:pk>/contents/<int:content_id>/file/",
+        ContentFileReplaceView.as_view(),
+        name="content-replace-file",
+    ),
     path(
         "<int:pk>/contents/<int:content_id>/publish/",
         ContentActionView.as_view(action="publish"),
