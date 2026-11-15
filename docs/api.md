@@ -126,6 +126,8 @@ raise ApiError("quiz_time_over", status_code=409)
 | `course_closed` | 409 | รายวิชา: แก้ข้อมูล / เผยแพร่ / รหัสเข้าร่วม / ลบ วิชาที่ปิดแล้ว (§8) | 3 |
 | `course_not_deletable` | 409 | รายวิชา: ลบวิชาที่เผยแพร่แล้ว หรือเคยมีผู้เรียน (รวมที่ถูกถอน) (§8) | 3 |
 | `join_code_invalid` | 400 | เข้าร่วมด้วยรหัส: ใช้รหัสนี้ไม่ได้ — ข้อความเดียวทุกกรณี (ไม่มีรหัส / ปิดรหัส / ยังไม่เผยแพร่ / ปิดวิชา / เคยถูกถอน) (§9) | 3 |
+| `content_read_only` | 403 | เนื้อหารายวิชา: ผู้ดูแลระบบสั่งแก้ / เพิ่ม / ลบ / เลื่อน / เผยแพร่ — ดูได้อย่างเดียว (§10) | 4 |
+| `content_kind_mismatch` | 409 | เนื้อหารายวิชา: แก้ลิงก์แล้วชนิดเปลี่ยน (YouTube ↔ ลิงก์อื่น) หรือส่งลิงก์ให้เนื้อหาที่ไม่ใช่ลิงก์ (§10) | 4 |
 
 > token ใช้ไม่ได้ทุกแบบ (หมดอายุ / ลายเซ็นผิด / ถูกยกเลิก / บัญชีถูกระงับระหว่างใช้งาน / ออกก่อนเปลี่ยนรหัสผ่าน) ตอบ `authentication_failed` (401) รหัสเดียว — รหัสย่อยของ Simple JWT (`token_not_valid`, `user_inactive` ฯลฯ) ถูกรวมใน `api_exception_handler`
 
@@ -380,3 +382,43 @@ cookie ตั้งค่า: `HttpOnly` ; `Path=/api/v1/auth/` (ส่งเฉ
 | ถอน | `unenroll` | คนที่กด | `{"status": ["active", "dropped"]}` |
 
 `object_repr` ของการลงทะเบียน เช่น `s670510118@example.com → 204111 (กำลังเรียน)` ; อยู่ในวิชาอยู่แล้ว / ถอนซ้ำ → ไม่จด
+
+## 10. เนื้อหารายวิชา — ผู้สอน (ก้อน 4 — UC-09)
+
+สิทธิ์ (`content/access.py`): **ดู** = ผู้สอนเจ้าของ + ผู้ดูแลระบบ ; **แก้** = ผู้สอนเจ้าของเท่านั้น — ผู้ดูแลระบบได้ 403 `content_read_only` (กง1 — รายงานตาราง 3.1) ; คนอื่น (ผู้สอนวิชาอื่น / ผู้เรียน) = 404 ; วิชาที่ปิดแล้วแก้ไม่ได้ = 409 `course_closed` (ยังดูได้) ; หน่วย / เนื้อหาหาเฉพาะในวิชาที่ระบุ → รหัสของวิชาอื่น = 404 ; ทุกการแก้ล็อกแถววิชา → คำขอของวิชาเดียวกันต่อคิว (ลำดับไม่พังเมื่อกด ↑ ↓ พร้อมกัน) ; งานหลักอยู่ใน `content/services.py`
+
+### 10.1 ที่อยู่ (ทั้งหมดขึ้นต้นด้วย `/api/v1/courses/{id}/`)
+
+| Method + ที่อยู่ | ส่งอะไร | สำเร็จ | ไม่สำเร็จ |
+|---|---|---|---|
+| `GET modules/` | – | 200 `[module]` เรียงตามลำดับ (เนื้อหาเรียงตามลำดับ ทุกสถานะ) | 404 |
+| `POST modules/` | `{title, description?}` | 201 `module` — ต่อท้าย ยังไม่เผยแพร่ | 400 (`title`: `required` / `blank` / `max_length` 200) / 403 / 404 / 409 |
+| `PATCH modules/{module_id}/` | `{title?, description?}` | 200 `module` | 400 / 403 / 404 / 409 |
+| `DELETE modules/{module_id}/` | – | 204 — เนื้อหาในหน่วย + ไฟล์หายตาม | 403 / 404 / 409 |
+| `POST modules/{module_id}/publish/` · `unpublish/` | – | 200 `module` (เป็นอยู่แล้ว = 200 เหมือนกัน) | 403 / 404 / 409 |
+| `POST modules/{module_id}/move/` | `{direction: "up" \| "down"}` | 200 `module` — สลับกับตัวข้างเคียงแล้วจัดลำดับใหม่ 0, 1, 2, … ; ตัวแรก ↑ / ตัวสุดท้าย ↓ = ไม่เปลี่ยน | 400 (`invalid_choice`) / 403 / 404 / 409 |
+| `POST modules/{module_id}/contents/text/` | `{title, body?}` — หัวข้อบังคับ | 201 `content` ชนิด `text` ต่อท้ายหน่วย ยังไม่เผยแพร่ | 400 / 403 / 404 / 409 |
+| `POST modules/{module_id}/contents/link/` | `{url, title?, body?}` — `url` http / https ≤ 500 ตัว | 201 `content` — **YouTube → ชนิด `video`** (ลิงก์เก็บเป็น `https://www.youtube.com/watch?v=<รหัส>`) ; อื่น ๆ → `link` ; ไม่กรอกหัวข้อ → "วิดีโอจาก YouTube" / ชื่อเว็บไซต์ (เช่น `docs.python.org`) | 400 (`url`: `invalid` / `blank`) / 403 / 404 / 409 |
+| `PATCH contents/{content_id}/` | `{title?, body?, allow_download?, url?, module?}` — `module` = ย้ายไปต่อท้ายหน่วยนั้น ; `url` = แก้ลิงก์ (ชนิดต้องเดิม) | 200 `content` | 400 (`title` ว่าง ฯลฯ) / 403 / 404 (รวมหน่วยของวิชาอื่น) / 409 `course_closed` / 409 `content_kind_mismatch` |
+| `DELETE contents/{content_id}/` | – | 204 — ไฟล์หายตามหลังบันทึกเสร็จ | 403 / 404 / 409 |
+| `POST contents/{content_id}/publish/` · `unpublish/` · `move/` | `move`: `{direction}` | 200 `content` | 400 / 403 / 404 / 409 |
+
+> อัปโหลด / เปลี่ยนไฟล์ (`…/contents/file/`) เพิ่มในขั้น 4.3 ข
+
+### 10.2 รูปแบบข้อมูล
+
+- `module` = `{id, title, description, order, is_published, contents: [content]}`
+- `content` = `{id, module, title, content_type, body, order, is_published, file_name, file_size, mime_type, file_link, external_url, youtube_id, allow_download, created_at, updated_at}`
+  - `content_type`: `text` / `file` / `image` / `video` / `audio` / `link` — **ระบบตั้งเอง เปลี่ยนภายหลังไม่ได้**
+  - `body`: ชนิด `text` = เนื้อความ ; ชนิดอื่น = คำอธิบายเหนือไฟล์ / ลิงก์ (Markdown, ว่างได้)
+  - `file_link`: ลิงก์ดูไฟล์ (ตอนพัฒนา `/media/…` ; ตอน deploy ลิงก์ชั่วคราว) ; ไม่มีไฟล์ = `null`
+  - `youtube_id`: รหัสวิดีโอ 11 ตัว (หน้าเว็บฝังผ่าน `youtube-nocookie.com`) ; ไม่ใช่ YouTube = `null`
+
+### 10.3 สิ่งที่จดลง AuditLog
+
+จด**เฉพาะการลบ** (ข้อตกลงก้อน 4) — `object_repr` ใส่รหัสวิชาด้วย เพราะหลังลบแล้วสืบกลับไม่ได้ว่าเป็นของวิชาไหน
+
+| การกระทำ | `action` | `object_repr` | `changes` |
+|---|---|---|---|
+| ลบหน่วย | `delete` | `ฟังก์ชัน (204111)` | `{"title": ["ฟังก์ชัน", null], "content_count": [3, null]}` |
+| ลบเนื้อหา | `delete` | `สรุป (204111)` | `{"title": [...], "content_type": ["text", null], "module": [12, null]}` |
