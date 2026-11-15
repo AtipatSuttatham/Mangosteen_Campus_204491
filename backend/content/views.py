@@ -2,7 +2,8 @@
 API เนื้อหารายวิชาของผู้สอน (UC-09 — ขั้น 4.3) — อ้างอิง docs/api.md §10 และ CLAUDE.md "การตัดสินใจก้อน 4"
 
 ที่อยู่ทั้งหมดอยู่ใต้ /api/v1/courses/{id วิชา}/ :
-- modules/                               GET รายการหน่วย + เนื้อหา / POST เพิ่มหน่วย
+- modules/                               GET รายการหน่วย + เนื้อหา (ผู้เรียน = เฉพาะที่เผยแพร่ — ขั้น 4.4)
+                                         / POST เพิ่มหน่วย
 - modules/{id}/                          PATCH แก้หน่วย / DELETE ลบหน่วย
 - modules/{id}/publish/ · unpublish/     เผยแพร่ / ยกเลิกการเผยแพร่หน่วย
 - modules/{id}/move/                     เลื่อนหน่วย {direction: up|down}
@@ -27,6 +28,8 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from academics.access import get_enrolled_course
+from accounts.models import User
 from content import services
 from content.access import get_content, get_course_for_content, get_module
 from content.models import Content, Module
@@ -39,6 +42,7 @@ from content.serializers import (
     ModuleSerializer,
     ModuleWriteSerializer,
     MoveSerializer,
+    StudentModuleSerializer,
     TextWriteSerializer,
 )
 
@@ -57,7 +61,8 @@ def content_response(content: Content, status_code: int = status.HTTP_200_OK) ->
 class ModuleListView(APIView):
     """
     GET  …/modules/   หน่วยทั้งหมดของวิชา เรียงตามลำดับ + เนื้อหาทุกชิ้น (ทุกสถานะ)
-                      ผู้สอนเจ้าของ / ผู้ดูแลระบบ (ดูอย่างเดียว) ; คนอื่น 404
+                      ผู้สอนเจ้าของ / ผู้ดูแลระบบ (ดูอย่างเดียว) ; ผู้สอนอื่น 404
+                      ผู้เรียน (ขั้น 4.4) → student_lessons: เฉพาะที่เผยแพร่ ฉบับของผู้เรียน
     POST …/modules/   เพิ่มหน่วย {title, description?} → 201 ต่อท้าย ยังไม่เผยแพร่
     """
 
@@ -66,11 +71,28 @@ class ModuleListView(APIView):
     parser_classes = [JSONParser]
 
     def get(self, request: Request, pk: int) -> Response:
+        if request.user.role == User.Role.STUDENT:
+            return self.student_lessons(request, pk)
         course = get_course_for_content(request.user, pk)
         modules = Module.objects.filter(course=course).prefetch_related(
             Prefetch("contents", queryset=Content.objects.order_by("order", "id"))
         )
         return Response(ModuleSerializer(modules, many=True).data)
+
+    def student_lessons(self, request: Request, pk: int) -> Response:
+        """
+        ผู้เรียน (ขั้น 4.4): ต้องกำลังเรียน + วิชาเผยแพร่แล้ว (วิชาที่ปิดดูย้อนหลังได้) ไม่งั้น 404
+        ได้เฉพาะหน่วยที่เผยแพร่ + เนื้อหาที่เผยแพร่ในหน่วยนั้น ; หน่วยที่ยังไม่มีเนื้อหาเผยแพร่ยังแสดง (กฝ1)
+        คำสั่งฐานข้อมูลคงที่ไม่ว่ามีกี่หน่วย (prefetch เนื้อหาทั้งหมดในคำสั่งเดียว)
+        """
+        course = get_enrolled_course(request.user, pk)
+        modules = Module.objects.filter(course=course, is_published=True).prefetch_related(
+            Prefetch(
+                "contents",
+                queryset=Content.objects.filter(is_published=True).order_by("order", "id"),
+            )
+        )
+        return Response(StudentModuleSerializer(modules, many=True).data)
 
     def post(self, request: Request, pk: int) -> Response:
         serializer = ModuleWriteSerializer(data=request.data)
