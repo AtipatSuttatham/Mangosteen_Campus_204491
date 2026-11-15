@@ -2,7 +2,7 @@
 test สิทธิ์ของ API เนื้อหารายวิชา (ขั้น 4.3 ก)
 - ผู้สอนเจ้าของ: ดู + แก้
 - ผู้ดูแลระบบ: ดูได้ แก้ได้ 403 content_read_only (กง1)
-- ผู้สอนวิชาอื่น / ผู้เรียน (แม้กำลังเรียน): 404 ; ยังไม่เข้าสู่ระบบ: 401
+- ผู้สอนวิชาอื่น: 404 ทั้งดูและแก้ ; ผู้เรียนที่กำลังเรียน: ดูได้ (ขั้น 4.4) แต่แก้ได้ 404 ; ยังไม่เข้าสู่ระบบ: 401
 - วิชาที่ปิดแล้ว: ผู้สอนแก้ได้ 409 course_closed (ดูยังได้)
 """
 
@@ -57,17 +57,22 @@ def test_admin_can_view_but_not_change(admin_client: APIClient, course: Course) 
     assert not Module.objects.filter(title__in=["ใหม่", "แก้"]).exists()
 
 
-def test_other_teacher_and_student_get_not_found(
+def test_other_teacher_and_student_cannot_change(
     other_teacher, student, student_client: APIClient, course: Course
 ) -> None:
-    """ผู้สอนวิชาอื่น และผู้เรียน (แม้กำลังเรียนวิชาเผยแพร่แล้ว) → 404 ทั้งดูและแก้"""
+    """
+    ผู้สอนวิชาอื่น → 404 ทั้งดูและแก้
+    ผู้เรียนที่กำลังเรียน → ดูได้ (ฉบับของผู้เรียน — ขั้น 4.4 ; รายละเอียดใน test_student_api.py)
+    แต่แก้ทุกที่อยู่ได้ 404 เหมือนคนนอก
+    """
     course.is_published = True
     course.save()
     enroll(course, student)
     other_client = client_for(other_teacher)
 
+    assert other_client.get(modules_url(course)).status_code == 404
+    assert student_client.get(modules_url(course)).status_code == 200
     for client in (other_client, student_client):
-        assert client.get(modules_url(course)).status_code == 404
         for method, url, data in write_requests(course):
             response = getattr(client, method)(url, data, format="json")
             assert response.status_code == 404, (method, url)

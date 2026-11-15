@@ -4,6 +4,8 @@
 ขาออก:
 - ContentSerializer: เนื้อหา 1 ชิ้น (+ รหัส YouTube, ลิงก์ดูไฟล์, ลิงก์ดาวน์โหลด)
 - ModuleSerializer: หน่วย 1 หน่วย + เนื้อหาทุกชิ้นในหน่วย (ผู้สอน / ผู้ดูแลระบบเห็นทุกสถานะ)
+- StudentContentSerializer / StudentModuleSerializer: ฉบับของผู้เรียน (ขั้น 4.4) — เฉพาะที่จำเป็น,
+  ลิงก์ดาวน์โหลดตาม allow_download
 ขาเข้า:
 - ModuleWriteSerializer: เพิ่ม / แก้หน่วย
 - TextWriteSerializer / LinkWriteSerializer: เพิ่มเนื้อหาแบบข้อความ / ลิงก์
@@ -22,6 +24,13 @@ from content.youtube import youtube_video_id
 # ความยาวสูงสุดตามตาราง (models.py)
 TITLE_MAX = 200
 URL_MAX = 500
+
+
+def content_youtube_id(content: Content) -> str | None:
+    """รหัสวิดีโอ YouTube ของเนื้อหาชนิดวิดีโอที่เป็นลิงก์ ; อื่น ๆ = None (ใช้ทั้งฉบับผู้สอน / ผู้เรียน)"""
+    if content.content_type == Content.Kind.VIDEO and content.external_url:
+        return youtube_video_id(content.external_url)
+    return None
 
 
 class ContentSerializer(serializers.ModelSerializer):
@@ -60,9 +69,7 @@ class ContentSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
     def get_youtube_id(self, content: Content) -> str | None:
-        if content.content_type == Content.Kind.VIDEO and content.external_url:
-            return youtube_video_id(content.external_url)
-        return None
+        return content_youtube_id(content)
 
     def get_file_link(self, content: Content) -> str | None:
         return content.file_url.url if content.file_url else None
@@ -79,6 +86,59 @@ class ModuleSerializer(serializers.ModelSerializer):
     class Meta:
         model = Module
         fields = ["id", "title", "description", "order", "is_published", "contents"]
+        read_only_fields = fields
+
+
+class StudentContentSerializer(serializers.ModelSerializer):
+    """
+    เนื้อหา 1 ชิ้นที่ผู้เรียนเห็น (ขั้น 4.4) — ไม่มีข้อมูลภายใน (สถานะเผยแพร่ / ลำดับ / เวลา)
+    download_link: ผู้สอนปิดการดาวน์โหลด (allow_download=False — กฑ2) → null เสมอ
+    (backend ไม่ส่งลิงก์ดาวน์โหลดเลย ไม่ใช่แค่ซ่อนปุ่ม) ; file_link ยังมีไว้เปิดดู / เล่นในหน้า
+    """
+
+    youtube_id = serializers.SerializerMethodField()
+    file_link = serializers.SerializerMethodField()
+    download_link = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Content
+        fields = [
+            "id",
+            "title",
+            "content_type",
+            "body",
+            "file_name",
+            "file_size",
+            "mime_type",
+            "file_link",
+            "download_link",
+            "external_url",
+            "youtube_id",
+            "allow_download",
+        ]
+        read_only_fields = fields
+
+    def get_youtube_id(self, content: Content) -> str | None:
+        return content_youtube_id(content)
+
+    def get_file_link(self, content: Content) -> str | None:
+        return content.file_url.url if content.file_url else None
+
+    def get_download_link(self, content: Content) -> str | None:
+        return download_url(content) if content.allow_download else None
+
+
+class StudentModuleSerializer(serializers.ModelSerializer):
+    """
+    หน่วยที่ผู้เรียนเห็น + เนื้อหาที่เผยแพร่แล้ว (views.py กรองมาให้)
+    หน่วยที่เผยแพร่แต่ยังไม่มีเนื้อหาที่เผยแพร่ → contents ว่าง (กฝ1: ยังแสดงหน่วย)
+    """
+
+    contents = StudentContentSerializer(many=True, read_only=True)
+
+    class Meta:
+        model = Module
+        fields = ["id", "title", "description", "contents"]
         read_only_fields = fields
 
 
