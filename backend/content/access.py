@@ -20,14 +20,20 @@ from common.exceptions import ApiError
 from content.models import Content, Module
 
 
-def get_course_for_content(user: User, course_id: int, *, write: bool = False) -> Course:
+def get_course_for_content(
+    user: User, course_id: int, *, write: bool = False, lock: bool | None = None
+) -> Course:
     """
     หาวิชาที่ผู้ใช้ดู (write=False) หรือแก้ (write=True) เนื้อหาได้
-    write=True: ล็อกแถววิชาไว้จนจบ transaction — การแก้เนื้อหาในวิชาเดียวกันจึงทำทีละคำขอ
+    lock (ค่าเริ่มต้น = write): ล็อกแถววิชาไว้จนจบ transaction — การแก้เนื้อหาในวิชาเดียวกันจึงทำทีละคำขอ
     (กันลำดับพังเมื่อเปิด 2 แท็บแล้วกด ↑ ↓ พร้อมกัน) ; ต้องเรียกใน transaction.atomic()
+    write=True, lock=False: ตรวจสิทธิ์แก้ล่วงหน้าโดยไม่ล็อก — ใช้ก่อนรับ / เก็บไฟล์ (views.py)
+    เพื่อไม่ถือล็อกวิชาไว้ระหว่างส่งไฟล์ขึ้นที่เก็บ (ล็อกเดียวกันนี้ใช้ตอนผู้เรียนเข้าร่วมด้วยรหัสด้วย)
     """
+    if lock is None:
+        lock = write
     courses = Course.objects.all()
-    if write:
+    if lock:
         courses = courses.select_for_update()
     course = courses.filter(pk=course_id).first()
     if course is None or not can_manage(user, course):

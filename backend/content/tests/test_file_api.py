@@ -271,3 +271,78 @@ def test_delete_uploaded_content_removes_file(
 
     assert response.status_code == 204
     assert stored_files(media_in_tmp) == []
+
+
+# ---------- ไม่ถือล็อกวิชาระหว่างเก็บไฟล์ (แก้หลังตรวจขั้น 4.3) ----------
+
+
+def test_file_is_stored_before_course_is_locked(
+    teacher_client: APIClient, course: Course, media_in_tmp: Path
+) -> None:
+    """
+    ลำดับต้องเป็น: ตรวจสิทธิ์แบบไม่ล็อก → เก็บไฟล์ → ล็อกวิชาแล้วบันทึกแถว
+    (ล็อกวิชาเดียวกันนี้ใช้ตอนผู้เรียนเข้าร่วมด้วยรหัส — ไม่ควรรอระหว่างส่งไฟล์ใหญ่ขึ้น B2)
+    """
+    from django.core.files.storage import FileSystemStorage
+
+    from content import views
+
+    module = make_module(course)
+    events: list[str] = []
+    real_access = views.get_course_for_content
+    real_save = FileSystemStorage.save
+
+    def access(*args, **kwargs):
+        locking = kwargs.get("lock", kwargs.get("write", False))
+        events.append("lock" if locking else "check")
+        return real_access(*args, **kwargs)
+
+    def save(self, *args, **kwargs):
+        events.append("store")
+        return real_save(self, *args, **kwargs)
+
+    with (
+        mock.patch.object(views, "get_course_for_content", access),
+        mock.patch.object(FileSystemStorage, "save", save),
+    ):
+        response = post_file(teacher_client, upload_url(course, module), "สไลด์.pdf")
+
+    assert response.status_code == 201
+    assert events == ["check", "store", "lock"]
+
+
+def test_course_closed_while_storing_leaves_no_file(
+    teacher_client: APIClient, course: Course, media_in_tmp: Path
+) -> None:
+    """วิชาถูกปิดระหว่างกำลังเก็บไฟล์ → ตรวจซ้ำตอนล็อกได้ 409 course_closed และไฟล์ที่เพิ่งเก็บถูกลบ"""
+    from django.core.files.storage import FileSystemStorage
+
+    module = make_module(course)
+    real_save = FileSystemStorage.save
+
+    def save_then_close(self, *args, **kwargs):
+        name = real_save(self, *args, **kwargs)
+        Course.objects.filter(pk=course.pk).update(is_closed=True)
+        return name
+
+    with mock.patch.object(FileSystemStorage, "save", save_then_close):
+        response = post_file(teacher_client, upload_url(course, module), "สไลด์.pdf")
+
+    assert response.status_code == 409
+    assert response.data["code"] == "course_closed"
+    assert not Content.objects.exists()
+    assert stored_files(media_in_tmp) == []
+
+
+def test_other_teacher_upload_is_not_found(
+    other_teacher, course: Course, media_in_tmp: Path
+) -> None:
+    """ผู้สอนวิชาอื่นอัปโหลด → 404 (ตรวจสิทธิ์ก่อนรับไฟล์) และไม่มีไฟล์ถูกเก็บ"""
+    from content.tests.conftest import client_for
+
+    module = make_module(course)
+
+    response = post_file(client_for(other_teacher), upload_url(course, module), "สไลด์.pdf")
+
+    assert response.status_code == 404
+    assert stored_files(media_in_tmp) == []
