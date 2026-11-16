@@ -10,6 +10,7 @@
  * - อ่านไฟล์ไม่ได้ → รายการในช่องไม่เปลี่ยน
  * - ตารางเป็นแค่ผลตรวจ: ตอนกดเพิ่ม backend ตรวจซ้ำ และรายงานผลจริงเสมอ
  */
+import type { TFunction } from 'i18next'
 import { useEffect, useId, useRef, useState, type DragEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ApiError } from '../../api/client'
@@ -329,8 +330,12 @@ export function AddByList({ course, active, onDone, onBusyChange, onWideChange }
   )
 }
 
-/** บรรทัดบอกว่าอ่านไฟล์จากตรงไหน พบกี่รายการ */
-function fileSummary(file: RosterFile, t: ReturnType<typeof useTranslation>['t']): string {
+/**
+ * บรรทัดบอกว่าอ่านไฟล์จากตรงไหน พบกี่รายการ
+ * (t ใช้ชนิด TFunction แบบไฟล์อื่น — ชนิดเดิม ReturnType<typeof useTranslation>['t'] ทำให้ TypeScript
+ *  คำนวณลึกเกินขีดจำกัดเมื่อ th.ts ใหญ่ขึ้นในขั้น 4.6)
+ */
+function fileSummary(file: RosterFile, t: TFunction): string {
   const total = file.identifiers.length
   const { sheet, column } = file
   if (sheet && column) return t('addStudents.fileSheetColumn', { sheet, column, total })

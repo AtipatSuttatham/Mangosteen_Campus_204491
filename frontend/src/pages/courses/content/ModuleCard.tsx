@@ -11,15 +11,17 @@
  * - วงเลขหน่วย 1, 2, 3 (หน่วยเป็นลำดับจริง) ; ยังไม่เผยแพร่ = วงเส้นประ เข้าชุดกับป้ายรหัสวิชาแบบร่าง
  * - หัวหน่วยเป็นปุ่มจริง (aria-expanded + aria-controls) — กด Enter / Space ได้ ; พับแล้วไม่วาดเนื้อหา
  * - readOnly (ผู้ดูแลระบบ / วิชาที่ปิด): ไม่มีปุ่มจัดการ แต่ยังพับ / เปิดดูได้
+ * - ขั้น 4.6 ก: ปุ่ม "เขียนข้อความ · เพิ่มลิงก์" ท้ายหน่วยที่เปิด (กฐ1 — จอใหญ่เรียงแถว / มือถือ 2 คอลัมน์ตาม board)
+ *   + ปุ่ม "แก้ไข" ในแถวเนื้อหา ; "อัปโหลดไฟล์" มาในขั้น 4.6 ข (แสดงเฉพาะปุ่มที่ทำงานได้)
  */
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Content, Module } from '../../../api/content'
-import { Markdown, StatusBadge } from '../../../components/ui'
+import { Button, Markdown, StatusBadge } from '../../../components/ui'
 import { EyeIcon, EyeOffIcon } from '../icons'
-import { ToggleIcon } from './contentIcons'
+import { ContentKindIcon, ToggleIcon } from './contentIcons'
 import { ContentRow } from './ContentRow'
-import { RowControls } from './RowControls'
+import { LOCKED, RowControls } from './RowControls'
 
 type ModuleCardProps = {
   module: Module
@@ -39,6 +41,10 @@ type ModuleCardProps = {
   onContentMove: (content: Content, direction: 'up' | 'down') => void
   onContentTogglePublish: (content: Content) => void
   onContentDelete: (content: Content) => void
+  onContentEdit: (content: Content) => void
+  /** ปุ่มท้ายหน่วย: เขียนข้อความ / เพิ่มลิงก์ (ขั้น 4.6 ก) */
+  onAddText: () => void
+  onAddLink: () => void
 }
 
 export function ModuleCard({
@@ -57,6 +63,9 @@ export function ModuleCard({
   onContentMove,
   onContentTogglePublish,
   onContentDelete,
+  onContentEdit,
+  onAddText,
+  onAddLink,
 }: ModuleCardProps) {
   const { t } = useTranslation()
   const bodyId = useId()
@@ -145,11 +154,46 @@ export function ModuleCard({
                   onMove={(direction) => onContentMove(content, direction)}
                   onTogglePublish={() => onContentTogglePublish(content)}
                   onDelete={() => onContentDelete(content)}
+                  onEdit={() => onContentEdit(content)}
                 />
               ))}
             </ul>
           ) : (
             <p className="m-0 py-3 text-sm text-ink-muted">{t('content.moduleEmpty')}</p>
+          )}
+          {!readOnly && (
+            // ปุ่มเพิ่มเนื้อหาท้ายหน่วย — ชื่อเต็มบอกหน่วยด้วย (เปิดหลายหน่วยพร้อมกันได้)
+            // ระหว่างรอผลของปุ่มอื่น: aria-disabled (ยังรับโฟกัส กดแล้วไม่ทำอะไร — กติกาเดียวกับปุ่มในแถว กภ1)
+            <div
+              role="group"
+              aria-label={t('content.addGroupLabel', { name })}
+              className="mt-2.5 grid grid-cols-2 gap-2 lg:flex lg:flex-wrap"
+            >
+              <Button
+                variant="secondary"
+                className={LOCKED}
+                aria-disabled={disabled || undefined}
+                onClick={() => {
+                  if (!disabled) onAddText()
+                }}
+                aria-label={t('content.addTextLabel', { name })}
+              >
+                <ContentKindIcon kind="text" size={18} />
+                {t('content.addText')}
+              </Button>
+              <Button
+                variant="secondary"
+                className={LOCKED}
+                aria-disabled={disabled || undefined}
+                onClick={() => {
+                  if (!disabled) onAddLink()
+                }}
+                aria-label={t('content.addLinkLabel', { name })}
+              >
+                <ContentKindIcon kind="link" size={18} />
+                {t('content.addLink')}
+              </Button>
+            </div>
           )}
         </div>
       )}

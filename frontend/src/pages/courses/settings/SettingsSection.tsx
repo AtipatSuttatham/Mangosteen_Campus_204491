@@ -3,7 +3,7 @@
  *
  * - Section: กรอบของ 1 ส่วน — จอใหญ่ซ้ายหัวข้อ ขวาเนื้อหา (อยู่ในการ์ดเดียวกัน) ; มือถือเป็นการ์ดแยก
  * - ResultLine: ป้ายผลของการกดล่าสุด ท้ายส่วน
- * - Switch: สวิตช์เปิด / ปิด
+ * - (สวิตช์เปิด / ปิดย้ายไปเป็นคอมโพเนนต์กลาง components/ui/Switch.tsx ในขั้น 4.6)
  * - Hint: ข้อความอธิบายตัวเล็กสีรอง
  */
 import type { ReactNode } from 'react'
@@ -59,40 +59,6 @@ export function ResultLine({ result }: { result: SectionResult | null }) {
     <p role="alert" className="m-0 text-[14.5px] leading-[1.55] text-danger">
       {result.text}
     </p>
-  )
-}
-
-/** สวิตช์เปิด / ปิด ตาม .sw ใน board */
-export function Switch({
-  checked,
-  labelledBy,
-  disabled,
-  onChange,
-}: {
-  checked: boolean
-  labelledBy: string
-  disabled: boolean
-  onChange: () => void
-}) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      aria-labelledby={labelledBy}
-      disabled={disabled}
-      onClick={onChange}
-      className={
-        'relative h-7 w-12 shrink-0 cursor-pointer rounded-full border-0 p-0 disabled:cursor-not-allowed ' +
-        'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ' +
-        (checked ? 'bg-brand' : 'bg-line-strong')
-      }
-    >
-      <span
-        aria-hidden="true"
-        className={`absolute top-[3px] size-[22px] rounded-full bg-surface ${checked ? 'left-[23px]' : 'left-[3px]'}`}
-      />
-    </button>
   )
 }
 

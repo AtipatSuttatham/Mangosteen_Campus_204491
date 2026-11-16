@@ -26,6 +26,29 @@ function siteName(url: string): string {
   }
 }
 
+/** ชื่อเว็บของ YouTube (ตรงตัว — สำเนาของ backend content/youtube.py) */
+const YOUTUBE_HOSTS = new Set([
+  'youtube.com',
+  'www.youtube.com',
+  'm.youtube.com',
+  'youtube-nocookie.com',
+  'www.youtube-nocookie.com',
+  'youtu.be',
+  'www.youtu.be',
+])
+
+/**
+ * ลิงก์นี้น่าจะเป็นวิดีโอ YouTube ไหม — ใช้แค่ขึ้นคำแนะนำใต้ช่องในหน้าต่างเพิ่มลิงก์ (ขั้น 4.6)
+ * backend เป็นคนตัดสินชนิดจริงเสมอ (ตรวจรูปแบบที่อยู่และรหัสวิดีโอละเอียดกว่านี้)
+ */
+export function looksLikeYoutube(url: string): boolean {
+  try {
+    return YOUTUBE_HOSTS.has(new URL(url.trim()).hostname.toLowerCase())
+  } catch {
+    return false
+  }
+}
+
 /**
  * ขนาดไฟล์อ่านง่าย: < 1 KB = ไบต์, < 1 MB = KB (จำนวนเต็ม), อื่น ๆ = MB ทศนิยม 1 ตำแหน่ง
  * ตัดสินจากค่าที่ปัดแล้ว — ไฟล์เกือบ 1 MB (ปัดได้ 1024 KB) แสดง "1.0 MB" ไม่ใช่ "1024 KB" (แก้หลังตรวจขั้น 4.5)

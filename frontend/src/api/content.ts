@@ -3,9 +3,11 @@
  *
  * ขั้น 4.5 (แท็บเนื้อหาของผู้สอน): ดูรายการ, เพิ่ม / แก้ / ลบ / เลื่อน / เผยแพร่หน่วย,
  *   ลบ / เลื่อน / เผยแพร่เนื้อหา
- * (เพิ่ม / แก้เนื้อหา + อัปโหลดไฟล์มาในขั้น 4.6 ; ฉบับของผู้เรียนในขั้น 4.7)
+ * ขั้น 4.6 ก: เขียนข้อความ, เพิ่มลิงก์, แก้เนื้อหา, เปลี่ยนไฟล์ (ส่งผ่าน XHR เพื่อแสดงความคืบหน้า)
+ * (อัปโหลดหลายไฟล์มาในขั้น 4.6 ข ; ฉบับของผู้เรียนในขั้น 4.7)
  */
 import { apiFetch } from './client'
+import { uploadWithProgress, type UploadOptions } from './upload'
 
 /** ชนิดเนื้อหา — ระบบตั้งเองจากไฟล์ / ลิงก์ และเปลี่ยนภายหลังไม่ได้ */
 export type ContentKind = 'text' | 'file' | 'image' | 'video' | 'audio' | 'link'
@@ -122,4 +124,77 @@ export function moveContent(courseId: number, contentId: number, direction: Move
     method: 'POST',
     body: { direction },
   })
+}
+
+/** ข้อมูลที่ส่งตอนเขียนข้อความใหม่ (หัวข้อบังคับ) */
+export type TextContentInput = { title: string; body: string }
+
+/** ข้อมูลที่ส่งตอนเพิ่มลิงก์ — ไม่กรอกหัวข้อ ระบบตั้งเป็น "วิดีโอจาก YouTube" / ชื่อเว็บไซต์ */
+export type LinkContentInput = { url: string; title?: string }
+
+/**
+ * ช่องที่แก้ได้ในหน้าต่างแก้ไขเนื้อหา (ส่งเฉพาะช่องที่เปลี่ยน)
+ * - module = ย้ายไปต่อท้ายหน่วยนั้น ; url = แก้ลิงก์ (ชนิดต้องเดิม) ; allow_download = สวิตช์ดาวน์โหลด
+ */
+export type ContentChanges = Partial<{
+  title: string
+  body: string
+  module: number
+  url: string
+  allow_download: boolean
+}>
+
+const moduleContentsPath = (courseId: number, moduleId: number) =>
+  `${modulesPath(courseId)}${moduleId}/contents/`
+
+/**
+ * เขียนข้อความใหม่ต่อท้ายหน่วย (ยังไม่เผยแพร่)
+ * @throws ApiError validation_error (title) / content_read_only / course_closed
+ */
+export function createTextContent(
+  courseId: number,
+  moduleId: number,
+  data: TextContentInput,
+): Promise<Content> {
+  return apiFetch<Content>(`${moduleContentsPath(courseId, moduleId)}text/`, { method: 'POST', body: data })
+}
+
+/**
+ * เพิ่มลิงก์ต่อท้ายหน่วย — backend ตัดสินชนิดเอง: YouTube = วิดีโอ, อื่น ๆ = ลิงก์
+ * @throws ApiError validation_error (url: invalid / blank) / content_read_only / course_closed
+ */
+export function createLinkContent(
+  courseId: number,
+  moduleId: number,
+  data: LinkContentInput,
+): Promise<Content> {
+  return apiFetch<Content>(`${moduleContentsPath(courseId, moduleId)}link/`, { method: 'POST', body: data })
+}
+
+/**
+ * แก้เนื้อหา (ส่งเฉพาะช่องที่เปลี่ยน)
+ * @throws ApiError validation_error / content_kind_mismatch (แก้ลิงก์แล้วชนิดเปลี่ยน) / course_closed
+ */
+export function updateContent(
+  courseId: number,
+  contentId: number,
+  changes: ContentChanges,
+): Promise<Content> {
+  return apiFetch<Content>(`${contentsPath(courseId)}${contentId}/`, { method: 'PATCH', body: changes })
+}
+
+/**
+ * เปลี่ยนไฟล์ของเนื้อหา (ชนิดเดิมเท่านั้น ; หัวข้อเดิมคงไว้ — กธ1) พร้อมรายงานความคืบหน้า
+ * @throws ApiError รหัสไฟล์ (docs/api.md §10.4) / content_kind_mismatch / file_upload_failed ;
+ *         UploadAbortedError เมื่อผู้ใช้กดหยุด
+ */
+export function replaceContentFile(
+  courseId: number,
+  contentId: number,
+  file: File,
+  options: UploadOptions = {},
+): Promise<Content> {
+  const form = new FormData()
+  form.append('file', file)
+  return uploadWithProgress<Content>(`${contentsPath(courseId)}${contentId}/file/`, form, options)
 }
