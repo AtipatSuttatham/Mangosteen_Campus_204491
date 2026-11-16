@@ -132,7 +132,7 @@ describe('แท็บผู้เรียน', () => {
       ...emptyResult,
       failed: [{ identifier: '670513', reason: 'suspended' }],
     })
-    const { user } = renderPage('/courses/5?status=dropped')
+    const { user } = renderPage('/courses/5/students?status=dropped')
 
     await user.click(within(await screen.findByRole('table')).getByRole('button', { name: 'เพิ่มกลับ' }))
 

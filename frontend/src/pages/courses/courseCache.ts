@@ -28,6 +28,8 @@ export const studentCourseKey = (courseId: number) => ['student-course', courseI
 export const rosterKey = (courseId: number) => ['roster', courseId] as const
 /** ผลค้นหาผู้เรียนเพื่อเพิ่มเข้าวิชา (คำต่อท้ายคือคำค้น) */
 export const candidatesKey = (courseId: number) => ['enrollment-candidates', courseId] as const
+/** หน่วยการเรียน + เนื้อหาของวิชา (แท็บเนื้อหา — ขั้น 4.5) */
+export const modulesKey = (courseId: number) => ['modules', courseId] as const
 
 // ---- หลังแก้ข้อมูล ต้องล้างอะไรบ้าง ----
 
@@ -73,4 +75,9 @@ export function refreshCourse(queryClient: QueryClient, courseId: number): Promi
     candidatesKey(courseId),
     ...COURSE_LISTS,
   ])
+}
+
+/** หลังแก้หน่วย / เนื้อหา (เพิ่ม แก้ ลบ เลื่อน เผยแพร่): โหลดรายการหน่วยของวิชานี้ใหม่ */
+export function refreshModules(queryClient: QueryClient, courseId: number): Promise<void> {
+  return invalidate(queryClient, [modulesKey(courseId)])
 }

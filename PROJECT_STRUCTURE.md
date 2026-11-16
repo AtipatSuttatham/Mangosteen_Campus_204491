@@ -210,8 +210,18 @@ Mangosteen_Campus_204491/
 │       │   │   ├── StudentCourses.test.tsx test หน้าของผู้เรียน + สลับหน้าตามบทบาท (ขั้น 3.7)
 │       │   │   ├── CoursePage.tsx          โครงหน้ารายวิชา: โหลดวิชา + หัวรายวิชา + แถบข้อความ + แท็บ (ไม่พบรายวิชา / โหลดไม่สำเร็จ) ; ผู้ดูแลระบบมีแถบส้ม "กำลังจัดการแทนผู้สอน" (ขั้น 3.8)
 │       │   │   ├── useCoursePage.ts        ข้อมูลที่หน้ารายวิชาส่งให้แท็บ + ตัวช่วยโหลดข้อมูลใหม่
-│       │   │   ├── CourseHeader.tsx        การ์ดหัวรายวิชา: ป้าย + ชื่อ + รหัสเข้าร่วม + แท็บ
-│       │   │   ├── StudentsTab.tsx         แท็บผู้เรียน: ตัวกรองในที่อยู่ของหน้า + ตาราง / การ์ด + ถอน + เพิ่มกลับ
+│       │   │   ├── CourseHeader.tsx        การ์ดหัวรายวิชา: ป้าย + ชื่อ + รหัสเข้าร่วม + แท็บ เนื้อหา / ผู้เรียน / ตั้งค่า
+│       │   │   ├── content/                แท็บเนื้อหาของผู้สอน /courses/{id} — แท็บแรก (ขั้น 4.5 ตาม board แถวก้อน 4)
+│       │   │   │   ├── ContentTab.tsx          ประกอบแท็บ: หัวข้อ + สถิติ + ปุ่มเพิ่มหน่วย + รายการหน่วย + หน้าต่างยืนยันลบ ; ผู้ดูแลระบบ / วิชาที่ปิดดูอย่างเดียว
+│       │   │   │   ├── ModuleCard.tsx          การ์ดหน่วย: หัวพับ / เปิดได้ (วงเลข + ชื่อ + จำนวน) + ป้ายสถานะ + ปุ่ม + คำอธิบาย + แถวเนื้อหา
+│       │   │   │   ├── ContentRow.tsx          แถวเนื้อหา: ไอคอนชนิด + ชื่อ + รายละเอียด (ชนิด / ขนาด / ปิดดาวน์โหลด) + ป้ายร่าง + ปุ่ม
+│       │   │   │   ├── RowControls.tsx         ปุ่มท้ายแถว ↑ ↓ │ แก้ไข เผยแพร่ / ยกเลิกเผยแพร่ ลบ (ใช้ทั้งหน่วยและเนื้อหา)
+│       │   │   │   ├── ModuleDialog.tsx        หน้าต่างเพิ่ม / แก้หน่วยการเรียน (ชื่อ + คำอธิบาย Markdown)
+│       │   │   │   ├── useContentActions.ts    กติกากลางของปุ่ม: ล็อกปุ่มร่วมกัน, โหลดรายการใหม่ทุกครั้ง, ผลขึ้นแถบด้านบน / ในหน้าต่าง
+│       │   │   │   ├── contentLabels.ts        ข้อความรายละเอียดใต้ชื่อเนื้อหา (PDF 2.1 MB, วิดีโอจาก YouTube, ลิงก์ python.org …)
+│       │   │   │   ├── contentIcons.tsx        ไอคอนชนิดเนื้อหา 6 แบบ + ลูกศร ↑ ↓ + ลูกศรพับ / เปิด (จาก canvas)
+│       │   │   │   └── ContentTab.test.tsx     test แท็บเนื้อหา: รายการ / พับเปิด / เพิ่ม / แก้ / เลื่อน / เผยแพร่ / ลบ / ดูอย่างเดียว
+│       │   │   ├── StudentsTab.tsx         แท็บผู้เรียน /courses/{id}/students (ย้ายจาก /courses/{id} ในขั้น 4.5): ตัวกรองในที่อยู่ของหน้า + ตาราง / การ์ด + ถอน + เพิ่มกลับ
 │       │   │   ├── AddStudentsDialog.tsx   หน้าต่างเพิ่มผู้เรียน 2 แท็บ (กว้าง 640 / ตาราง 880px)
 │       │   │   ├── AddBySearch.tsx         แท็บค้นหาทีละคน
 │       │   │   ├── AddByList.tsx           แท็บวางรายการหรือเลือกไฟล์: กรอก → ตรวจ → รายงานผล
@@ -275,6 +285,7 @@ Mangosteen_Campus_204491/
 │       │   ├── client.ts     apiFetch(): ตัวเรียก API กลาง (/api/v1/...) แนบบัตร + แลกบัตรเมื่อได้ 401 ; ส่ง JSON หรือไฟล์ (FormData) ; โยน ApiError รูปแบบเดียวกันทุกกรณี (เก็บคำตอบ error ทั้งก้อนใน body) ; apiFetchWithStatus() คืน HTTP status ด้วย (ขั้น 3.7)
 │       │   ├── adminUsers.ts ชนิดข้อมูล AdminUser / Paginated + fetchAdminUsers() รายชื่อ (ขั้น 2.5) + create / update / suspend / activate / resetPassword (ขั้น 2.6) + validateUserImport / importUsers / csvInvalidReport (ขั้น 2.7)
 │       │   ├── adminUsers.test.ts  test การแปลงตัวกรองเป็น query string + method/ที่อยู่/ข้อมูลที่ส่งของฟังก์ชันขั้น 2.6
+│       │   ├── content.ts    API เนื้อหารายวิชา: ชนิด Module / Content + ดูรายการ, เพิ่ม / แก้ / ลบ / เลื่อน / เผยแพร่หน่วย, ลบ / เลื่อน / เผยแพร่เนื้อหา (ขั้น 4.5 — docs/api.md §10)
 │       │   ├── enrollments.ts  API การลงทะเบียน: รายชื่อ, ค้นหา, ตรวจรายการ, เพิ่ม, ถอน (ขั้น 3.6)
 │       │   ├── courses.ts    ชนิดข้อมูล Course / StudentCourse + courseState() + fetchMyCourses() / createCourse() (ขั้น 3.5 — docs/api.md §8) ; ผู้เรียน: fetchMyStudentCourses() / fetchStudentCourse() / joinCourse() (ขั้น 3.7)
 │       │   ├── auth.ts       ชนิดข้อมูล User/Role + login() / logout() / fetchMe() / updateProfile() / changePassword() / uploadAvatar() / deleteAvatar()

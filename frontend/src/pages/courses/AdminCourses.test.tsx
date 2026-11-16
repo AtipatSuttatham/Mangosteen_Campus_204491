@@ -76,7 +76,7 @@ function renderAt(path: string) {
         path: '/courses/:courseId',
         element: <CourseRoute />,
         children: [
-          { index: true, element: <p>แท็บผู้เรียน</p> },
+          { index: true, element: <p>แท็บเนื้อหา</p> },
           { path: 'settings', element: <SettingsTab /> },
         ],
       },

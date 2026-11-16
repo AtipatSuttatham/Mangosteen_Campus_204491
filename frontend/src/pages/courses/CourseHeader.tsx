@@ -4,7 +4,7 @@
  *   จอใหญ่:  [ป้ายรหัสวิชา] ชื่อ [สถานะ]                │ รหัสเข้าร่วม
  *            ปีการศึกษา 2569 ภาคเรียนที่ 1  ผู้สอน …     │ K7Q2XM9A [คัดลอก]
  *            ─────────────────────────────────────────
- *            ผู้เรียน 42 │ ตั้งค่า
+ *            เนื้อหา │ ผู้เรียน 42 │ ตั้งค่า   (แท็บเนื้อหาเป็นแท็บแรก — ขั้น 4.5 แบบ กช1)
  *   มือถือ:  ป้าย + ชื่อ / กล่องรหัสเข้าร่วม / แท็บ เรียงลงมา ไม่มีการ์ดครอบ
  *
  * รหัสเข้าร่วมแสดงเฉพาะตอนเปิดใช้และวิชายังไม่ปิด (ผู้สอนคัดลอกไปแจกได้เลย)
@@ -88,6 +88,9 @@ export function CourseHeader({ course }: { course: Course }) {
         className="flex gap-7 border-b border-line lg:mt-[18px] lg:border-t lg:border-b-0 lg:border-line-soft lg:px-7"
       >
         <NavLink to={`/courses/${course.id}`} end className={tabClass}>
+          {t('coursePage.tabContent')}
+        </NavLink>
+        <NavLink to={`/courses/${course.id}/students`} className={tabClass}>
           {t('coursePage.tabStudents')}
           <CountPill>{course.student_count.toLocaleString('th-TH')}</CountPill>
         </NavLink>
