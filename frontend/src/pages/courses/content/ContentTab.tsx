@@ -14,9 +14,10 @@
  * - เพิ่ม / แก้เนื้อหา + อัปโหลดมาในขั้น 4.6 ; ดูตัวอย่างเนื้อหามาในขั้น 4.7 (ผู้ใช้เลือกแบบ กฟ1)
  *   — ยังไม่แสดงปุ่มที่ยังทำงานไม่ได้
  * - หน่วยที่เปิดอยู่จำไว้เฉพาะระหว่างอยู่ในหน้า ; เริ่มต้นพับทุกหน่วย ; หน่วยที่เพิ่งสร้างเปิดให้ทันที
+ * - ลบสำเร็จ → โฟกัสหัวข้อ "หน่วยการเรียน" (ปุ่ม "ลบ" ที่เปิดหน้าต่างหายไปพร้อมแถวแล้ว — แก้หลังตรวจขั้น 4.5 กภ1)
  */
 import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ApiError } from '../../../api/client'
 import {
@@ -52,6 +53,7 @@ export default function ContentTab() {
   const readOnly = isAdmin || course.is_closed
   const actions = useContentActions()
   const confirm = useConfirmStep()
+  const headingRef = useRef<HTMLHeadingElement>(null)
 
   const [openIds, setOpenIds] = useState<ReadonlySet<number>>(() => new Set())
   const [moduleDialog, setModuleDialog] = useState<ModuleDialogState | null>(null)
@@ -80,23 +82,26 @@ export default function ContentTab() {
     confirm.show()
   }
 
-  /** ยืนยันลบหน่วย / เนื้อหา → แถบเขียว "ลบ … แล้ว" */
-  function confirmDelete() {
+  /** ยืนยันลบหน่วย / เนื้อหา → แถบเขียว "ลบ … แล้ว" + โฟกัสหัวข้อ (แถวที่ลบหายไปแล้ว) */
+  async function confirmDelete() {
     if (!deleteTarget) return
+    let deleted: boolean
     if (deleteTarget.kind === 'module') {
       const { module } = deleteTarget
-      return actions.runInDialog(
+      deleted = await actions.runInDialog(
         confirm,
         () => deleteModule(course.id, module.id),
         t('content.moduleDeleted', { name: module.title }),
       )
+    } else {
+      const { content } = deleteTarget
+      deleted = await actions.runInDialog(
+        confirm,
+        () => deleteContent(course.id, content.id),
+        t('content.contentDeleted', { name: content.title }),
+      )
     }
-    const { content } = deleteTarget
-    return actions.runInDialog(
-      confirm,
-      () => deleteContent(course.id, content.id),
-      t('content.contentDeleted', { name: content.title }),
-    )
+    if (deleted) headingRef.current?.focus()
   }
 
   const publishedCount = modules?.filter((module) => module.is_published).length ?? 0
@@ -111,7 +116,12 @@ export default function ContentTab() {
     <div className="flex flex-col gap-3.5">
       <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between lg:gap-4">
         <div>
-          <h2 className="m-0 font-display text-[21px] font-semibold lg:text-[22px]">
+          {/* tabIndex -1: โฟกัสด้วยโค้ดได้ (หลังลบ) แต่ไม่อยู่ในลำดับ Tab */}
+          <h2
+            ref={headingRef}
+            tabIndex={-1}
+            className="m-0 font-display text-[21px] font-semibold outline-none lg:text-[22px]"
+          >
             {t('content.heading')}
           </h2>
           {modules && modules.length > 0 && (
