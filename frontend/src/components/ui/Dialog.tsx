@@ -70,9 +70,10 @@ export function Dialog({
   children,
 }: DialogProps) {
   const panelRef = useRef<HTMLDivElement>(null)
-  const trapTab = useFocusTrap(panelRef, { initialFocusRef })
-
   // ระหว่างเปิด: หน้าด้านหลังเลื่อนไม่ได้ + กด/โฟกัสไม่ได้ (inert) — ปิดแล้วคืนค่าเดิม
+  // ⚠ ต้องประกาศก่อน useFocusTrap: ตอนปิด React ล้าง effect ตามลำดับที่ประกาศ → ปลด inert ก่อน
+  //   แล้ว useFocusTrap จึงคืนโฟกัสให้ปุ่มที่กดเปิดได้ (ถ้าสลับลำดับ ปุ่มยังอยู่ในหน้าที่ inert
+  //   เบราว์เซอร์จริงไม่ยอมให้โฟกัส → โฟกัสหลุดไปต้นหน้า — พบตอนทดสอบใน Chrome ขั้น 4.6)
   useEffect(() => {
     const previousOverflow = document.body.style.overflow
     const previousPadding = document.body.style.paddingRight
@@ -90,6 +91,8 @@ export function Dialog({
       if (!wasInert) appRoot?.removeAttribute('inert')
     }
   }, [])
+
+  const trapTab = useFocusTrap(panelRef, { initialFocusRef })
 
   /** แป้นพิมพ์ในหน้าต่าง: Esc = ขอปิด ; Tab = วนอยู่ในหน้าต่าง */
   function handleKeyDown(event: KeyboardEvent<HTMLDivElement>) {

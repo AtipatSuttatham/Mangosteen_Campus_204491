@@ -5,11 +5,11 @@
  * - รหัสตัวใหญ่ + ปุ่มคัดลอก + "สร้างรหัสใหม่" (ยืนยันก่อน — ผู้ใช้เลือกแบบ ค1 ; รหัสเดิมใช้ไม่ได้ทันที)
  */
 import { useTranslation } from 'react-i18next'
-import { Button, ConfirmDialog } from '../../../components/ui'
+import { Button, ConfirmDialog, Switch } from '../../../components/ui'
 import { CopyButton } from '../../admin/users/CopyButton'
 import { RefreshIcon } from '../icons'
 import { useCoursePage } from '../useCoursePage'
-import { Hint, ResultLine, Section, Switch } from './SettingsSection'
+import { Hint, ResultLine, Section } from './SettingsSection'
 import { useConfirmStep, type SettingsActions } from './useSettingsActions'
 
 export function JoinCodeSection({ actions, className }: { actions: SettingsActions; className: string }) {

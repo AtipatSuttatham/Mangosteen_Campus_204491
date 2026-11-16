@@ -11,13 +11,16 @@
  * - ผู้สอนเจ้าของ: จัดการหน่วยครบ + เลื่อน / เผยแพร่ / ลบแถวเนื้อหา
  * - ผู้ดูแลระบบ (กง1) และรายวิชาที่ปิดแล้ว: ดูอย่างเดียว (ไม่มีปุ่ม) + ข้อความบอกเหตุผล
  *   (backend ตรวจซ้ำเสมอ: ผู้ดูแลระบบ 403 content_read_only / วิชาที่ปิด 409 course_closed)
- * - เพิ่ม / แก้เนื้อหา + อัปโหลดมาในขั้น 4.6 ; ดูตัวอย่างเนื้อหามาในขั้น 4.7 (ผู้ใช้เลือกแบบ กฟ1)
+ * - ขั้น 4.6 ก: เขียนข้อความ / เพิ่มลิงก์ (ปุ่มท้ายหน่วยที่เปิด) + แก้ไขเนื้อหา (ปุ่มในแถว)
+ *   อัปโหลดหลายไฟล์มาในขั้น 4.6 ข ; ดูตัวอย่างเนื้อหามาในขั้น 4.7 (ผู้ใช้เลือกแบบ กฟ1)
  *   — ยังไม่แสดงปุ่มที่ยังทำงานไม่ได้
+ * - ย้ายเนื้อหาไปหน่วยอื่น (ช่อง "อยู่ในหน่วย") → เปิดหน่วยปลายทางให้เห็น + โฟกัสหัวข้อ
+ *   (ปุ่ม "แก้ไข" ที่เปิดหน้าต่างย้ายไปอยู่หน่วยอื่นแล้ว โฟกัสจึงกลับไปที่เดิมไม่ได้)
  * - หน่วยที่เปิดอยู่จำไว้เฉพาะระหว่างอยู่ในหน้า ; เริ่มต้นพับทุกหน่วย ; หน่วยที่เพิ่งสร้างเปิดให้ทันที
  * - ลบสำเร็จ → โฟกัสหัวข้อ "หน่วยการเรียน" (ปุ่ม "ลบ" ที่เปิดหน้าต่างหายไปพร้อมแถวแล้ว — แก้หลังตรวจขั้น 4.5 กภ1)
  */
 import { useQuery } from '@tanstack/react-query'
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { ApiError } from '../../../api/client'
 import {
@@ -38,12 +41,18 @@ import { modulesKey } from '../courseCache'
 import { InfoIcon, PlusIcon } from '../icons'
 import { useConfirmStep } from '../settings/useSettingsActions'
 import { useCoursePage } from '../useCoursePage'
+import { ContentEditDialog } from './ContentEditDialog'
+import { LinkDialog } from './LinkDialog'
 import { ModuleCard } from './ModuleCard'
 import { ModuleDialog } from './ModuleDialog'
+import { TextContentDialog } from './TextContentDialog'
 import { useContentActions } from './useContentActions'
 
 /** หน้าต่างเพิ่ม / แก้หน่วยที่เปิดอยู่ */
 type ModuleDialogState = { mode: 'create' } | { mode: 'edit'; module: Module }
+/** หน้าต่างเพิ่ม / แก้เนื้อหาที่เปิดอยู่ (ขั้น 4.6 ก) — เก็บแค่รหัส แล้วหาข้อมูลล่าสุดจากรายการ */
+type ContentDialogState =
+  { mode: 'text'; moduleId: number } | { mode: 'link'; moduleId: number } | { mode: 'edit'; content: Content }
 /** สิ่งที่กำลังยืนยันลบ */
 type DeleteTarget = { kind: 'module'; module: Module } | { kind: 'content'; content: Content }
 
@@ -58,7 +67,13 @@ export default function ContentTab() {
   const [openIds, setOpenIds] = useState<ReadonlySet<number>>(() => new Set())
   const [moduleDialog, setModuleDialog] = useState<ModuleDialogState | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
-
+  const [contentDialog, setContentDialog] = useState<ContentDialogState | null>(null)
+  /**
+   * คำขอโฟกัสหัวข้อหลังย้ายเนื้อหาไปหน่วยอื่น (นับครั้ง) — ทำใน effect หลังหน้าต่างปิดแล้ว
+   * เพราะตอนปิด หน้าต่างคืนโฟกัสให้ปุ่ม "แก้ไข" ที่เปิดมัน ซึ่งตอนนี้อยู่หน่วยอื่น (หรือหายไปแล้ว)
+   */
+  const [headingFocusRequest, setHeadingFocusRequest] = useState(0)
+  const handledFocusRef = useRef(0)
   const {
     data: modules,
     error,
@@ -68,6 +83,27 @@ export default function ContentTab() {
     queryKey: modulesKey(course.id),
     queryFn: () => fetchModules(course.id),
   })
+
+  useEffect(() => {
+    if (contentDialog || headingFocusRequest === handledFocusRef.current) return
+    handledFocusRef.current = headingFocusRequest
+    headingRef.current?.focus()
+  }, [contentDialog, headingFocusRequest])
+
+  /** หน่วย + ลำดับบนจอ จากรหัส (ไม่พบ = หน่วยถูกลบไปแล้ว) */
+  const findModule = (moduleId: number) => {
+    const index = modules?.findIndex((module) => module.id === moduleId) ?? -1
+    return index >= 0 && modules ? { module: modules[index]!, number: index + 1 } : null
+  }
+
+  /** เพิ่ม / แก้เนื้อหาสำเร็จ → ปิดหน้าต่าง ; ย้ายไปหน่วยอื่น → เปิดหน่วยปลายทาง + ขอโฟกัสหัวข้อ */
+  const contentSaved = (saved: Content, previousModuleId: number) => {
+    setContentDialog(null)
+    if (saved.module !== previousModuleId) {
+      setOpenIds((current) => new Set(current).add(saved.module))
+      setHeadingFocusRequest((count) => count + 1)
+    }
+  }
 
   const toggle = (moduleId: number) =>
     setOpenIds((current) => {
@@ -103,6 +139,11 @@ export default function ContentTab() {
     }
     if (deleted) headingRef.current?.focus()
   }
+
+  // หน่วยของหน้าต่างเนื้อหาที่เปิดอยู่ (แก้ = หน่วยที่เนื้อหาอยู่ ; เพิ่ม = หน่วยที่กดปุ่ม)
+  const contentTarget = contentDialog
+    ? findModule(contentDialog.mode === 'edit' ? contentDialog.content.module : contentDialog.moduleId)
+    : null
 
   const publishedCount = modules?.filter((module) => module.is_published).length ?? 0
   const addButton = !readOnly && (
@@ -203,6 +244,9 @@ export default function ContentTab() {
                 )
               }
               onContentDelete={(content) => askDelete({ kind: 'content', content })}
+              onContentEdit={(content) => setContentDialog({ mode: 'edit', content })}
+              onAddText={() => setContentDialog({ mode: 'text', moduleId: module.id })}
+              onAddLink={() => setContentDialog({ mode: 'link', moduleId: module.id })}
             />
           ))}
         </ol>
@@ -217,6 +261,47 @@ export default function ContentTab() {
             if (moduleDialog.mode === 'create') setOpenIds((current) => new Set(current).add(saved.id))
             setModuleDialog(null)
           }}
+        />
+      )}
+
+      {/* หน้าต่างเพิ่ม / แก้เนื้อหา (ขั้น 4.6 ก) — หน่วยหายไประหว่างเปิด (มีคนลบ) → ไม่แสดง */}
+      {contentDialog?.mode === 'edit' &&
+        contentTarget &&
+        modules &&
+        (contentDialog.content.content_type === 'text' ? (
+          <TextContentDialog
+            module={contentTarget.module}
+            number={contentTarget.number}
+            modules={modules}
+            content={contentDialog.content}
+            onClose={() => setContentDialog(null)}
+            onSaved={(saved) => contentSaved(saved, contentTarget.module.id)}
+          />
+        ) : (
+          <ContentEditDialog
+            module={contentTarget.module}
+            number={contentTarget.number}
+            modules={modules}
+            content={contentDialog.content}
+            onClose={() => setContentDialog(null)}
+            onSaved={(saved) => contentSaved(saved, contentTarget.module.id)}
+          />
+        ))}
+      {contentDialog?.mode === 'text' && contentTarget && modules && (
+        <TextContentDialog
+          module={contentTarget.module}
+          number={contentTarget.number}
+          modules={modules}
+          onClose={() => setContentDialog(null)}
+          onSaved={(saved) => contentSaved(saved, contentTarget.module.id)}
+        />
+      )}
+      {contentDialog?.mode === 'link' && contentTarget && (
+        <LinkDialog
+          module={contentTarget.module}
+          number={contentTarget.number}
+          onClose={() => setContentDialog(null)}
+          onSaved={(saved) => contentSaved(saved, contentTarget.module.id)}
         />
       )}
 

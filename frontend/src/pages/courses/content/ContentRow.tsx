@@ -1,7 +1,7 @@
 /**
  * แถวเนื้อหา 1 ชิ้นในหน่วยที่เปิดอยู่ (ตาม board "แท็บเนื้อหา (ผู้สอน)" — ขั้น 4.5)
  *
- *   จอใหญ่:  [ไอคอน] สไลด์: while และ for loop        [ยังไม่เผยแพร่]  ↑ ↓ │ เผยแพร่ ลบ
+ *   จอใหญ่:  [ไอคอน] สไลด์: while และ for loop        [ยังไม่เผยแพร่]  ↑ ↓ │ แก้ไข เผยแพร่ ลบ
  *                   PDF  2.1 MB  ปิดการดาวน์โหลด
  *   มือถือ:  ไอคอน + ชื่อ + รายละเอียด แล้วปุ่มขึ้นบรรทัดใหม่ (ตาม board มือถือ)
  *
@@ -27,6 +27,8 @@ type ContentRowProps = {
   onMove: (direction: 'up' | 'down') => void
   onTogglePublish: () => void
   onDelete: () => void
+  /** แก้ไข (ขั้น 4.6 ก) — ปุ่มใช้กติกาโฟกัสเดียวกับปุ่มอื่นในแถว (กภ1) */
+  onEdit: () => void
 }
 
 export function ContentRow({
@@ -38,6 +40,7 @@ export function ContentRow({
   onMove,
   onTogglePublish,
   onDelete,
+  onEdit,
 }: ContentRowProps) {
   const { t } = useTranslation()
   const draft = !content.is_published
@@ -83,6 +86,7 @@ export function ContentRow({
               disabled={disabled}
               onMove={onMove}
               onTogglePublish={onTogglePublish}
+              onEdit={onEdit}
               onDelete={onDelete}
             />
           )}

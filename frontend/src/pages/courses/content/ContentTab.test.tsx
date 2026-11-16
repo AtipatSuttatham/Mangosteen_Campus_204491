@@ -1,15 +1,16 @@
 /**
- * test ของแท็บเนื้อหาของผู้สอน /courses/:courseId (ขั้น 4.5)
+ * test ของแท็บเนื้อหาของผู้สอน /courses/:courseId (ขั้น 4.5 ; หน้าต่างเพิ่ม / แก้เนื้อหาอยู่ใน ContentDialogs.test.tsx)
  * แทนที่ฟังก์ชันเรียก API ด้วยตัวปลอม (ไม่เรียก backend จริง) ; ข้อมูลทั้งหมดเป็นข้อมูลสมมติ
  */
 import { screen, waitFor, within } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../../api/client'
 import * as contentApi from '../../../api/content'
-import type { Content, Module } from '../../../api/content'
+import type { Module } from '../../../api/content'
 import * as coursesApi from '../../../api/courses'
 import { makeCourse, renderCoursePage } from '../testUtils'
 import ContentTab from './ContentTab'
+import { makeContent, makeModule } from './testData'
 
 vi.mock('../../../api/courses', async (importOriginal) => ({
   ...(await importOriginal<typeof coursesApi>()),
@@ -29,42 +30,6 @@ vi.mock('../../../api/content', async (importOriginal) => ({
 }))
 const fetchCourse = vi.mocked(coursesApi.fetchCourse)
 const api = vi.mocked(contentApi)
-
-function makeContent(id: number, overrides: Partial<Content> = {}): Content {
-  return {
-    id,
-    module: 1,
-    title: `เนื้อหา ${id}`,
-    content_type: 'text',
-    body: '',
-    order: id,
-    is_published: true,
-    file_name: '',
-    file_size: null,
-    mime_type: '',
-    file_link: null,
-    download_link: null,
-    external_url: '',
-    youtube_id: null,
-    allow_download: true,
-    can_disable_download: false,
-    created_at: '2026-11-15T03:00:00Z',
-    updated_at: '2026-11-15T03:00:00Z',
-    ...overrides,
-  }
-}
-
-function makeModule(id: number, overrides: Partial<Module> = {}): Module {
-  return {
-    id,
-    title: `หน่วย ${id}`,
-    description: '',
-    order: id,
-    is_published: true,
-    contents: [],
-    ...overrides,
-  }
-}
 
 const PDF = makeContent(11, {
   title: 'สไลด์: while และ for loop',
@@ -337,11 +302,14 @@ describe('จัดการแถวเนื้อหา', () => {
     await waitFor(() => expect(api.deleteContent).toHaveBeenCalledWith(5, 11))
   })
 
-  it('ยังไม่มีปุ่มแก้เนื้อหา / เพิ่มเนื้อหา (มาในขั้น 4.6)', async () => {
+  it('ทุกแถวมีปุ่มแก้ไข + ท้ายหน่วยมีปุ่มเขียนข้อความ / เพิ่มลิงก์ ; ยังไม่มีอัปโหลดไฟล์ (มาใน 4.6 ข)', async () => {
     const { user } = renderTab()
     await user.click((await moduleCard('โครงสร้างควบคุมทิศทาง')).toggle)
 
-    expect(screen.queryByRole('button', { name: 'แก้ไข สรุป' })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'แก้ไข สรุป' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'แก้ไข สไลด์: while และ for loop' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'เขียนข้อความในหน่วยที่ 2' })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'เพิ่มลิงก์ในหน่วยที่ 2' })).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /อัปโหลดไฟล์/ })).not.toBeInTheDocument()
   })
 })
@@ -356,6 +324,8 @@ describe('ดูอย่างเดียว / ว่าง', () => {
     expect(screen.queryByRole('button', { name: /^เลื่อน / })).not.toBeInTheDocument()
     await user.click((await moduleCard('โครงสร้างควบคุมทิศทาง')).toggle)
     expect(screen.getByText('สไลด์: while และ for loop')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^แก้ไข / })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^เขียนข้อความ/ })).not.toBeInTheDocument()
   })
 
   it('รายวิชาที่ปิดแล้ว: ผู้สอนดูอย่างเดียว', async () => {

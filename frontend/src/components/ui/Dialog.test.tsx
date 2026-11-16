@@ -82,6 +82,28 @@ describe('Dialog', () => {
     expect(opener).toHaveFocus()
   })
 
+  it('ปิดแล้วปลด inert ของหน้าด้านหลังก่อนคืนโฟกัส (เบราว์เซอร์จริงโฟกัสใน inert ไม่ได้ — ขั้น 4.6)', async () => {
+    // jsdom ไม่บังคับ inert → ตรวจลำดับแทน: ตอนคืนโฟกัสให้ปุ่มที่กดเปิด หน้าด้านหลังต้องไม่ inert แล้ว
+    const root = document.createElement('div')
+    root.id = 'root'
+    document.body.appendChild(root)
+    const user = userEvent.setup()
+    render(<DialogHarness />, { container: root })
+    const opener = screen.getByRole('button', { name: 'เปิดหน้าต่าง' })
+    await user.click(opener)
+    expect(root).toHaveAttribute('inert')
+
+    const inertWhenFocused: boolean[] = []
+    const focus = vi.spyOn(opener, 'focus').mockImplementation(() => {
+      inertWhenFocused.push(root.hasAttribute('inert'))
+    })
+    await user.keyboard('{Escape}')
+
+    expect(inertWhenFocused).toEqual([false])
+    focus.mockRestore()
+    root.remove()
+  })
+
   it('ปุ่ม ✕ ปิดหน้าต่างได้ แต่แตะพื้นมืดด้านหลังไม่ปิด (กันข้อมูลที่กรอกหาย)', async () => {
     const user = userEvent.setup()
     render(<DialogHarness />)

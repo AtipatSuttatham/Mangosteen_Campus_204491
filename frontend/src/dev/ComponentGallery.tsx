@@ -27,6 +27,7 @@ import {
   SearchInput,
   Select,
   StatusBadge,
+  Switch,
   TextField,
 } from '../components/ui'
 
@@ -146,6 +147,29 @@ function CollapsibleSamples() {
             {t('devGallery.sampleTermBody')}
           </p>
         </Collapsible>
+      ))}
+    </div>
+  )
+}
+
+/** ตัวอย่างสวิตช์ 2 อัน (เปิด / ปิด) — กดสลับได้จริง (ขั้น 4.6) */
+function SwitchSamples() {
+  const { t } = useTranslation()
+  const [on, setOn] = useState([true, false])
+  const baseId = useId()
+  return (
+    <div className="flex flex-col gap-3">
+      {[t('devGallery.switchOn'), t('devGallery.switchOff')].map((label, index) => (
+        <div key={label} className="flex items-center gap-3.5">
+          <Switch
+            checked={on[index] ?? false}
+            labelledBy={`${baseId}-${index}`}
+            onChange={() => setOn((prev) => prev.map((value, i) => (i === index ? !value : value)))}
+          />
+          <span id={`${baseId}-${index}`} className="text-[15px] font-semibold">
+            {label}
+          </span>
+        </div>
       ))}
     </div>
   )
@@ -355,6 +379,11 @@ export default function ComponentGallery() {
       {/* ส่วนที่พับ/เปิดได้ (ขั้น 3.5) — หัวกลุ่มภาคเรียนในหน้ารายวิชาของฉัน */}
       <Section title={t('devGallery.collapsible')}>
         <CollapsibleSamples />
+      </Section>
+
+      {/* สวิตช์เปิด / ปิด (ย้ายเป็นคอมโพเนนต์กลางในขั้น 4.6) — รหัสเข้าร่วม / ให้ผู้เรียนดาวน์โหลดได้ */}
+      <Section title={t('devGallery.switches')}>
+        <SwitchSamples />
       </Section>
 
       {/* ข้อความ Markdown (ขั้น 3.7) — คำอธิบายรายวิชา ; HTML ดิบไม่แสดง (บรรทัดสุดท้ายของตัวอย่าง) */}

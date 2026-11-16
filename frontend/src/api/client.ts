@@ -152,8 +152,16 @@ export async function apiFetchWithStatus<T = unknown>(
     }
   }
 
+  return { data: readResponse<T>(response.status, await response.text()), status: response.status }
+}
+
+/**
+ * แปลงคำตอบของ backend (HTTP status + ข้อความ) เป็นข้อมูล หรือโยน ApiError รูปแบบเดียวกันเสมอ
+ * ใช้ร่วมกันระหว่าง apiFetch และตัวส่งไฟล์แบบมีความคืบหน้า (upload.ts — ขั้น 4.6 ที่ใช้ XHR แทน fetch)
+ * @throws ApiError เมื่อ status ไม่ใช่ 2xx
+ */
+export function readResponse<T>(status: number, text: string): T {
   // อ่านคำตอบเป็น JSON (ถ้าไม่มีเนื้อหาหรือไม่ใช่ JSON ได้ undefined)
-  const text = await response.text()
   let data: unknown = undefined
   if (text) {
     try {
@@ -163,14 +171,14 @@ export async function apiFetchWithStatus<T = unknown>(
     }
   }
 
-  if (response.ok) {
-    return { data: data as T, status: response.status }
+  if (status >= 200 && status < 300) {
+    return data as T
   }
 
   // backend ตอบ error ในรูปแบบกลาง → ใช้รหัสที่ส่งมา
   if (isErrorBody(data)) {
     throw new ApiError(
-      response.status,
+      status,
       data.code,
       toFieldErrors(data.fields),
       typeof data.detail === 'string' ? data.detail : '',
@@ -178,5 +186,5 @@ export async function apiFetchWithStatus<T = unknown>(
     )
   }
   // ได้คำตอบที่ไม่ใช่รูปแบบกลาง (เช่น หน้า HTML จาก proxy) → เดารหัสจาก HTTP status
-  throw new ApiError(response.status, codeFromStatus(response.status))
+  throw new ApiError(status, codeFromStatus(status))
 }
