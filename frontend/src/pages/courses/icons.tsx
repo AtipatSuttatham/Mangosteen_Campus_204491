@@ -5,7 +5,7 @@
 import type { ReactNode } from 'react'
 
 /** กรอบร่วมของไอคอนเส้น */
-function LineIcon({
+export function LineIcon({
   size = 18,
   strokeWidth = 1.7,
   children,

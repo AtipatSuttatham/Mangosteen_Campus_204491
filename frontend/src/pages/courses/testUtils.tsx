@@ -64,17 +64,27 @@ export function roster(results: Enrollment[], counts = { active: results.length,
 
 export const emptyResult: AddStudentsResult = { added: [], reactivated: [], already: [], failed: [] }
 
-/** วาดหน้ารายวิชาในแผนที่หน้าเหมือนของจริง (ส่งเนื้อหาแท็บตั้งค่าเข้ามาเมื่อต้องทดสอบแท็บนั้น) */
-export function renderCoursePage(path = '/courses/5', settings: ReactNode = null) {
+/**
+ * วาดหน้ารายวิชาในแผนที่หน้าเหมือนของจริง — ค่าเริ่มต้นเปิดแท็บผู้เรียน (/students — ขั้น 4.5)
+ * ส่งเนื้อหาแท็บตั้งค่า / แท็บเนื้อหาเข้ามาเมื่อต้องทดสอบแท็บนั้น (ไม่ส่ง = แท็บว่าง) ;
+ * isAdmin = ผู้ดูแลระบบจัดการแทนผู้สอน (แถบส้ม + แท็บเนื้อหาดูอย่างเดียว)
+ */
+export function renderCoursePage(
+  path = '/courses/5/students',
+  settings: ReactNode = null,
+  content: ReactNode = null,
+  isAdmin = false,
+) {
   const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } })
   const router = createMemoryRouter(
     [
       { path: '/courses', element: <p>หน้ารายวิชาของฉัน</p> },
       {
         path: '/courses/:courseId',
-        element: <CoursePage />,
+        element: <CoursePage isAdmin={isAdmin} />,
         children: [
-          { index: true, element: <StudentsTab /> },
+          { index: true, element: content },
+          { path: 'students', element: <StudentsTab /> },
           { path: 'settings', element: settings },
         ],
       },

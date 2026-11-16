@@ -8,7 +8,9 @@
  *   /users            จัดการบัญชีผู้ใช้ (เฉพาะผู้ดูแลระบบ — UC-04 ขั้น 2.5) ; บทบาทอื่น → กลับหน้าแรก
  *   /users/import     นำเข้าผู้ใช้จาก CSV 3 ขั้น (เฉพาะผู้ดูแลระบบ — ขั้น 2.7)
  *   /courses          รายวิชาของฉัน (ผู้สอน — ขั้น 3.5 ; ผู้เรียน + เข้าร่วมด้วยรหัส — ขั้น 3.7)
- *   /courses/:id      หน้ารายวิชา: ผู้สอน = แท็บผู้เรียน (ขั้น 3.6) ; ผู้เรียน = หัวรายวิชา + ยังไม่มีเนื้อหา (ขั้น 3.7)
+ *   /courses/:id      หน้ารายวิชา: ผู้สอน / ผู้ดูแลระบบ = แท็บเนื้อหา (แท็บแรก — ขั้น 4.5 แบบ กช1) ;
+ *                     ผู้เรียน = หัวรายวิชา + บทเรียน (ขั้น 3.7 / 4.7)
+ *   /courses/:id/students  หน้ารายวิชา แท็บผู้เรียน (ขั้น 3.6 ; ย้ายจาก /courses/:id ในขั้น 4.5)
  *   /courses/:id/settings  หน้ารายวิชา แท็บตั้งค่า (ผู้สอน — ขั้น 3.6 ; ผู้เรียนเปิดแล้วได้ "ไม่พบรายวิชา")
  *                     (ไม่ใช้ /admin/... เพราะตอน deploy Django ใช้ /admin/ เป็นหน้า Django admin
  *                      บนโดเมนเดียวกัน — รีเฟรชหน้า /admin/users จะไปโผล่หน้า Django แทน)
@@ -36,6 +38,7 @@ import LoginPage from './pages/LoginPage'
 import ProfilePage from './pages/profile/ProfilePage'
 import CsvImportPage from './pages/admin/users/import/CsvImportPage'
 import { CourseRoute, MyCoursesRoute } from './pages/courses/CourseRoutes'
+import ContentTab from './pages/courses/content/ContentTab'
 import SettingsTab from './pages/courses/SettingsTab'
 import StudentsTab from './pages/courses/StudentsTab'
 import UsersPage from './pages/admin/users/UsersPage'
@@ -103,7 +106,9 @@ export const appRoutes: RouteObject[] = createRoutesFromElements(
           </RequireAuth>
         }
       >
-        <Route index element={<StudentsTab />} />
+        {/* แท็บเนื้อหาเป็นแท็บแรก (กช1) ; แท็บผู้เรียนย้ายไป /students (ขั้น 4.5) */}
+        <Route index element={<ContentTab />} />
+        <Route path="students" element={<StudentsTab />} />
         <Route path="settings" element={<SettingsTab />} />
       </Route>
     </Route>
