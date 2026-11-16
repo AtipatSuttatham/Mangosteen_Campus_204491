@@ -212,6 +212,44 @@ describe('จัดการหน่วย', () => {
     await waitFor(() => expect(api.fetchModules).toHaveBeenCalledTimes(2))
   })
 
+  it('ระหว่างรอผล ปุ่มทุกแถวกดไม่ได้แต่โฟกัสไม่หลุด ; เลื่อนเสร็จโฟกัสกลับที่ลูกศรเดิม (กภ1)', async () => {
+    let finishMove: (module: Module) => void = () => {}
+    api.moveModule.mockReturnValue(new Promise((resolve) => (finishMove = resolve)))
+    const { user } = renderTab()
+
+    const down = await screen.findByRole('button', { name: 'เลื่อน หน่วยที่ 1 ลง' })
+    await user.click(down)
+    expect(down).toHaveFocus()
+    expect(down).toHaveAttribute('aria-disabled', 'true')
+    const publish = screen.getByRole('button', { name: 'เผยแพร่ หน่วยที่ 3' })
+    expect(publish).toHaveAttribute('aria-disabled', 'true')
+    await user.click(publish)
+    expect(api.runModuleAction).not.toHaveBeenCalled()
+
+    // backend ตอบ → โหลดรายการใหม่ได้ลำดับ 2, 1, 3 → ปุ่มเดิม (element เดิม) กลายเป็นของ "หน่วยที่ 2"
+    api.fetchModules.mockResolvedValue([MODULES[1], MODULES[0], MODULES[2]] as Module[])
+    finishMove(makeModule(1))
+    await waitFor(() => expect(down).toHaveAccessibleName('เลื่อน หน่วยที่ 2 ลง'))
+    await waitFor(() => expect(down).not.toHaveAttribute('aria-disabled'))
+    expect(down).toHaveFocus()
+  })
+
+  it('เลื่อนจนถึงบนสุด → โฟกัสย้ายไปลูกศรลงของแถวเดียวกัน (กภ1)', async () => {
+    api.moveModule.mockResolvedValue(makeModule(2))
+    const { user } = renderTab()
+    const { card } = await moduleCard('โครงสร้างควบคุมทิศทาง')
+    const up = within(card).getByRole('button', { name: 'เลื่อน หน่วยที่ 2 ขึ้น' })
+    const down = within(card).getByRole('button', { name: 'เลื่อน หน่วยที่ 2 ลง' })
+
+    api.fetchModules.mockResolvedValue([MODULES[1], MODULES[0], MODULES[2]] as Module[])
+    await user.click(up)
+
+    expect(api.moveModule).toHaveBeenCalledWith(5, 2, 'up')
+    await waitFor(() => expect(up).toBeDisabled())
+    await waitFor(() => expect(down).toHaveFocus())
+    expect(down).toHaveAccessibleName('เลื่อน หน่วยที่ 1 ลง')
+  })
+
   it('เผยแพร่ / ยกเลิกเผยแพร่ตามสถานะของหน่วย', async () => {
     api.runModuleAction.mockResolvedValue(makeModule(1))
     const { user } = renderTab()
@@ -250,6 +288,18 @@ describe('จัดการหน่วย', () => {
       'status',
     )
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument()
+  })
+
+  it('ลบสำเร็จ → โฟกัสหัวข้อ "หน่วยการเรียน" (ปุ่มลบหายไปพร้อมแถว — กภ1)', async () => {
+    api.deleteModule.mockResolvedValue(undefined)
+    const { user } = renderTab()
+    await user.click(await screen.findByRole('button', { name: 'ลบ หน่วยที่ 3' }))
+
+    api.fetchModules.mockResolvedValue(MODULES.slice(0, 2))
+    await user.click(within(screen.getByRole('alertdialog')).getByRole('button', { name: 'ลบหน่วยการเรียน' }))
+
+    await waitFor(() => expect(screen.getByRole('heading', { name: 'หน่วยการเรียน' })).toHaveFocus())
+    expect(screen.queryByRole('button', { name: 'ลบ หน่วยที่ 3' })).not.toBeInTheDocument()
   })
 
   it('ลบไม่สำเร็จ → ข้อความในหน้าต่าง หน้าต่างยังเปิด', async () => {

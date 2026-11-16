@@ -26,10 +26,14 @@ function siteName(url: string): string {
   }
 }
 
-/** ขนาดไฟล์อ่านง่าย: < 1 KB = ไบต์, < 1 MB = KB (จำนวนเต็ม), อื่น ๆ = MB ทศนิยม 1 ตำแหน่ง */
+/**
+ * ขนาดไฟล์อ่านง่าย: < 1 KB = ไบต์, < 1 MB = KB (จำนวนเต็ม), อื่น ๆ = MB ทศนิยม 1 ตำแหน่ง
+ * ตัดสินจากค่าที่ปัดแล้ว — ไฟล์เกือบ 1 MB (ปัดได้ 1024 KB) แสดง "1.0 MB" ไม่ใช่ "1024 KB" (แก้หลังตรวจขั้น 4.5)
+ */
 export function formatFileSize(bytes: number, t: TFunction): string {
   if (bytes < 1024) return t('content.sizeBytes', { size: bytes })
-  if (bytes < 1024 * 1024) return t('content.sizeKb', { size: Math.round(bytes / 1024) })
+  const kb = Math.round(bytes / 1024)
+  if (kb < 1024) return t('content.sizeKb', { size: kb })
   return t('content.sizeMb', { size: (bytes / (1024 * 1024)).toFixed(1) })
 }
 

@@ -20,11 +20,11 @@ export function useContentActions() {
   const [running, setRunning] = useState(false)
 
   /** เริ่มงาน 1 อย่าง: ล็อกปุ่ม + ล้างแถบข้อความเดิม → ทำงาน → โหลดรายการใหม่ → ปลดล็อก */
-  async function guarded(task: () => Promise<void>) {
+  async function guarded<T>(task: () => Promise<T>): Promise<T> {
     setRunning(true)
     notify(null)
     try {
-      await task()
+      return await task()
     } finally {
       await refreshModules(queryClient, course.id)
       setRunning(false)
@@ -42,16 +42,25 @@ export function useContentActions() {
     })
   }
 
-  /** ปุ่มยืนยันในหน้าต่าง (ลบ) — สำเร็จ: ปิดหน้าต่าง + แถบเขียว ; ไม่สำเร็จ: ข้อความในหน้าต่าง */
-  function runInDialog(dialog: ConfirmStep, task: () => Promise<unknown>, successText: string) {
+  /**
+   * ปุ่มยืนยันในหน้าต่าง (ลบ) — สำเร็จ: ปิดหน้าต่าง + แถบเขียว ; ไม่สำเร็จ: ข้อความในหน้าต่าง
+   * คืนค่า true เมื่อสำเร็จ (หลังโหลดรายการใหม่แล้ว) — ผู้เรียกใช้ย้ายโฟกัส เพราะแถวที่ลบหายไปแล้ว
+   */
+  function runInDialog(
+    dialog: ConfirmStep,
+    task: () => Promise<unknown>,
+    successText: string,
+  ): Promise<boolean> {
     return guarded(async () => {
       dialog.setError(undefined)
       try {
         await task()
         dialog.close()
         notify({ tone: 'ok', text: successText })
+        return true
       } catch (caught) {
         dialog.setError(apiMessage(caught))
+        return false
       }
     })
   }
