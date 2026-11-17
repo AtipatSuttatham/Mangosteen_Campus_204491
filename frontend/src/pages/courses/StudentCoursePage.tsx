@@ -7,7 +7,8 @@
  *   │           ปีการศึกษา 2569 ภาคเรียนที่ 1   ผู้สอน กมล ศรีวงศ์   │
  *   └─────────────────────────────────────────────────────┘
  *   ┌ เกี่ยวกับรายวิชา  (คำอธิบายแบบ Markdown — ซ่อนถ้าไม่มี)        ┐
- *   ┌            ✿  ยังไม่มีเนื้อหาในรายวิชานี้                        ┐  ← ก้อน 4 เติมเนื้อหาตรงนี้
+ *   บทเรียน · หน่วยการเรียนที่เผยแพร่ (ขั้น 4.7 ก — lesson/LessonModules)
+ *   ┌            ✿  ยังไม่มีเนื้อหาในรายวิชานี้                        ┐  ← ยังไม่มีหน่วยที่เผยแพร่
  *
  * - backend ตรวจทุกครั้งว่ากำลังเรียนอยู่และวิชาเผยแพร่แล้ว ; ไม่ผ่าน = 404 → "ไม่พบรายวิชา"
  *   (เหมือนไม่มีวิชา — ไม่บอกว่าวิชามีอยู่จริงไหม)
@@ -20,10 +21,13 @@ import { ApiError } from '../../api/client'
 import { fetchStudentCourse, type StudentCourse } from '../../api/courses'
 import { errorMessage } from '../../api/errors'
 import { Button, Card, CourseBadge, Markdown, StatusBadge } from '../../components/ui'
+import { fetchStudentModules, type StudentModule } from '../../api/content'
 import { CalyxPattern } from '../../components/brand/CalyxPattern'
 import { StateMessage } from './courseBits'
-import { studentCourseKey } from './courseCache'
+import { studentCourseKey, studentModulesKey } from './courseCache'
 import { BackIcon, LockIcon } from './icons'
+import { LessonModules } from './lesson/LessonModules'
+import { FreshLinksContext, useFreshLinks } from './lesson/useFreshLinks'
 
 export default function StudentCoursePage() {
   const { t } = useTranslation()
@@ -92,7 +96,7 @@ export default function StudentCoursePage() {
   )
 }
 
-/** หัวรายวิชา + เกี่ยวกับรายวิชา + กล่องยังไม่มีเนื้อหา */
+/** หัวรายวิชา + เกี่ยวกับรายวิชา + บทเรียน */
 function CourseContent({ course }: { course: StudentCourse }) {
   const { t } = useTranslation()
   const state = course.is_closed ? 'closed' : 'published'
@@ -143,7 +147,54 @@ function CourseContent({ course }: { course: StudentCourse }) {
         </section>
       )}
 
-      {/* ยังไม่มีเนื้อหา (ก้อน 4 แทนด้วยหน่วยการเรียน / แบบทดสอบ / งาน) */}
+      <Lessons courseId={course.id} />
+    </>
+  )
+}
+
+/** ดึงเนื้อหาทุกชิ้นออกจากรายการหน่วย (ให้ตัวขอลิงก์ใหม่หาเนื้อหาจากรหัส) */
+const contentsOf = (modules: StudentModule[]) => modules.flatMap((module) => module.contents)
+
+/**
+ * ส่วนบทเรียน (ขั้น 4.7 ก): หน่วยที่เผยแพร่ + เนื้อหา ; ไม่มีหน่วยเลย = กล่อง "ยังไม่มีเนื้อหา" เดิม
+ * ครอบด้วย FreshLinksContext — ปุ่มเปิด / ดาวน์โหลด / ตัวเล่น ขอลิงก์ใหม่ได้เมื่อลิงก์หมดอายุ (ขง1)
+ */
+function Lessons({ courseId }: { courseId: number }) {
+  const { t } = useTranslation()
+  const { data, isPending, refetch, dataUpdatedAt } = useQuery({
+    queryKey: studentModulesKey(courseId),
+    queryFn: () => fetchStudentModules(courseId),
+  })
+  const links = useFreshLinks({ updatedAt: dataUpdatedAt, refetch, contentsOf })
+
+  if (isPending) {
+    return (
+      <Card>
+        <StateMessage>
+          <p className="m-0" role="status">
+            {t('lesson.loading')}
+          </p>
+        </StateMessage>
+      </Card>
+    )
+  }
+  if (!data) {
+    return (
+      <Card>
+        <StateMessage>
+          <p className="m-0 font-semibold text-ink" role="alert">
+            {t('lesson.loadFailed')}
+          </p>
+          <Button variant="secondary" onClick={() => void refetch()}>
+            {t('lesson.retry')}
+          </Button>
+        </StateMessage>
+      </Card>
+    )
+  }
+  if (data.length === 0) {
+    // ยังไม่มีหน่วยที่เผยแพร่ (แบบทดสอบ / งานเติมในก้อน 5–6)
+    return (
       <section className="flex flex-col items-center gap-2 rounded-card border border-line bg-surface px-6 py-12 text-center">
         <CalyxPattern size={72} strokeWidth={1.2} className="text-brand opacity-45" />
         <h2 className="m-0 mt-1.5 font-display text-xl font-semibold lg:text-[21px]">
@@ -151,6 +202,11 @@ function CourseContent({ course }: { course: StudentCourse }) {
         </h2>
         <p className="m-0 text-[15px] leading-[1.6] text-ink-muted">{t('studentCourses.noContentBody')}</p>
       </section>
-    </>
+    )
+  }
+  return (
+    <FreshLinksContext value={links}>
+      <LessonModules modules={data} />
+    </FreshLinksContext>
   )
 }

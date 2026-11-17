@@ -882,6 +882,36 @@ export const th = {
     keepUploading: 'อัปโหลดต่อ',
   },
 
+  // หน้าบทเรียนของผู้เรียน + ส่วนแสดงผลกลาง (ขั้น 4.7 — board "บทเรียนของผู้เรียน")
+  lesson: {
+    heading: 'บทเรียน',
+    moduleCount: '{{count}} หน่วย',
+    itemCount: '{{count}} รายการ',
+    noItems: 'ยังไม่มีเนื้อหา',
+    moduleEmpty: 'ยังไม่มีเนื้อหาในหน่วยนี้',
+    loading: 'กำลังโหลดบทเรียน…',
+    loadFailed: 'โหลดบทเรียนไม่สำเร็จ',
+    retry: 'ลองใหม่',
+    // วิดีโอ / รูปบนจอใหญ่เริ่มกว้าง 320px (กณ1) — ชื่อปุ่มบอกชื่อเนื้อหา (เปิดหลายชิ้นในหน้าเดียว)
+    expand: 'ขยาย',
+    shrink: 'ย่อ',
+    expandLabel: 'ขยาย {{title}}',
+    shrinkLabel: 'ย่อ {{title}}',
+    youtubeTitle: 'วิดีโอจาก YouTube: {{title}}',
+    videoLabel: 'วิดีโอ {{title}}',
+    audioLabel: 'เสียง {{title}}',
+    open: 'เปิด',
+    openLabel: 'เปิด {{name}} ในแท็บใหม่',
+    download: 'ดาวน์โหลด',
+    downloadLabel: 'ดาวน์โหลด {{name}}',
+    downloadOff: 'ผู้สอนปิดการดาวน์โหลดไฟล์นี้',
+    openLink: 'เปิดลิงก์ {{site}}',
+    openLinkLabel: 'เปิดลิงก์ {{site}} ในแท็บใหม่',
+    // ลิงก์ไฟล์หมดอายุแล้วขอใหม่ไม่สำเร็จ (ขง1)
+    linkFailed: 'เปิดไฟล์ไม่สำเร็จ ลองใหม่อีกครั้ง',
+    mediaFailed: 'โหลดไฟล์ไม่สำเร็จ',
+  },
+
   home: {
     greeting: 'สวัสดี {{name}}',
     viewProfile: 'ดูข้อมูลส่วนตัว',

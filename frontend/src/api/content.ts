@@ -5,7 +5,7 @@
  *   ลบ / เลื่อน / เผยแพร่เนื้อหา
  * ขั้น 4.6 ก: เขียนข้อความ, เพิ่มลิงก์, แก้เนื้อหา, เปลี่ยนไฟล์ (ส่งผ่าน XHR เพื่อแสดงความคืบหน้า)
  * ขั้น 4.6 ข: อัปโหลดไฟล์เป็นเนื้อหาใหม่ (หน้าต่างอัปโหลดหลายไฟล์ส่งทีละไฟล์)
- * (ฉบับของผู้เรียนในขั้น 4.7)
+ * ขั้น 4.7 ก: ฉบับของผู้เรียน (หน้าบทเรียน) — ที่อยู่เดียวกับผู้สอน backend สลับคำตอบตามบทบาท
  */
 import { apiFetch } from './client'
 import { uploadWithProgress, type UploadOptions } from './upload'
@@ -53,6 +53,35 @@ export type Module = {
   contents: Content[]
 }
 
+/**
+ * เนื้อหา 1 ชิ้นที่ผู้เรียนเห็น (`student_content` ใน docs/api.md §10.5 — ขั้น 4.7)
+ * ไม่มีสถานะเผยแพร่ / ลำดับ / หน่วย / เวลา ; ปิดดาวน์โหลด → download_link = null แต่ยังมี file_link ให้เปิดดู
+ * ช่องทั้งหมดนี้มีใน `Content` ของผู้สอนด้วย → ส่วนแสดงผลกลาง (pages/courses/lesson) รับได้ทั้ง 2 แบบ
+ */
+export type StudentContent = Pick<
+  Content,
+  | 'id'
+  | 'title'
+  | 'content_type'
+  | 'body'
+  | 'file_name'
+  | 'file_size'
+  | 'mime_type'
+  | 'file_link'
+  | 'download_link'
+  | 'external_url'
+  | 'youtube_id'
+  | 'allow_download'
+>
+
+/** หน่วยการเรียนที่ผู้เรียนเห็น (`student_module`) — เฉพาะหน่วยที่เผยแพร่ ; ไม่มีเนื้อหาเผยแพร่ = contents ว่าง (กฝ1) */
+export type StudentModule = {
+  id: number
+  title: string
+  description: string
+  contents: StudentContent[]
+}
+
 /** ข้อมูลที่ส่งตอนเพิ่ม / แก้หน่วย */
 export type ModuleInput = { title: string; description: string }
 
@@ -68,6 +97,14 @@ const contentsPath = (courseId: number) => `/courses/${courseId}/contents/`
 /** หน่วยทั้งหมดของวิชา + เนื้อหาทุกสถานะ (ผู้สอนเจ้าของ / ผู้ดูแลระบบ) */
 export function fetchModules(courseId: number): Promise<Module[]> {
   return apiFetch<Module[]>(modulesPath(courseId))
+}
+
+/**
+ * หน่วย + เนื้อหาที่เผยแพร่ของวิชา สำหรับผู้เรียน (ขั้น 4.7 ก) — ที่อยู่เดียวกับ fetchModules
+ * @throws ApiError not_found (ไม่ได้เรียนอยู่ / ถูกถอน / วิชายังไม่เผยแพร่)
+ */
+export function fetchStudentModules(courseId: number): Promise<StudentModule[]> {
+  return apiFetch<StudentModule[]>(modulesPath(courseId))
 }
 
 /**

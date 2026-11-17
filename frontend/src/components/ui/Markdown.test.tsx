@@ -35,4 +35,15 @@ describe('Markdown', () => {
     expect(safe).toHaveAttribute('rel', 'noopener noreferrer')
     expect(screen.getByText('อันตราย').closest('a')?.getAttribute('href') ?? '').not.toMatch(/javascript/i)
   })
+
+  it('บล็อกโค้ด: โค้ดข้างในไม่มีระยะ / พื้นของโค้ดในบรรทัด (บรรทัดแรกไม่ถูกดันเข้า — ขั้น 4.7)', () => {
+    const { container } = render(<Markdown text={'ใช้ `print` แบบนี้\n\n```\nscore = 72\n```'} />)
+
+    const block = container.querySelector('pre')!
+    expect(block.className).toMatch(/\[&>code\]:p-0/)
+    expect(block.className).toMatch(/\[&>code\]:bg-transparent/)
+    expect(block.querySelector('code')).toHaveTextContent('score = 72')
+    // โค้ดในบรรทัดยังมีพื้นตามเดิม
+    expect(screen.getByText('print')).toHaveClass('bg-canvas')
+  })
 })
