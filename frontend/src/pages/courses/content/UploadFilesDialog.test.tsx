@@ -305,3 +305,87 @@ describe('ปิดหน้าต่างระหว่างส่ง', () =
     expect(pending[0]!.options.signal?.aborted).toBe(true)
   })
 })
+
+describe('แก้หลังตรวจขั้น 4.6 ข (กฮ1)', () => {
+  it('ส่งจบ → กล่องเลือกไฟล์หาย โฟกัสไปหัวรายการ (ไม่หลุดไปต้นหน้า)', async () => {
+    api.uploadContentFile.mockResolvedValue(uploaded(50))
+    const { dialog } = await openUpload()
+    expect(within(dialog).getByRole('button', { name: 'เลือกไฟล์' })).toHaveFocus()
+    choose(dialog, [makeFile('a.pdf')])
+    await within(dialog).findByText('อัปโหลดแล้ว 1 ไฟล์')
+    expect(within(dialog).getByText('ไฟล์ที่เลือก 1 ไฟล์')).toHaveFocus()
+  })
+
+  it('เลือกเฉพาะไฟล์ที่ใช้ไม่ได้ → ขึ้นสรุปทันที โฟกัสไปหัวรายการ', async () => {
+    const { dialog } = await openUpload()
+    choose(dialog, [makeFile('a.exe')])
+    await within(dialog).findByText('อัปโหลดไม่ได้ 1 ไฟล์')
+    expect(within(dialog).getByText('ไฟล์ที่เลือก 1 ไฟล์')).toHaveFocus()
+  })
+
+  it('คิวเดินขณะโฟกัสปุ่ม "เอาออก" ของไฟล์ถัดไป → ปุ่มเปลี่ยนเป็น "ยกเลิก" โฟกัสไปหัวรายการ', async () => {
+    const pending = controlUploads()
+    const { dialog } = await openUpload()
+    choose(dialog, [makeFile('a.pdf'), makeFile('b.pdf')])
+    await waitFor(() => expect(pending).toHaveLength(1))
+    within(dialog).getByRole('button', { name: 'เอาออก b.pdf' }).focus()
+    act(() => pending[0]!.resolve(uploaded(50)))
+    await waitFor(() => expect(pending).toHaveLength(2))
+    expect(within(dialog).getByText('ไฟล์ที่เลือก 2 ไฟล์')).toHaveFocus()
+  })
+
+  it('วางไฟล์พลาดนอกพื้นที่รับระหว่างหน้าต่างเปิด → เบราว์เซอร์ไม่เปิดไฟล์ ; ปิดแล้วกลับเป็นปกติ', async () => {
+    const { user, dialog } = await openUpload()
+    // fireEvent คืน false = มีคนสั่ง preventDefault (เบราว์เซอร์จะไม่เปิดไฟล์)
+    expect(fireEvent.drop(document.body, { dataTransfer: { files: [] } })).toBe(false)
+    expect(fireEvent.dragOver(document.body)).toBe(false)
+    await user.click(within(dialog).getByRole('button', { name: 'ยกเลิก' }))
+    expect(fireEvent.drop(document.body, { dataTransfer: { files: [] } })).toBe(true)
+  })
+
+  it('หน้าต่างยืนยันบอกว่าไฟล์ที่ยังส่งไม่ครบเท่านั้นที่ไม่ถูกอัปโหลด', async () => {
+    const pending = controlUploads()
+    const { user, dialog } = await openUpload()
+    choose(dialog, [makeFile('a.pdf')])
+    await waitFor(() => expect(pending).toHaveLength(1))
+    await user.click(within(dialog).getByRole('button', { name: 'ปิด' }))
+    expect(await screen.findByRole('alertdialog')).toHaveTextContent(
+      'ไฟล์ที่รอคิวและไฟล์ที่ยังส่งไม่ครบจะไม่ถูกอัปโหลด ไฟล์ที่อัปโหลดแล้วยังอยู่ในหน่วย',
+    )
+  })
+
+  it('error ที่ระบบไม่รู้สาเหตุ (unknown) และเซิร์ฟเวอร์ขัดข้อง (5xx) → มีปุ่มลองใหม่', async () => {
+    api.uploadContentFile
+      .mockRejectedValueOnce(new ApiError(413, 'unknown'))
+      .mockRejectedValueOnce(new ApiError(503, 'file_upload_failed'))
+    const { dialog } = await openUpload()
+    choose(dialog, [makeFile('a.pdf'), makeFile('b.pdf')])
+    await within(dialog).findByText('อัปโหลดไม่ได้ 2 ไฟล์')
+    expect(within(row(dialog, 'a.pdf')).getByText('เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง')).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'ลองอัปโหลด a.pdf อีกครั้ง' })).toBeInTheDocument()
+    expect(
+      within(row(dialog, 'b.pdf')).getByText('อัปโหลดไม่สำเร็จ พื้นที่เก็บไฟล์อาจเต็ม ติดต่อผู้ดูแลระบบ'),
+    ).toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'ลองอัปโหลด b.pdf อีกครั้ง' })).toBeInTheDocument()
+  })
+
+  it('ออกจากหน้าระหว่างส่ง (กล1): ถามก่อน — อัปโหลดต่อ = อยู่หน้าเดิม ; หยุดและออก = หยุดไฟล์แล้วออก', async () => {
+    const pending = controlUploads()
+    const { user, dialog, router } = await openUpload()
+    choose(dialog, [makeFile('a.pdf')])
+    await waitFor(() => expect(pending).toHaveLength(1))
+
+    act(() => void router.navigate('/courses'))
+    const ask = await screen.findByRole('alertdialog', { name: 'ออกจากหน้านี้ระหว่างอัปโหลด?' })
+    await user.click(within(ask).getByRole('button', { name: 'อัปโหลดต่อ' }))
+    expect(router.state.location.pathname).toBe('/courses/5')
+    expect(screen.getByRole('dialog', { name: 'อัปโหลดไฟล์' })).toBeInTheDocument()
+
+    act(() => void router.navigate('/courses'))
+    await user.click(
+      within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'หยุดและออก' }),
+    )
+    expect(await screen.findByText('หน้ารายวิชาของฉัน')).toBeInTheDocument()
+    expect(pending[0]!.options.signal?.aborted).toBe(true)
+  })
+})
