@@ -15,7 +15,7 @@ from rest_framework.test import APIClient
 
 from academics.models import Course
 from content.models import Content
-from content.services import download_url
+from content.services import download_url, view_url
 from content.tests.conftest import contents_url, make_module, make_text, modules_url
 from content.tests.samples import VALID_SAMPLES, upload
 
@@ -102,6 +102,35 @@ def test_download_url_asks_s3_storage_for_attachment() -> None:
     disposition = kwargs["parameters"]["ResponseContentDisposition"]
     assert disposition.startswith("attachment; filename*=UTF-8''")
     assert "%E0%B8%9A" in disposition  # "บ" ถูกเข้ารหัส
+
+
+def test_view_url_marks_text_files_as_utf8_on_s3_storage() -> None:
+    """ไฟล์ข้อความบน S3 / B2 ได้ลิงก์ที่สั่ง Content-Type พร้อม charset=utf-8 (ขจ1) ; ไฟล์อื่นใช้ลิงก์ปกติ"""
+    fake_storage = mock.Mock()
+    fake_storage.url.return_value = "https://b2.example/x?signed"
+    text = Content(file_name="บันทึก.txt", mime_type="text/plain")
+    text.file_url.name = "content/1/abc.txt"
+    text.file_url.storage = fake_storage
+    pdf = Content(file_name="บท.pdf", mime_type="application/pdf")
+    pdf.file_url.name = "content/1/abc.pdf"
+    pdf.file_url.storage = fake_storage
+
+    assert view_url(text) == "https://b2.example/x?signed"
+    _, kwargs = fake_storage.url.call_args
+    assert kwargs["parameters"] == {"ResponseContentType": "text/plain; charset=utf-8"}
+
+    fake_storage.url.reset_mock()
+    view_url(pdf)
+    _, kwargs = fake_storage.url.call_args
+    assert "parameters" not in kwargs
+
+
+def test_view_url_falls_back_on_local_storage(tmp_path, settings) -> None:
+    """ที่เก็บไฟล์ในเครื่อง (ตอนพัฒนา) ไม่รับ parameters → ลิงก์ปกติ"""
+    settings.MEDIA_ROOT = tmp_path
+    content = Content(file_name="บันทึก.txt", mime_type="text/plain")
+    content.file_url.name = "content/1/abc.txt"
+    assert view_url(content) == "/media/content/1/abc.txt"
 
 
 # ---------- อัปโหลดไม่ผ่าน ----------

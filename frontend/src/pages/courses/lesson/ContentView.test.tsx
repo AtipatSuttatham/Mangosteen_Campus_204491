@@ -299,3 +299,82 @@ describe('ลิงก์หมดอายุ (ขง1)', () => {
     )
   })
 })
+
+describe('แก้หลังตรวจขั้น 4.7 ก (ขฉ1)', () => {
+  it('ลิงก์หมดอายุครั้งที่ 2 (เปิดหน้าไว้นาน): โหลดสำเร็จแล้วนับใหม่ ขอลิงก์ใหม่ได้อีก', async () => {
+    let round = 0
+    const refresh = vi.fn(() => {
+      round += 1
+      const lookup: ContentLookup = () => video({ file_link: `/media/v${round}.mp4` })
+      return Promise.resolve(lookup)
+    })
+    renderView(video(), { isStale: () => false, refresh })
+    const player = () => screen.getByLabelText('วิดีโอ if-elif-else')
+
+    fireEvent.error(player())
+    await waitFor(() => expect(player()).toHaveAttribute('src', '/media/v1.mp4'))
+    fireEvent.loadedMetadata(player())
+    // อีกชั่วโมงต่อมา ลิงก์ใหม่ก็หมดอายุ
+    fireEvent.error(player())
+
+    await waitFor(() => expect(player()).toHaveAttribute('src', '/media/v2.mp4'))
+    expect(refresh).toHaveBeenCalledTimes(2)
+    expect(screen.queryByText('โหลดไฟล์ไม่สำเร็จ')).not.toBeInTheDocument()
+  })
+
+  it('รูปโหลดสำเร็จแล้วนับใหม่เช่นกัน', async () => {
+    let round = 0
+    const image = (link: string) =>
+      item({ content_type: 'image', title: 'ผังงาน', file_name: 'f.png', file_link: link })
+    const refresh = vi.fn(() => {
+      round += 1
+      const lookup: ContentLookup = () => image(`/media/p${round}.png`)
+      return Promise.resolve(lookup)
+    })
+    renderView(image('/media/p0.png'), { isStale: () => false, refresh })
+    const picture = () => screen.getByRole('img', { name: 'ผังงาน' })
+
+    fireEvent.error(picture())
+    await waitFor(() => expect(picture()).toHaveAttribute('src', '/media/p1.png'))
+    fireEvent.load(picture())
+    fireEvent.error(picture())
+
+    await waitFor(() => expect(picture()).toHaveAttribute('src', '/media/p2.png'))
+  })
+
+  it('ตัวเล่นที่โฟกัสอยู่โหลดไม่ได้ → โฟกัสปุ่มลองใหม่ ; กดลองใหม่ → โฟกัสตัวเล่นที่วาดใหม่', async () => {
+    const user = renderView(video(), fakeLinks(false, null))
+    screen.getByLabelText('วิดีโอ if-elif-else').focus()
+
+    fireEvent.error(screen.getByLabelText('วิดีโอ if-elif-else'))
+
+    const retry = await screen.findByRole('button', { name: 'ลองใหม่' })
+    expect(retry).toHaveFocus()
+    await user.click(retry)
+    expect(screen.getByLabelText('วิดีโอ if-elif-else')).toHaveFocus()
+  })
+
+  it('ตัวเล่นที่ไม่ได้โฟกัสโหลดไม่ได้ → ไม่ดึงโฟกัสไปที่ปุ่มลองใหม่', async () => {
+    renderView(video(), fakeLinks(false, null))
+    const outside = document.createElement('button')
+    document.body.append(outside)
+    outside.focus()
+
+    fireEvent.error(screen.getByLabelText('วิดีโอ if-elif-else'))
+
+    expect(await screen.findByRole('button', { name: 'ลองใหม่' })).not.toHaveFocus()
+    expect(outside).toHaveFocus()
+    outside.remove()
+  })
+
+  it('หัวข้อในข้อความ / คำอธิบายของผู้สอนเริ่มที่ h5 (อยู่ใต้หัวข้อเนื้อหา h4)', () => {
+    renderView(item({ body: '# ส่วนที่ 1\n\n### ย่อย' }))
+    expect(screen.getByRole('heading', { name: 'ส่วนที่ 1' }).tagName).toBe('H5')
+    expect(screen.getByRole('heading', { name: 'ย่อย' }).tagName).toBe('H6')
+  })
+
+  it('คำอธิบายของชนิดอื่นก็เริ่มที่ h5', () => {
+    renderView(pdf({ body: '## อ่านก่อน' }))
+    expect(screen.getByRole('heading', { name: 'อ่านก่อน' }).tagName).toBe('H5')
+  })
+})

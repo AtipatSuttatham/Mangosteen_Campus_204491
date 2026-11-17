@@ -161,7 +161,7 @@ const contentsOf = (modules: StudentModule[]) => modules.flatMap((module) => mod
  */
 function Lessons({ courseId }: { courseId: number }) {
   const { t } = useTranslation()
-  const { data, isPending, refetch, dataUpdatedAt } = useQuery({
+  const { data, error, isPending, refetch, dataUpdatedAt } = useQuery({
     queryKey: studentModulesKey(courseId),
     queryFn: () => fetchStudentModules(courseId),
   })
@@ -182,9 +182,11 @@ function Lessons({ courseId }: { courseId: number }) {
     return (
       <Card>
         <StateMessage>
-          <p className="m-0 font-semibold text-ink" role="alert">
-            {t('lesson.loadFailed')}
-          </p>
+          {/* บอกเหตุผลแบบเดียวกับหน้าโหลดวิชาไม่สำเร็จ (แก้หลังตรวจขั้น 4.7 ก) */}
+          <div role="alert">
+            <p className="m-0 font-semibold text-ink">{t('lesson.loadFailed')}</p>
+            <p className="m-0">{errorMessage(error instanceof ApiError ? error.code : 'unknown')}</p>
+          </div>
           <Button variant="secondary" onClick={() => void refetch()}>
             {t('lesson.retry')}
           </Button>

@@ -18,7 +18,7 @@ from django.core.validators import URLValidator
 from rest_framework import serializers
 
 from content.models import Content, Module
-from content.services import download_url
+from content.services import download_url, view_url
 from content.youtube import youtube_video_id
 
 # ความยาวสูงสุดตามตาราง (models.py)
@@ -77,7 +77,8 @@ class ContentSerializer(serializers.ModelSerializer):
         return content_youtube_id(content)
 
     def get_file_link(self, content: Content) -> str | None:
-        return content.file_url.url if content.file_url else None
+        # ไฟล์ข้อความได้ลิงก์ที่บอก charset=utf-8 (ขั้น 4.7 ก — ขจ1)
+        return view_url(content)
 
     def get_download_link(self, content: Content) -> str | None:
         return download_url(content)
@@ -130,7 +131,8 @@ class StudentContentSerializer(serializers.ModelSerializer):
         return content_youtube_id(content)
 
     def get_file_link(self, content: Content) -> str | None:
-        return content.file_url.url if content.file_url else None
+        # ไฟล์ข้อความได้ลิงก์ที่บอก charset=utf-8 (ขั้น 4.7 ก — ขจ1)
+        return view_url(content)
 
     def get_download_link(self, content: Content) -> str | None:
         return download_url(content) if content.effective_allow_download else None

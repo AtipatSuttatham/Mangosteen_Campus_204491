@@ -38,7 +38,8 @@ export function ContentView({ content, showTitle = true }: ContentViewProps) {
       {showTitle && (
         <h4 className="m-0 font-display text-lg leading-[1.4] font-semibold break-words">{content.title}</h4>
       )}
-      {description && <Markdown text={description} className="text-ink-muted" />}
+      {/* หัวข้อในข้อความของผู้สอนเริ่มที่ h5 — อยู่ใต้หัวข้อเนื้อหา (h4) ไม่แทรกลำดับหัวข้อของหน้า */}
+      {description && <Markdown text={description} headingLevel={5} className="text-ink-muted" />}
       <ContentBody content={content} />
     </article>
   )
@@ -51,7 +52,7 @@ function ContentBody({ content }: { content: StudentContent }) {
 
   switch (content.content_type) {
     case 'text':
-      return <Markdown text={content.body} className="lg:text-[15.5px] lg:leading-[1.75]" />
+      return <Markdown text={content.body} headingLevel={5} className="lg:text-[15.5px] lg:leading-[1.75]" />
 
     case 'video':
       if (content.youtube_id) {

@@ -103,7 +103,12 @@ function LessonModule({ module, number, open, onToggle }: LessonModuleProps) {
           className="border-t border-line-soft px-3.5 pt-1.5 pb-5 lg:pr-7 lg:pb-6 lg:pl-[66px]"
         >
           {module.description && (
-            <Markdown text={module.description} className="mt-2 mb-1.5 text-sm! text-ink-muted" />
+            // หัวข้อในคำอธิบายเริ่มที่ h4 (อยู่ใต้ชื่อหน่วย h3)
+            <Markdown
+              text={module.description}
+              headingLevel={4}
+              className="mt-2 mb-1.5 text-sm! text-ink-muted"
+            />
           )}
           {count > 0 ? (
             <div className="flex flex-col gap-[22px] pt-1.5 pb-1">

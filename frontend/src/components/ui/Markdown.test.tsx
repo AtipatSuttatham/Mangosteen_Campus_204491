@@ -46,4 +46,11 @@ describe('Markdown', () => {
     // โค้ดในบรรทัดยังมีพื้นตามเดิม
     expect(screen.getByText('print')).toHaveClass('bg-canvas')
   })
+
+  it('headingLevel: # / ## ใช้ระดับที่กำหนด และ ### ลงไปเป็นระดับถัดไป (ไม่เกิน h6)', () => {
+    render(<Markdown text={'# ใหญ่\n\n### เล็ก'} headingLevel={5} />)
+
+    expect(screen.getByRole('heading', { name: 'ใหญ่' }).tagName).toBe('H5')
+    expect(screen.getByRole('heading', { name: 'เล็ก' }).tagName).toBe('H6')
+  })
 })

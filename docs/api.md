@@ -418,7 +418,7 @@ cookie ตั้งค่า: `HttpOnly` ; `Path=/api/v1/auth/` (ส่งเฉ
   - `allow_download` = **ค่าที่มีผลจริง** ; `can_disable_download` = หน้าต่างแก้ไขแสดงสวิตช์ดาวน์โหลดไหม — `true` เฉพาะไฟล์ที่เบราว์เซอร์เปิดดูได้ (PDF / รูป / เสียง / วิดีโอ / .txt) ; Word / PowerPoint / Excel / zip / .py / ข้อความ / ลิงก์ = `false` → ส่ง `allow_download: false` มา ระบบไม่สนใจ (200 ค่าคงเปิด — กพ1) ; เปลี่ยนไฟล์เป็นชนิดที่ปิดไม่ได้ → กลับเป็นเปิด
   - `content_type`: `text` / `file` / `image` / `video` / `audio` / `link` — **ระบบตั้งเอง เปลี่ยนภายหลังไม่ได้**
   - `body`: ชนิด `text` = เนื้อความ ; ชนิดอื่น = คำอธิบายเหนือไฟล์ / ลิงก์ (Markdown, ว่างได้)
-  - `file_link`: ลิงก์ดูไฟล์ (ตอนพัฒนา `/media/…` ; ตอน deploy ลิงก์ชั่วคราว) ; ไม่มีไฟล์ = `null`
+  - `file_link`: ลิงก์ดูไฟล์ (ตอนพัฒนา `/media/…` ; ตอน deploy ลิงก์ชั่วคราว) ; ไม่มีไฟล์ = `null` ; ไฟล์ข้อความ (.txt / .py) บน S3 / B2 ใส่ `ResponseContentType: text/plain; charset=utf-8` ในลิงก์ (ตอนพัฒนา `common/dev_media.py` ใส่ charset ให้) — ไม่งั้นภาษาไทยอ่านไม่ออกเมื่อเปิดในเบราว์เซอร์ (แก้หลังตรวจขั้น 4.7 ก — ขจ1)
   - `download_link`: ลิงก์ดาวน์โหลดที่ได้ชื่อไฟล์เดิม — ที่เก็บไฟล์แบบ S3 / B2 ใส่ `ResponseContentDisposition: attachment; filename*=UTF-8''…` ในลิงก์ชั่วคราว ; ที่เก็บในเครื่องตอนพัฒนาได้ลิงก์เดียวกับ `file_link` (หน้าเว็บใช้ `<a download>` เพราะโดเมนเดียวกัน) ; ผู้สอนได้เสมอ (`allow_download` มีผลกับผู้เรียน — ขั้น 4.4)
   - `youtube_id`: รหัสวิดีโอ 11 ตัว (หน้าเว็บฝังผ่าน `youtube-nocookie.com`) ; ไม่ใช่ YouTube = `null`
 

@@ -43,7 +43,7 @@ function modules(link = 'old'): StudentModule[] {
     {
       id: 1,
       title: 'ก้าวแรกกับ Python',
-      description: 'เริ่มจาก **print**',
+      description: 'เริ่มจาก **print**\n\n# ติดตั้ง',
       contents: [makeContent(10, { title: 'สรุปก่อนเรียน', body: 'สวัสดี Python' }), pdf(link)],
     },
     { id: 2, title: 'ฟังก์ชัน', description: '', contents: [] },
@@ -111,9 +111,11 @@ describe('บทเรียนของผู้เรียน', () => {
       within(body)
         .getAllByRole('heading', { level: 4 })
         .map((heading) => heading.textContent),
-    ).toEqual(['สรุปก่อนเรียน', 'สไลด์บทที่ 3'])
+    ).toEqual(['ติดตั้ง', 'สรุปก่อนเรียน', 'สไลด์บทที่ 3'])
     // หัวหน่วยอยู่ใน h3 (ลำดับหัวข้อ h1 → h2 บทเรียน → h3 หน่วย → h4 เนื้อหา)
     expect(screen.getByRole('heading', { level: 3, name: /ก้าวแรกกับ Python/ })).toBeInTheDocument()
+    // หัวข้อในคำอธิบายหน่วยอยู่ใต้ชื่อหน่วย → h4 (แก้หลังตรวจขั้น 4.7 ก)
+    expect(within(body).getByRole('heading', { name: 'ติดตั้ง' }).tagName).toBe('H4')
 
     await user.click(moduleButton(/ฟังก์ชัน/))
     expect(moduleButton(/ฟังก์ชัน/)).toHaveAttribute('aria-expanded', 'true')
@@ -139,6 +141,8 @@ describe('บทเรียนของผู้เรียน', () => {
     const user = renderPage()
 
     expect(await screen.findByText('โหลดบทเรียนไม่สำเร็จ')).toBeInTheDocument()
+    // บอกเหตุผลแบบเดียวกับหน้าโหลดวิชาไม่สำเร็จ (แก้หลังตรวจขั้น 4.7 ก)
+    expect(screen.getByRole('alert')).toHaveTextContent('ระบบขัดข้อง กรุณาลองใหม่อีกครั้ง')
     await user.click(screen.getByRole('button', { name: 'ลองใหม่' }))
     expect(await screen.findByRole('heading', { name: 'บทเรียน' })).toBeInTheDocument()
   })
