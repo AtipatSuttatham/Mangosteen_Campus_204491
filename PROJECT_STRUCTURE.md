@@ -226,7 +226,7 @@ Mangosteen_Campus_204491/
 │       │   │   │   ├── fileRules.test.ts       test กติกาไฟล์: ทุกนามสกุล / ไม่รับ / ชนิดเดิม / ว่าง / ใหญ่เกิน
 │       │   │   │   ├── useContentActions.ts    กติกากลางของปุ่ม: ล็อกปุ่มร่วมกัน, โหลดรายการใหม่ทุกครั้ง, ผลขึ้นแถบด้านบน / ในหน้าต่าง
 │       │   │   │   ├── contentLabels.ts        ข้อความรายละเอียดใต้ชื่อเนื้อหา (PDF 2.1 MB, วิดีโอจาก YouTube, ลิงก์ python.org …)
-│       │   │   │   ├── contentLabels.test.ts   test ขนาดไฟล์ (ไบต์ / KB / MB ; เกือบ 1 MB แสดง 1.0 MB)
+│       │   │   │   ├── contentLabels.test.ts   test ขนาดไฟล์ (ไบต์ / KB / MB ; เกือบ 1 MB แสดง 1.0 MB) + หารหัสวิดีโอ YouTube (กรณีเดียวกับ backend)
 │       │   │   │   ├── contentIcons.tsx        ไอคอนชนิดเนื้อหา 6 แบบ + ลูกศร ↑ ↓ + ลูกศรพับ / เปิด (จาก canvas)
 │       │   │   │   ├── ContentTab.test.tsx     test แท็บเนื้อหา: รายการ / พับเปิด / เพิ่ม / แก้ / เลื่อน / เผยแพร่ / ลบ / ดูอย่างเดียว / โฟกัสแป้นพิมพ์
 │       │   │   │   ├── ContentDialogs.test.tsx test หน้าต่างเนื้อหา: เขียนข้อความ / เพิ่มลิงก์ / แก้ / ย้ายหน่วย / สวิตช์ / เปลี่ยนไฟล์ / หยุดอัปโหลด (ขั้น 4.6 ก)
@@ -293,8 +293,8 @@ Mangosteen_Campus_204491/
 │       │           └── CsvImportPage.test.tsx  test ทั้ง 3 ขั้น + ตัวเฝ้าประตู
 │       ├── api/              การเรียก backend
 │       │   ├── client.ts     apiFetch(): ตัวเรียก API กลาง (/api/v1/...) แนบบัตร + แลกบัตรเมื่อได้ 401 ; ส่ง JSON หรือไฟล์ (FormData) ; โยน ApiError รูปแบบเดียวกันทุกกรณี (เก็บคำตอบ error ทั้งก้อนใน body) ; apiFetchWithStatus() คืน HTTP status ด้วย (ขั้น 3.7) ; readResponse() แปลงคำตอบ ใช้ร่วมกับ upload.ts (ขั้น 4.6)
-│       │   ├── upload.ts     uploadWithProgress(): ส่งไฟล์ด้วย XHR รายงานความคืบหน้า + แลกบัตรเมื่อได้ 401 + ยกเลิกได้ (UploadAbortedError) (ขั้น 4.6)
-│       │   ├── upload.test.ts  test ตัวส่งไฟล์ (XHR ปลอม): ที่อยู่ / header / ความคืบหน้า / error / แลกบัตร / ยกเลิก
+│       │   ├── upload.ts     uploadWithProgress(): ส่งไฟล์ด้วย XHR รายงานความคืบหน้า + แลกบัตรเมื่อได้ 401 + ยกเลิกได้ (UploadAbortedError) + onSent บอกเมื่อส่งไฟล์ครบ (ขั้น 4.6)
+│       │   ├── upload.test.ts  test ตัวส่งไฟล์ (XHR ปลอม): ที่อยู่ / header / ความคืบหน้า / ส่งครบ / error / แลกบัตร / ยกเลิก
 │       │   ├── adminUsers.ts ชนิดข้อมูล AdminUser / Paginated + fetchAdminUsers() รายชื่อ (ขั้น 2.5) + create / update / suspend / activate / resetPassword (ขั้น 2.6) + validateUserImport / importUsers / csvInvalidReport (ขั้น 2.7)
 │       │   ├── adminUsers.test.ts  test การแปลงตัวกรองเป็น query string + method/ที่อยู่/ข้อมูลที่ส่งของฟังก์ชันขั้น 2.6
 │       │   ├── content.ts    API เนื้อหารายวิชา: ชนิด Module / Content + ดูรายการ, เพิ่ม / แก้ / ลบ / เลื่อน / เผยแพร่หน่วย, ลบ / เลื่อน / เผยแพร่เนื้อหา (ขั้น 4.5) + เขียนข้อความ / เพิ่มลิงก์ / แก้เนื้อหา / เปลี่ยนไฟล์ (ขั้น 4.6 ก — docs/api.md §10)
