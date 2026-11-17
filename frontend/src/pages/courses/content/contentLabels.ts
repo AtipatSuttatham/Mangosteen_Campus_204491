@@ -26,27 +26,48 @@ function siteName(url: string): string {
   }
 }
 
-/** ชื่อเว็บของ YouTube (ตรงตัว — สำเนาของ backend content/youtube.py) */
+/**
+ * กติกาหารหัสวิดีโอ YouTube — ⚠ สำเนาของ backend content/youtube.py (youtube_video_id) แก้ที่นั่นต้องแก้ที่นี่ด้วย
+ * ใช้แค่ขึ้นคำแนะนำใต้ช่องลิงก์ (ขั้น 4.6) — backend เป็นคนตัดสินชนิดจริงเสมอ
+ * (แก้หลังตรวจขั้น 4.6 ก — กศ1: เดิมดูแค่ชื่อเว็บ ลิงก์ช่อง / เพลย์ลิสต์ของ YouTube จึงถูกบอกว่าเป็นวิดีโอ)
+ */
 const YOUTUBE_HOSTS = new Set([
   'youtube.com',
   'www.youtube.com',
   'm.youtube.com',
   'youtube-nocookie.com',
   'www.youtube-nocookie.com',
-  'youtu.be',
-  'www.youtu.be',
 ])
+const YOUTUBE_SHORT_HOSTS = new Set(['youtu.be', 'www.youtu.be'])
+/** รูปแบบที่อยู่ที่มีรหัสวิดีโอเป็นส่วนที่ 2 เช่น /shorts/<รหัส>, /embed/<รหัส> */
+const YOUTUBE_ID_PATH_PREFIXES = new Set(['shorts', 'embed', 'live', 'v'])
+const YOUTUBE_VIDEO_ID = /^[A-Za-z0-9_-]{11}$/
 
-/**
- * ลิงก์นี้น่าจะเป็นวิดีโอ YouTube ไหม — ใช้แค่ขึ้นคำแนะนำใต้ช่องในหน้าต่างเพิ่มลิงก์ (ขั้น 4.6)
- * backend เป็นคนตัดสินชนิดจริงเสมอ (ตรวจรูปแบบที่อยู่และรหัสวิดีโอละเอียดกว่านี้)
- */
-export function looksLikeYoutube(url: string): boolean {
+/** รหัสวิดีโอ 11 ตัวถ้าเป็นลิงก์วิดีโอ YouTube ที่รู้จัก ; ไม่ใช่ (รวมลิงก์ช่อง / เพลย์ลิสต์) → null */
+export function youtubeVideoId(url: string): string | null {
+  let parts: URL
   try {
-    return YOUTUBE_HOSTS.has(new URL(url.trim()).hostname.toLowerCase())
+    parts = new URL(url.trim())
   } catch {
-    return false
+    return null
   }
+  if (parts.protocol !== 'http:' && parts.protocol !== 'https:') return null
+  const host = parts.hostname.toLowerCase()
+  const segments = parts.pathname.split('/').filter(Boolean)
+
+  let candidate: string | null | undefined = null
+  if (YOUTUBE_SHORT_HOSTS.has(host) && segments.length > 0) {
+    // https://youtu.be/<รหัส>
+    candidate = segments[0]
+  } else if (YOUTUBE_HOSTS.has(host)) {
+    if (parts.pathname === '/watch') {
+      // https://www.youtube.com/watch?v=<รหัส>
+      candidate = parts.searchParams.get('v')
+    } else if (segments.length >= 2 && YOUTUBE_ID_PATH_PREFIXES.has(segments[0]!)) {
+      candidate = segments[1]
+    }
+  }
+  return candidate && YOUTUBE_VIDEO_ID.test(candidate) ? candidate : null
 }
 
 /**

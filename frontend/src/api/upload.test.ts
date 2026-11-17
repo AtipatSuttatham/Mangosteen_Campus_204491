@@ -34,7 +34,8 @@ class FakeXhr {
   body: unknown = null
   upload: {
     onprogress: ((event: { lengthComputable: boolean; loaded: number; total: number }) => void) | null
-  } = { onprogress: null }
+    onload: (() => void) | null
+  } = { onprogress: null, onload: null }
   onload: (() => void) | null = null
   onerror: (() => void) | null = null
   onabort: (() => void) | null = null
@@ -60,6 +61,8 @@ class FakeXhr {
         for (const [loaded, total] of script.progress ?? []) {
           this.upload.onprogress?.({ lengthComputable: true, loaded, total })
         }
+        // เบราว์เซอร์จริง: ส่งเนื้อคำขอครบ (upload.onload) ก่อนได้คำตอบ (onload)
+        this.upload.onload?.()
         this.status = script.status
         this.responseText = script.body === undefined ? '' : JSON.stringify(script.body)
         this.onload?.()
@@ -116,6 +119,20 @@ describe('uploadWithProgress', () => {
     expect(xhr.headers['Content-Type']).toBeUndefined()
     expect(xhr.body).toBe(data)
     expect(onProgress.mock.calls).toEqual([[{ loaded: 50, total: 100 }], [{ loaded: 100, total: 100 }]])
+  })
+
+  it('onSent: บอกเมื่อส่งไฟล์ครบแล้ว (ก่อนได้คำตอบ) ; เน็ตหลุดก่อนส่งครบ → ไม่บอก (กศ1)', async () => {
+    const order: string[] = []
+    scripts = [{ kind: 'respond', status: 200, body: { id: 1 } }, { kind: 'fail' }]
+
+    await uploadWithProgress('/x/', form(), { onSent: () => order.push('sent') }).then(() =>
+      order.push('done'),
+    )
+    const onSent = vi.fn()
+    await uploadWithProgress('/x/', form(), { onSent }).catch(() => {})
+
+    expect(order).toEqual(['sent', 'done'])
+    expect(onSent).not.toHaveBeenCalled()
   })
 
   it('backend ตอบ error รูปแบบกลาง → ApiError พร้อมรหัสและข้อมูลประกอบ', async () => {
