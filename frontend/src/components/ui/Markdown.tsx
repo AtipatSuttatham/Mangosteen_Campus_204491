@@ -7,19 +7,26 @@
  * - ลิงก์ที่ไม่ปลอดภัย (javascript: ฯลฯ) react-markdown ล้างให้เอง (urlTransform ค่าเริ่มต้น)
  * - ลิงก์เปิดแท็บใหม่ + rel="noopener noreferrer"
  *
- * หน้าตา: ใช้ token ของระบบ ; หัวข้อใน Markdown ทุกระดับแสดงเป็น h3 / h4
+ * หน้าตา: ใช้ token ของระบบ ; หัวข้อใน Markdown ทุกระดับแสดงเป็น h3 / h4 (หรือระดับที่กำหนดด้วย headingLevel)
  * (หน้าจอมี h1 / h2 ของตัวเองอยู่แล้ว — ไม่ให้ข้อความของผู้ใช้แทรกลำดับหัวข้อของหน้า)
  */
 import type { ComponentProps } from 'react'
 import ReactMarkdown, { type Components } from 'react-markdown'
 
-/** หัวข้อ: # และ ## เป็น h3 ; ### ลงไปเป็น h4 */
-const H3 = (props: ComponentProps<'h3'>) => (
-  <h3 className="m-0 mt-2 font-display text-lg leading-[1.4] font-semibold text-ink" {...props} />
-)
-const H4 = (props: ComponentProps<'h4'>) => (
-  <h4 className="m-0 mt-1 text-base leading-normal font-semibold text-ink" {...props} />
-)
+/** ระดับหัวข้อที่ใช้แทน # / ## (ตัวรอง ### ลงไปใช้ระดับถัดไป) */
+type HeadingBase = 3 | 4 | 5
+
+/** หัวข้อหลักใน Markdown (# / ##) */
+function MainHeading({ level, ...props }: ComponentProps<'h3'> & { level: HeadingBase }) {
+  const Tag = `h${level}` as const
+  return <Tag className="m-0 mt-2 font-display text-lg leading-[1.4] font-semibold text-ink" {...props} />
+}
+
+/** หัวข้อรองใน Markdown (### ลงไป) — ไม่เกิน h6 */
+function SubHeading({ level, ...props }: ComponentProps<'h4'> & { level: HeadingBase }) {
+  const Tag = `h${Math.min(level + 1, 6) as 4 | 5 | 6}` as const
+  return <Tag className="m-0 mt-1 text-base leading-normal font-semibold text-ink" {...props} />
+}
 
 /** ตัด node (ข้อมูลภายในของ react-markdown) ออก ไม่ให้หลุดลงเป็น attribute ของ DOM */
 function withoutNode<T extends { node?: unknown }>(props: T): Omit<T, 'node'> {
@@ -28,14 +35,20 @@ function withoutNode<T extends { node?: unknown }>(props: T): Omit<T, 'node'> {
   return rest
 }
 
+/** หัวข้อทุกระดับของ Markdown → หัวข้อของหน้าตามระดับที่กำหนด */
+function headingComponents(level: HeadingBase): Components {
+  return {
+    h1: (props) => <MainHeading level={level} {...withoutNode(props)} />,
+    h2: (props) => <MainHeading level={level} {...withoutNode(props)} />,
+    h3: (props) => <SubHeading level={level} {...withoutNode(props)} />,
+    h4: (props) => <SubHeading level={level} {...withoutNode(props)} />,
+    h5: (props) => <SubHeading level={level} {...withoutNode(props)} />,
+    h6: (props) => <SubHeading level={level} {...withoutNode(props)} />,
+  }
+}
+
 /** แต่ละส่วนของ Markdown → element พร้อม class ของระบบ (ไม่ส่ง node ต่อลง DOM) */
 const COMPONENTS: Components = {
-  h1: (props) => <H3 {...withoutNode(props)} />,
-  h2: (props) => <H3 {...withoutNode(props)} />,
-  h3: (props) => <H4 {...withoutNode(props)} />,
-  h4: (props) => <H4 {...withoutNode(props)} />,
-  h5: (props) => <H4 {...withoutNode(props)} />,
-  h6: (props) => <H4 {...withoutNode(props)} />,
   p: (props) => <p className="m-0" {...withoutNode(props)} />,
   ul: (props) => <ul className="m-0 list-disc pl-6" {...withoutNode(props)} />,
   ol: (props) => <ol className="m-0 list-decimal pl-6" {...withoutNode(props)} />,
@@ -72,13 +85,25 @@ type MarkdownProps = {
   /** ข้อความ Markdown ที่ผู้ใช้กรอก */
   text: string
   className?: string
+  /**
+   * ระดับหัวข้อของ # / ## (ค่าเริ่มต้น 3) — ให้ต่ำกว่าหัวข้อของหน้าที่ครอบข้อความนี้อยู่
+   * เช่น หน้าบทเรียน: คำอธิบายหน่วย (ใต้ h3) ใช้ 4, เนื้อหา (ใต้ h4) ใช้ 5 (แก้หลังตรวจขั้น 4.7 ก)
+   */
+  headingLevel?: HeadingBase
+}
+
+/** ชุด element ต่อระดับหัวข้อ (สร้างครั้งเดียว) */
+const COMPONENTS_BY_LEVEL: Record<HeadingBase, Components> = {
+  3: { ...COMPONENTS, ...headingComponents(3) },
+  4: { ...COMPONENTS, ...headingComponents(4) },
+  5: { ...COMPONENTS, ...headingComponents(5) },
 }
 
 /** ข้อความ Markdown แบบปลอดภัย */
-export function Markdown({ text, className = '' }: MarkdownProps) {
+export function Markdown({ text, className = '', headingLevel = 3 }: MarkdownProps) {
   return (
     <div className={`flex flex-col gap-2.5 text-[15px] leading-[1.7] break-words ${className}`}>
-      <ReactMarkdown skipHtml components={COMPONENTS}>
+      <ReactMarkdown skipHtml components={COMPONENTS_BY_LEVEL[headingLevel]}>
         {text}
       </ReactMarkdown>
     </div>

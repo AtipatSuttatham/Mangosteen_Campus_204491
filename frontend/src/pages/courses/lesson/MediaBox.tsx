@@ -9,8 +9,13 @@
  * - ตัวเล่นจำลิงก์ของตัวเองตั้งแต่วาดครั้งแรก — ข้อมูลที่โหลดใหม่ภายหลังไม่เปลี่ยนลิงก์ของวิดีโอที่กำลังเล่น (ไม่สะดุด)
  * - โหลดไฟล์ไม่ได้ → ขอรายการใหม่ 1 ครั้ง ได้ลิงก์ใหม่ → ใช้ลิงก์ใหม่แล้วเล่นต่อจากตำแหน่งเดิม
  * - ยังไม่ได้ (หรือได้ลิงก์เดิม = ปัญหาไม่ใช่ลิงก์หมดอายุ) → "โหลดไฟล์ไม่สำเร็จ" + ปุ่มลองใหม่ (ไม่วนขอเอง)
+ * - โหลดสำเร็จแล้วนับใหม่ — เปิดหน้าไว้นานจนลิงก์ใหม่หมดอายุอีกรอบก็ขอใหม่ได้อีก (แก้หลังตรวจขั้น 4.7 ก — ขฉ1)
+ *
+ * โฟกัส (กติกาเดียวกับ กภ1 / กฮ1 — ของที่โฟกัสอยู่ถูกถอดออกต้องไม่ทิ้งโฟกัสไปต้นหน้า):
+ * - ตัวเล่นที่โฟกัสอยู่กลายเป็นกล่องแจ้งปัญหา → โฟกัสปุ่ม "ลองใหม่"
+ * - กด "ลองใหม่" (กล่องหายไปพร้อมปุ่ม) → โฟกัสตัวเล่น / รูปที่วาดใหม่
  */
-import { useRef, useState, type ReactNode, type SyntheticEvent } from 'react'
+import { useCallback, useRef, useState, type ReactNode, type SyntheticEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Button } from '../../../components/ui'
 import { ExpandIcon, ShrinkIcon } from './lessonIcons'
@@ -58,9 +63,13 @@ function useRecoverableSrc(contentId: number, initialSrc: string) {
   // กำลังเล่นอยู่ไหม (ดูจากเหตุการณ์ play / pause — ตอน error เบราว์เซอร์อาจหยุดเองก่อน)
   const playingRef = useRef(false)
   const resumeRef = useRef<{ time: number; play: boolean } | null>(null)
+  // หลังวาดครั้งถัดไปต้องโฟกัสอะไร (ตัวเล่น / ปุ่มลองใหม่) — ใช้ใน callback ref ตอนวาดเสร็จ
+  const focusNextRef = useRef<'media' | 'retry' | null>(null)
 
   const onError = (event: SyntheticEvent<HTMLElement>) => {
     const element = event.currentTarget
+    // ผู้ใช้อยู่ที่ตัวเล่นนี้ → ถ้ากลายเป็นกล่องแจ้งปัญหา ให้โฟกัสปุ่มลองใหม่
+    focusNextRef.current = document.activeElement === element ? 'retry' : null
     if ('currentTime' in element) {
       const media = element as MediaElement
       resumeRef.current = { time: media.currentTime, play: playingRef.current }
@@ -77,7 +86,13 @@ function useRecoverableSrc(contentId: number, initialSrc: string) {
     })
   }
 
+  /** โหลดไฟล์สำเร็จ (ข้อมูลต้นไฟล์ / รูป) — ลิงก์นี้ใช้ได้ ปัญหาครั้งต่อไปขอลิงก์ใหม่ได้อีก */
+  const onReady = () => {
+    triedRef.current = false
+  }
+
   const onLoaded = (event: SyntheticEvent<MediaElement>) => {
+    onReady()
     const resume = resumeRef.current
     if (!resume) return
     resumeRef.current = null
@@ -87,6 +102,7 @@ function useRecoverableSrc(contentId: number, initialSrc: string) {
   }
 
   const retry = () => {
+    focusNextRef.current = 'media'
     triedRef.current = false
     setFailed(false)
     setVersion((value) => value + 1)
@@ -102,11 +118,31 @@ function useRecoverableSrc(contentId: number, initialSrc: string) {
     },
   }
 
-  return { src, version, failed, onError, onLoaded, retry, playEvents }
+  // callback ref: React เรียกตอนวาดเสร็จ — โฟกัสตามที่ตั้งไว้แล้วล้างค่า
+  const attachMedia = useCallback((element: HTMLElement | null) => {
+    if (element && focusNextRef.current === 'media') {
+      focusNextRef.current = null
+      element.focus()
+    }
+  }, [])
+  const attachRetry = useCallback((element: HTMLButtonElement | null) => {
+    if (element && focusNextRef.current === 'retry') {
+      focusNextRef.current = null
+      element.focus()
+    }
+  }, [])
+
+  return { src, version, failed, onError, onLoaded, onReady, retry, playEvents, attachMedia, attachRetry }
 }
 
 /** กล่องแทนตัวเล่นเมื่อโหลดไม่ได้ */
-function MediaFailed({ onRetry }: { onRetry: () => void }) {
+function MediaFailed({
+  onRetry,
+  attachButton,
+}: {
+  onRetry: () => void
+  attachButton: (element: HTMLButtonElement | null) => void
+}) {
   const { t } = useTranslation()
   return (
     <div
@@ -114,7 +150,7 @@ function MediaFailed({ onRetry }: { onRetry: () => void }) {
       className="flex flex-col items-start gap-2.5 rounded-[12px] border border-bad-line bg-bad-soft px-4 py-3.5 text-[14.5px] text-bad"
     >
       <span className="font-semibold">{t('lesson.mediaFailed')}</span>
-      <Button variant="secondary" onClick={onRetry}>
+      <Button ref={attachButton} variant="secondary" onClick={onRetry}>
         {t('lesson.retry')}
       </Button>
     </div>
@@ -126,11 +162,14 @@ type FileMediaProps = { contentId: number; title: string; src: string; allowDown
 /** วิดีโอที่อัปโหลด — preload="metadata" ไม่โหลดไฟล์ทั้งก้อนจนกว่าจะกดเล่น */
 export function FileVideo({ contentId, title, src: initialSrc, allowDownload }: FileMediaProps) {
   const { t } = useTranslation()
-  const media = useRecoverableSrc(contentId, initialSrc)
-  if (media.failed) return <MediaFailed onRetry={media.retry} />
+  const { attachMedia, attachRetry, ...media } = useRecoverableSrc(contentId, initialSrc)
+  if (media.failed) return <MediaFailed onRetry={media.retry} attachButton={attachRetry} />
   return (
     <video
       key={media.version}
+      ref={attachMedia}
+      // ตัวเล่นที่มีปุ่มควบคุมรับโฟกัสอยู่แล้วใน Chrome — ระบุให้ชัดเพื่อคืนโฟกัสหลังกด "ลองใหม่" ได้ทุกเบราว์เซอร์
+      tabIndex={0}
       src={media.src}
       controls
       preload="metadata"
@@ -140,7 +179,7 @@ export function FileVideo({ contentId, title, src: initialSrc, allowDownload }: 
       onError={media.onError}
       onLoadedMetadata={media.onLoaded}
       {...media.playEvents}
-      className="block aspect-video w-full rounded-[12px] bg-ink"
+      className="block aspect-video w-full rounded-[12px] bg-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
     />
   )
 }
@@ -148,11 +187,13 @@ export function FileVideo({ contentId, title, src: initialSrc, allowDownload }: 
 /** เสียงที่อัปโหลด — ตัวเล่นของเบราว์เซอร์เต็มความกว้าง */
 export function FileAudio({ contentId, title, src: initialSrc, allowDownload }: FileMediaProps) {
   const { t } = useTranslation()
-  const media = useRecoverableSrc(contentId, initialSrc)
-  if (media.failed) return <MediaFailed onRetry={media.retry} />
+  const { attachMedia, attachRetry, ...media } = useRecoverableSrc(contentId, initialSrc)
+  if (media.failed) return <MediaFailed onRetry={media.retry} attachButton={attachRetry} />
   return (
     <audio
       key={media.version}
+      ref={attachMedia}
+      tabIndex={0}
       src={media.src}
       controls
       preload="metadata"
@@ -161,23 +202,27 @@ export function FileAudio({ contentId, title, src: initialSrc, allowDownload }: 
       onError={media.onError}
       onLoadedMetadata={media.onLoaded}
       {...media.playEvents}
-      className="block w-full"
+      className="block w-full rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
     />
   )
 }
 
 /** รูปที่อัปโหลด — ข้อความแทนรูปคือหัวข้อ (ผู้สอนตั้ง / ชื่อไฟล์) */
 export function FileImage({ contentId, title, src: initialSrc }: Omit<FileMediaProps, 'allowDownload'>) {
-  const media = useRecoverableSrc(contentId, initialSrc)
-  if (media.failed) return <MediaFailed onRetry={media.retry} />
+  const { attachMedia, attachRetry, ...media } = useRecoverableSrc(contentId, initialSrc)
+  if (media.failed) return <MediaFailed onRetry={media.retry} attachButton={attachRetry} />
   return (
     <img
       key={media.version}
+      ref={attachMedia}
+      // ไม่อยู่ในลำดับ Tab แต่รับโฟกัสจากโปรแกรมได้ (คืนโฟกัสหลังกด "ลองใหม่")
+      tabIndex={-1}
+      onLoad={media.onReady}
       src={media.src}
       alt={title}
       loading="lazy"
       onError={media.onError}
-      className="block h-auto w-full rounded-[12px] border border-line bg-surface"
+      className="block h-auto w-full rounded-[12px] border border-line bg-surface focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
     />
   )
 }

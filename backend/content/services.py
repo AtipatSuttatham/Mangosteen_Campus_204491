@@ -320,6 +320,28 @@ def replace_file(content: Content, upload: StoredUpload) -> None:
     transaction.on_commit(lambda: storage.delete(old_name))
 
 
+def view_url(content: Content) -> str | None:
+    """
+    ลิงก์เปิดดู / เล่นไฟล์ (file_link) — ขั้น 4.7 ก แก้หลังตรวจ (ผู้ใช้เลือกแบบ ขจ1)
+    ไฟล์ข้อความ (.txt / .py) ต้องบอกเบราว์เซอร์ว่าเป็น UTF-8 ไม่งั้นภาษาไทยอ่านไม่ออก
+    (เบราว์เซอร์เดาเป็น windows-1252 — ทดลองใน Chrome แล้ว ; ที่เก็บไฟล์ส่ง text/plain โดยไม่มี charset)
+    - ที่เก็บไฟล์แบบ S3 / B2 (ตอน deploy) รับ parameters → ลิงก์ชั่วคราวที่สั่ง Content-Type พร้อม charset
+    - ที่เก็บไฟล์ในเครื่องตอนพัฒนาไม่รับ → ลิงก์ปกติ (common/dev_media.py ใส่ charset ให้เอง)
+    ไฟล์ข้อความที่บันทึกเป็น TIS-620 จะยังอ่านไม่ออก (พบน้อย — ผู้ใช้รับทราบตอนเลือก ขจ1)
+    """
+    if not content.has_file:
+        return None
+    if not content.mime_type.startswith("text/"):
+        return content.file_url.url
+    try:
+        return content.file_url.storage.url(
+            content.file_url.name,
+            parameters={"ResponseContentType": f"{content.mime_type}; charset=utf-8"},
+        )
+    except TypeError:
+        return content.file_url.url
+
+
 def download_url(content: Content) -> str | None:
     """
     ลิงก์ดาวน์โหลดที่ได้ชื่อไฟล์เดิม (Content-Disposition: attachment)
