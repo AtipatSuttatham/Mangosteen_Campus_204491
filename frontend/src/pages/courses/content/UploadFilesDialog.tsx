@@ -20,9 +20,13 @@
  * - ปิดหน้าต่างระหว่างส่ง → ถามยืนยัน (กญ1) ; ออกจากหน้าระหว่างส่ง → ถามยืนยันทุกทาง (useLeaveGuard — กล1)
  * - โฟกัส: ปุ่มที่หายไปหลังกด (ยกเลิก / เอาออก / ลองใหม่) → โฟกัสหัวรายการ "ไฟล์ที่เลือก N ไฟล์"
  *   ปุ่มล่างซ้ายเปลี่ยนชื่อในตำแหน่งเดิม (หยุดไฟล์ที่เหลือ → อัปโหลดไฟล์อื่นเพิ่ม) โฟกัสจึงไม่หลุด
+ *   + สิ่งที่โฟกัสอยู่หายไปเพราะหน้าต่างเปลี่ยนเอง (ส่งจบ → กล่องเลือกไฟล์หาย, คิวเดิน → ปุ่มในแถวเปลี่ยน)
+ *     → โฟกัสหัวรายการเช่นกัน (แก้หลังตรวจขั้น 4.6 ข — กฮ1 ; กติกาเดียวกับ กภ1)
+ * - ระหว่างหน้าต่างเปิด วางไฟล์พลาดนอกพื้นที่รับ (หัวหน้าต่าง / พื้นมืด) → ไม่ทำอะไร
+ *   (ไม่งั้นเบราว์เซอร์เปิดไฟล์นั้นแทนหน้าเว็บ — กฮ1)
  */
 import { useQueryClient } from '@tanstack/react-query'
-import { useCallback, useId, useRef, useState, type DragEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useId, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Module } from '../../../api/content'
 import { Button, ConfirmDialog, Dialog, DialogBody, DialogFooter, DialogHeader } from '../../../components/ui'
@@ -55,11 +59,33 @@ export function UploadFilesDialog({ module, number, onClose }: UploadFilesDialog
   const [pickError, setPickError] = useState<string>()
   const [dragging, setDragging] = useState(false)
   const [confirmClose, setConfirmClose] = useState(false)
+  /** element ล่าสุดที่ได้โฟกัสในหน้าต่าง — ใช้รู้ว่าโฟกัสหลุดเพราะ element นั้นถูกถอดออก */
+  const lastFocusRef = useRef<HTMLElement | null>(null)
 
   const refresh = useCallback(() => void refreshModules(queryClient, course.id), [queryClient, course.id])
   const queue = useUploadQueue(course.id, module.id, refresh)
   const { items, running } = queue
   const leave = useLeaveGuard(running)
+
+  // โฟกัสหลุดเพราะสิ่งที่โฟกัสอยู่ถูกถอดออก (ไม่ใช่ผู้ใช้คลิกที่อื่น) → ย้ายไปหัวรายการ / ปุ่มเลือกไฟล์
+  // ตรวจหลังวาดทุกครั้ง เพราะหน้าต่างเปลี่ยนเองได้ตลอดระหว่างส่ง (ความคืบหน้า / คิวเดิน / ส่งจบ)
+  useEffect(() => {
+    const last = lastFocusRef.current
+    if (!last || last.isConnected || document.activeElement !== document.body) return
+    lastFocusRef.current = null
+    ;(listHeadingRef.current ?? chooseRef.current)?.focus()
+  })
+
+  // วางไฟล์พลาดนอกพื้นที่รับ → กันเบราว์เซอร์เปิดไฟล์แทนหน้าเว็บ (ในพื้นที่รับ ตัวจัดการด้านล่างรับไฟล์ตามปกติ)
+  useEffect(() => {
+    const block = (event: globalThis.DragEvent) => event.preventDefault()
+    window.addEventListener('dragover', block)
+    window.addEventListener('drop', block)
+    return () => {
+      window.removeEventListener('dragover', block)
+      window.removeEventListener('drop', block)
+    }
+  }, [])
 
   // นับตามสถานะ
   const count = (status: UploadItem['status']) => items.filter((item) => item.status === status).length
@@ -80,7 +106,7 @@ export function UploadFilesDialog({ module, number, onClose }: UploadFilesDialog
     )
   }
 
-  // ลากวางได้ทั้งหน้าต่าง (กันเบราว์เซอร์เปิดไฟล์แทนหน้าเว็บเมื่อวางพลาดกล่อง) ; หน้าสรุปผลไม่รับไฟล์เพิ่ม
+  // วางไฟล์ได้ทั้งเนื้อหน้าต่างและแถบปุ่ม (ไม่ต้องตรงกล่องพอดี) ; หน้าสรุปผลไม่รับไฟล์เพิ่ม
   function handleDragOver(event: DragEvent<HTMLDivElement>) {
     event.preventDefault()
     if (!finished) setDragging(true)
@@ -128,6 +154,9 @@ export function UploadFilesDialog({ module, number, onClose }: UploadFilesDialog
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
         onDrop={handleDrop}
+        onFocus={(event) => {
+          lastFocusRef.current = event.target
+        }}
       >
         <DialogBody className="lg:min-h-0 lg:overflow-y-auto">
           {/* กล่องสถานะอยู่ตลอด (โปรแกรมอ่านหน้าจออ่านเมื่อมีข้อความเข้ามา) — ว่าง = ซ่อน */}

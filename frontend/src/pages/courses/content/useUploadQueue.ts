@@ -56,10 +56,16 @@ export type UploadItem = {
   sent: boolean
 }
 
-/** ไม่สำเร็จเพราะเน็ต / เซิร์ฟเวอร์ (ไม่ใช่เพราะตัวไฟล์หรือสิทธิ์) → ลองส่งใหม่แล้วอาจผ่าน */
+/**
+ * ไม่สำเร็จเพราะเน็ต / เซิร์ฟเวอร์ (ไม่ใช่เพราะตัวไฟล์หรือสิทธิ์) → ลองส่งใหม่แล้วอาจผ่าน
+ * รวม `unknown` (ระบบไม่รู้สาเหตุ เช่น ตัวกลางตอบหน้า HTML) เพราะข้อความของรหัสนี้บอก "กรุณาลองใหม่อีกครั้ง"
+ * — ต้องมีปุ่มให้ลองตามที่บอก (แก้หลังตรวจขั้น 4.6 ข — กฮ1)
+ */
 function isRetryable(caught: unknown): boolean {
   if (!(caught instanceof ApiError)) return true
-  return caught.status === 0 || caught.status >= 500 || caught.code === 'throttled'
+  return (
+    caught.status === 0 || caught.status >= 500 || caught.code === 'throttled' || caught.code === 'unknown'
+  )
 }
 
 /** คำตอบที่ทำให้ไฟล์ที่เหลือไม่ผ่านแน่ ๆ: หลุดจากระบบ / หมดสิทธิ์ / หน่วยถูกลบ / วิชาถูกปิด */
