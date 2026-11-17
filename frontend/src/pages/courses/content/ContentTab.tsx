@@ -11,8 +11,8 @@
  * - ผู้สอนเจ้าของ: จัดการหน่วยครบ + เลื่อน / เผยแพร่ / ลบแถวเนื้อหา
  * - ผู้ดูแลระบบ (กง1) และรายวิชาที่ปิดแล้ว: ดูอย่างเดียว (ไม่มีปุ่ม) + ข้อความบอกเหตุผล
  *   (backend ตรวจซ้ำเสมอ: ผู้ดูแลระบบ 403 content_read_only / วิชาที่ปิด 409 course_closed)
- * - ขั้น 4.6 ก: เขียนข้อความ / เพิ่มลิงก์ (ปุ่มท้ายหน่วยที่เปิด) + แก้ไขเนื้อหา (ปุ่มในแถว)
- *   อัปโหลดหลายไฟล์มาในขั้น 4.6 ข ; ดูตัวอย่างเนื้อหามาในขั้น 4.7 (ผู้ใช้เลือกแบบ กฟ1)
+ * - ขั้น 4.6: อัปโหลดหลายไฟล์ (ข) / เขียนข้อความ / เพิ่มลิงก์ (ก) ด้วยปุ่มท้ายหน่วยที่เปิด
+ *   + แก้ไขเนื้อหา (ปุ่มในแถว — ก) ; ดูตัวอย่างเนื้อหามาในขั้น 4.7 (ผู้ใช้เลือกแบบ กฟ1)
  *   — ยังไม่แสดงปุ่มที่ยังทำงานไม่ได้
  * - ย้ายเนื้อหาไปหน่วยอื่น (ช่อง "อยู่ในหน่วย") → เปิดหน่วยปลายทางให้เห็น + โฟกัสหัวข้อ
  *   (ปุ่ม "แก้ไข" ที่เปิดหน้าต่างย้ายไปอยู่หน่วยอื่นแล้ว โฟกัสจึงกลับไปที่เดิมไม่ได้)
@@ -46,13 +46,20 @@ import { LinkDialog } from './LinkDialog'
 import { ModuleCard } from './ModuleCard'
 import { ModuleDialog } from './ModuleDialog'
 import { TextContentDialog } from './TextContentDialog'
+import { UploadFilesDialog } from './UploadFilesDialog'
 import { useContentActions } from './useContentActions'
 
 /** หน้าต่างเพิ่ม / แก้หน่วยที่เปิดอยู่ */
 type ModuleDialogState = { mode: 'create' } | { mode: 'edit'; module: Module }
-/** หน้าต่างเพิ่ม / แก้เนื้อหาที่เปิดอยู่ (ขั้น 4.6 ก) — เก็บแค่รหัส แล้วหาข้อมูลล่าสุดจากรายการ */
+/**
+ * หน้าต่างเพิ่ม / แก้เนื้อหาที่เปิดอยู่ (ขั้น 4.6) — ส่วนใหญ่เก็บแค่รหัส แล้วหาข้อมูลล่าสุดจากรายการ
+ * อัปโหลด (ขั้น 4.6 ข) เก็บหน่วยไว้ทั้งก้อน: ถ้าหน่วยถูกลบระหว่างอัปโหลด หน้าต่างยังอยู่ให้เห็นผล / เหตุผล
+ */
 type ContentDialogState =
-  { mode: 'text'; moduleId: number } | { mode: 'link'; moduleId: number } | { mode: 'edit'; content: Content }
+  | { mode: 'text'; moduleId: number }
+  | { mode: 'link'; moduleId: number }
+  | { mode: 'edit'; content: Content }
+  | { mode: 'upload'; module: Module; number: number }
 /** สิ่งที่กำลังยืนยันลบ */
 type DeleteTarget = { kind: 'module'; module: Module } | { kind: 'content'; content: Content }
 
@@ -141,9 +148,10 @@ export default function ContentTab() {
   }
 
   // หน่วยของหน้าต่างเนื้อหาที่เปิดอยู่ (แก้ = หน่วยที่เนื้อหาอยู่ ; เพิ่ม = หน่วยที่กดปุ่ม)
-  const contentTarget = contentDialog
-    ? findModule(contentDialog.mode === 'edit' ? contentDialog.content.module : contentDialog.moduleId)
-    : null
+  const contentTarget =
+    contentDialog && contentDialog.mode !== 'upload'
+      ? findModule(contentDialog.mode === 'edit' ? contentDialog.content.module : contentDialog.moduleId)
+      : null
 
   const publishedCount = modules?.filter((module) => module.is_published).length ?? 0
   const addButton = !readOnly && (
@@ -245,6 +253,7 @@ export default function ContentTab() {
               }
               onContentDelete={(content) => askDelete({ kind: 'content', content })}
               onContentEdit={(content) => setContentDialog({ mode: 'edit', content })}
+              onAddFiles={() => setContentDialog({ mode: 'upload', module, number: index + 1 })}
               onAddText={() => setContentDialog({ mode: 'text', moduleId: module.id })}
               onAddLink={() => setContentDialog({ mode: 'link', moduleId: module.id })}
             />
@@ -302,6 +311,14 @@ export default function ContentTab() {
           number={contentTarget.number}
           onClose={() => setContentDialog(null)}
           onSaved={(saved) => contentSaved(saved, contentTarget.module.id)}
+        />
+      )}
+
+      {contentDialog?.mode === 'upload' && (
+        <UploadFilesDialog
+          module={contentDialog.module}
+          number={contentDialog.number}
+          onClose={() => setContentDialog(null)}
         />
       )}
 

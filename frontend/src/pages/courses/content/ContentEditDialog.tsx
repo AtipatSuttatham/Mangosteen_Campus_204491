@@ -48,7 +48,7 @@ import { refreshModules } from '../courseCache'
 import { useCoursePage } from '../useCoursePage'
 import { formatFileSize } from './contentLabels'
 import { FieldHint, FormError, KindField, MarkdownTextarea, ModuleField } from './contentForm'
-import { fileProblemMessage } from './contentNames'
+import { fileProblemMessage, uploadErrorMessage } from './contentNames'
 import { acceptFor, checkFile, type FileKind } from './fileRules'
 
 type ContentEditDialogProps = {
@@ -195,7 +195,8 @@ export function ContentEditDialog({
           // เผื่อกดหยุดพร้อมกับที่ไฟล์ส่งครบพอดี — โหลดรายการใหม่ให้ตรงกับข้อมูลจริงเสมอ
           await refreshModules(queryClient, course.id)
         } else {
-          setFileError(apiMessage(caught))
+          // ใหญ่เกิน → ใช้เพดานจริงจาก backend (max_bytes — ขั้น 4.6 ข)
+          setFileError(uploadErrorMessage(caught, pendingFile, t))
         }
         return
       } finally {
