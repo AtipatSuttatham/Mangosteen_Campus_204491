@@ -58,8 +58,12 @@ const COMPONENTS: Components = {
   code: (props) => (
     <code className="rounded-md bg-canvas px-1.5 py-px text-[0.92em]" {...withoutNode(props)} />
   ),
+  // บล็อกโค้ด: code ข้างในไม่ใช้พื้น / ระยะของโค้ดในบรรทัด (เดิมบรรทัดแรกถูกดันเข้าไป 1 ช่อง — พบในขั้น 4.7)
   pre: (props) => (
-    <pre className="m-0 overflow-x-auto rounded-[10px] bg-canvas px-4 py-3 text-sm" {...withoutNode(props)} />
+    <pre
+      className="m-0 overflow-x-auto rounded-[10px] bg-canvas px-4 py-3 text-sm leading-[1.6] [&>code]:rounded-none [&>code]:bg-transparent [&>code]:p-0 [&>code]:text-[1em]"
+      {...withoutNode(props)}
+    />
   ),
   hr: () => <hr className="m-0 border-0 border-t border-line" />,
 }

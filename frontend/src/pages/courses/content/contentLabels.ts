@@ -9,7 +9,7 @@
  * ข้อความทั้งหมดมาจาก th.ts (กฎ i18n) — ไฟล์นี้แค่เลือกรหัสข้อความและเติมค่า
  */
 import type { TFunction } from 'i18next'
-import type { Content } from '../../../api/content'
+import type { StudentContent } from '../../../api/content'
 
 /** นามสกุลไฟล์แบบตัวพิมพ์ใหญ่ เช่น "บท.pdf" → "PDF" ; ไม่มี = '' */
 function extension(fileName: string): string {
@@ -17,8 +17,8 @@ function extension(fileName: string): string {
   return dot > 0 ? fileName.slice(dot + 1).toUpperCase() : ''
 }
 
-/** ชื่อเว็บไซต์จากลิงก์ เช่น https://www.python.org/x → python.org (อ่านไม่ได้ = ลิงก์เดิม) */
-function siteName(url: string): string {
+/** ชื่อเว็บไซต์จากลิงก์ เช่น https://www.python.org/x → python.org (อ่านไม่ได้ = ลิงก์เดิม) — ใช้ในหน้าบทเรียนด้วย */
+export function siteName(url: string): string {
   try {
     return new URL(url).hostname.replace(/^www\./, '')
   } catch {
@@ -81,6 +81,11 @@ export function formatFileSize(bytes: number, t: TFunction): string {
   return t('content.sizeMb', { size: (bytes / (1024 * 1024)).toFixed(1) })
 }
 
+/** ชนิดของเอกสารตามชื่อไฟล์ (PDF / Word / ไฟล์ .py) — การ์ดไฟล์ในหน้าบทเรียน (ขั้น 4.7) */
+export function documentKindLabel(fileName: string, t: TFunction): string {
+  return documentLabel(extension(fileName), t)
+}
+
 /** ชนิดของเอกสารตามนามสกุล (PDF / Word / PowerPoint / Excel / ไฟล์ .xxx) */
 function documentLabel(ext: string, t: TFunction): string {
   switch (ext) {
@@ -98,7 +103,7 @@ function documentLabel(ext: string, t: TFunction): string {
 }
 
 /** รายการข้อความรายละเอียดของเนื้อหา 1 ชิ้น (แสดงคั่นด้วยช่องว่าง) */
-export function contentMeta(content: Content, t: TFunction): string[] {
+export function contentMeta(content: StudentContent, t: TFunction): string[] {
   const ext = extension(content.file_name)
   const size = content.file_size != null ? [formatFileSize(content.file_size, t)] : []
   const downloadOff = content.file_link && !content.allow_download ? [t('content.downloadOff')] : []

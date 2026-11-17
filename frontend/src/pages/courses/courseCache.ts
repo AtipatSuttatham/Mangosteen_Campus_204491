@@ -30,6 +30,8 @@ export const rosterKey = (courseId: number) => ['roster', courseId] as const
 export const candidatesKey = (courseId: number) => ['enrollment-candidates', courseId] as const
 /** หน่วยการเรียน + เนื้อหาของวิชา (แท็บเนื้อหา — ขั้น 4.5) */
 export const modulesKey = (courseId: number) => ['modules', courseId] as const
+/** หน่วย + เนื้อหาที่เผยแพร่ของวิชา ฉบับผู้เรียน (หน้าบทเรียน — ขั้น 4.7 ก) — แยกจาก modulesKey เพราะคำตอบคนละรูปแบบ */
+export const studentModulesKey = (courseId: number) => ['student-modules', courseId] as const
 
 // ---- หลังแก้ข้อมูล ต้องล้างอะไรบ้าง ----
 

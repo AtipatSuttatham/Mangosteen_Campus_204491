@@ -11,6 +11,7 @@ import { ApiError } from '../../api/client'
 import * as coursesApi from '../../api/courses'
 import type { StudentCourse } from '../../api/courses'
 import * as authContext from '../../auth/AuthContext'
+import * as contentApi from '../../api/content'
 import { CourseRoute, MyCoursesRoute } from './CourseRoutes'
 
 vi.mock('../../api/courses', async (importOriginal) => ({
@@ -21,6 +22,11 @@ vi.mock('../../api/courses', async (importOriginal) => ({
   fetchCourse: vi.fn(),
   joinCourse: vi.fn(),
 }))
+// หน้ารายวิชาของผู้เรียนโหลดบทเรียนด้วย (ขั้น 4.7 ก) — test ในไฟล์นี้ใช้ "ยังไม่มีหน่วย" ; รายละเอียดบทเรียนอยู่ใน lesson/
+vi.mock('../../api/content', async (importOriginal) => ({
+  ...(await importOriginal<typeof contentApi>()),
+  fetchStudentModules: vi.fn(),
+}))
 vi.mock('../../auth/AuthContext', async (importOriginal) => ({
   ...(await importOriginal<typeof authContext>()),
   useAuth: vi.fn(),
@@ -30,6 +36,7 @@ const fetchStudentCourse = vi.mocked(coursesApi.fetchStudentCourse)
 const fetchMyCourses = vi.mocked(coursesApi.fetchMyCourses)
 const joinCourse = vi.mocked(coursesApi.joinCourse)
 const useAuth = vi.mocked(authContext.useAuth)
+const fetchStudentModules = vi.mocked(contentApi.fetchStudentModules)
 
 function makeStudentCourse(overrides: Partial<StudentCourse> = {}): StudentCourse {
   return {
@@ -81,6 +88,7 @@ beforeEach(() => {
   vi.resetAllMocks()
   localStorage.clear()
   signInAs('student')
+  fetchStudentModules.mockResolvedValue([])
 })
 
 describe('รายวิชาของฉัน (ผู้เรียน)', () => {
@@ -247,7 +255,7 @@ describe('รายวิชาของฉัน (ผู้เรียน)', (
 })
 
 describe('หน้ารายวิชา (ผู้เรียน)', () => {
-  it('หัวรายวิชา + เกี่ยวกับรายวิชาแบบ Markdown + กล่องยังไม่มีเนื้อหา', async () => {
+  it('หัวรายวิชา + เกี่ยวกับรายวิชาแบบ Markdown + ยังไม่มีหน่วยที่เผยแพร่ = กล่องยังไม่มีเนื้อหา', async () => {
     fetchStudentCourse.mockResolvedValue(
       makeStudentCourse({ description: 'ปูพื้นฐาน **Python**\n\n- ตัวแปร\n- ฟังก์ชัน' }),
     )
@@ -258,7 +266,7 @@ describe('หน้ารายวิชา (ผู้เรียน)', () => {
     expect(screen.getByRole('heading', { name: 'เกี่ยวกับรายวิชา' })).toBeInTheDocument()
     expect(screen.getByText('Python').tagName).toBe('STRONG')
     expect(screen.getAllByRole('listitem')).toHaveLength(2)
-    expect(screen.getByRole('heading', { name: 'ยังไม่มีเนื้อหาในรายวิชานี้' })).toBeInTheDocument()
+    expect(await screen.findByRole('heading', { name: 'ยังไม่มีเนื้อหาในรายวิชานี้' })).toBeInTheDocument()
     // ผู้เรียนไม่มีแท็บของผู้สอน
     expect(screen.queryByText('แท็บผู้เรียนของผู้สอน')).not.toBeInTheDocument()
     expect(fetchStudentCourse).toHaveBeenCalledWith(5)
