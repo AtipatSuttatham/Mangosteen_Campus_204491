@@ -74,3 +74,23 @@ export function ToggleIcon({ open }: { open: boolean }) {
     </LineIcon>
   )
 }
+
+/** นาฬิกา: แถว "รอคิว" ในหน้าต่างอัปโหลด (ขั้น 4.6 ข) */
+export function ClockIcon() {
+  return (
+    <LineIcon size={18}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M12 7.5V12l3 2" />
+    </LineIcon>
+  )
+}
+
+/** ✓ ในวง: แถว "อัปโหลดแล้ว" (ขั้น 4.6 ข) */
+export function DoneIcon() {
+  return (
+    <LineIcon size={18}>
+      <circle cx="12" cy="12" r="8.5" />
+      <path d="M8.5 12.3l2.4 2.4 4.6-4.9" />
+    </LineIcon>
+  )
+}

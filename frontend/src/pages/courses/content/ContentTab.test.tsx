@@ -302,7 +302,7 @@ describe('จัดการแถวเนื้อหา', () => {
     await waitFor(() => expect(api.deleteContent).toHaveBeenCalledWith(5, 11))
   })
 
-  it('ทุกแถวมีปุ่มแก้ไข + ท้ายหน่วยมีปุ่มเขียนข้อความ / เพิ่มลิงก์ ; ยังไม่มีอัปโหลดไฟล์ (มาใน 4.6 ข)', async () => {
+  it('ทุกแถวมีปุ่มแก้ไข + ท้ายหน่วยมีปุ่มอัปโหลดไฟล์ / เขียนข้อความ / เพิ่มลิงก์', async () => {
     const { user } = renderTab()
     await user.click((await moduleCard('โครงสร้างควบคุมทิศทาง')).toggle)
 
@@ -310,7 +310,7 @@ describe('จัดการแถวเนื้อหา', () => {
     expect(screen.getByRole('button', { name: 'แก้ไข สไลด์: while และ for loop' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'เขียนข้อความในหน่วยที่ 2' })).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'เพิ่มลิงก์ในหน่วยที่ 2' })).toBeInTheDocument()
-    expect(screen.queryByRole('button', { name: /อัปโหลดไฟล์/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'อัปโหลดไฟล์ในหน่วยที่ 2' })).toBeInTheDocument()
   })
 })
 
@@ -326,6 +326,7 @@ describe('ดูอย่างเดียว / ว่าง', () => {
     expect(screen.getByText('สไลด์: while และ for loop')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^แก้ไข / })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^เขียนข้อความ/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^อัปโหลดไฟล์/ })).not.toBeInTheDocument()
   })
 
   it('รายวิชาที่ปิดแล้ว: ผู้สอนดูอย่างเดียว', async () => {

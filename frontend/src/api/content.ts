@@ -4,7 +4,8 @@
  * ขั้น 4.5 (แท็บเนื้อหาของผู้สอน): ดูรายการ, เพิ่ม / แก้ / ลบ / เลื่อน / เผยแพร่หน่วย,
  *   ลบ / เลื่อน / เผยแพร่เนื้อหา
  * ขั้น 4.6 ก: เขียนข้อความ, เพิ่มลิงก์, แก้เนื้อหา, เปลี่ยนไฟล์ (ส่งผ่าน XHR เพื่อแสดงความคืบหน้า)
- * (อัปโหลดหลายไฟล์มาในขั้น 4.6 ข ; ฉบับของผู้เรียนในขั้น 4.7)
+ * ขั้น 4.6 ข: อัปโหลดไฟล์เป็นเนื้อหาใหม่ (หน้าต่างอัปโหลดหลายไฟล์ส่งทีละไฟล์)
+ * (ฉบับของผู้เรียนในขั้น 4.7)
  */
 import { apiFetch } from './client'
 import { uploadWithProgress, type UploadOptions } from './upload'
@@ -181,6 +182,24 @@ export function updateContent(
   changes: ContentChanges,
 ): Promise<Content> {
   return apiFetch<Content>(`${contentsPath(courseId)}${contentId}/`, { method: 'PATCH', body: changes })
+}
+
+/**
+ * อัปโหลดไฟล์ 1 ไฟล์เป็นเนื้อหาใหม่ต่อท้ายหน่วย พร้อมรายงานความคืบหน้า (ขั้น 4.6 ข)
+ * หน้าต่างอัปโหลดหลายไฟล์เรียกทีละไฟล์ (กญ1) ; ระบบตั้งชนิดจากไฟล์ + หัวข้อ = ชื่อไฟล์ตัดนามสกุล
+ * @throws ApiError รหัสไฟล์ (docs/api.md §10.4 — content_file_too_large มี max_bytes แนบมา) /
+ *         file_upload_failed / course_closed / not_found (หน่วยถูกลบ) ;
+ *         UploadAbortedError เมื่อผู้ใช้กดยกเลิก
+ */
+export function uploadContentFile(
+  courseId: number,
+  moduleId: number,
+  file: File,
+  options: UploadOptions = {},
+): Promise<Content> {
+  const form = new FormData()
+  form.append('file', file)
+  return uploadWithProgress<Content>(`${moduleContentsPath(courseId, moduleId)}file/`, form, options)
 }
 
 /**

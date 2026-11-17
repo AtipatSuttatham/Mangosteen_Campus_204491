@@ -3,9 +3,11 @@
  * แยกจาก contentForm.tsx เพราะไฟล์คอมโพเนนต์ควร export แต่คอมโพเนนต์ (Fast Refresh ของ Vite)
  */
 import type { TFunction } from 'i18next'
+import { ApiError } from '../../../api/client'
 import type { Content } from '../../../api/content'
+import { errorMessage } from '../../../api/errors'
 import { formatFileSize } from './contentLabels'
-import type { FileKind, FileProblem } from './fileRules'
+import { fileKindOf, type FileKind, type FileProblem } from './fileRules'
 
 /** ชื่อชนิดของเนื้อหา (วิดีโอที่เป็นลิงก์ YouTube = "วิดีโอจาก YouTube") */
 export function contentKindName(content: Content, t: TFunction): string {
@@ -55,4 +57,26 @@ export function fileProblemMessage(problem: FileProblem, size: number, t: TFunct
         max: formatFileSize(problem.maxBytes, t),
       })
   }
+}
+
+/**
+ * ข้อความเมื่อส่งไฟล์ไม่สำเร็จ (อัปโหลด / เปลี่ยนไฟล์ — ขั้น 4.6 ข)
+ * ใหญ่เกิน (content_file_too_large) → ใช้เพดานจริงที่ backend แนบมา (max_bytes) แบบเดียวกับที่หน้าเว็บตรวจเอง
+ * เช่น "วิดีโอ 120 MB ใหญ่เกิน 100 MB" ; รหัสอื่น → ข้อความจาก th.ts ตามปกติ
+ */
+export function uploadErrorMessage(
+  caught: unknown,
+  file: { name: string; size: number },
+  t: TFunction,
+): string {
+  if (!(caught instanceof ApiError)) return errorMessage('unknown')
+  const body = caught.body as { max_bytes?: unknown } | undefined
+  if (caught.code === 'content_file_too_large' && typeof body?.max_bytes === 'number') {
+    return t('content.fileTooLarge', {
+      kind: fileKindName(fileKindOf(file.name) ?? 'file', t),
+      size: formatFileSize(file.size, t),
+      max: formatFileSize(body.max_bytes, t),
+    })
+  }
+  return errorMessage(caught.code)
 }

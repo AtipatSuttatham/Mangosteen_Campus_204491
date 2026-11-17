@@ -11,14 +11,15 @@
  * - วงเลขหน่วย 1, 2, 3 (หน่วยเป็นลำดับจริง) ; ยังไม่เผยแพร่ = วงเส้นประ เข้าชุดกับป้ายรหัสวิชาแบบร่าง
  * - หัวหน่วยเป็นปุ่มจริง (aria-expanded + aria-controls) — กด Enter / Space ได้ ; พับแล้วไม่วาดเนื้อหา
  * - readOnly (ผู้ดูแลระบบ / วิชาที่ปิด): ไม่มีปุ่มจัดการ แต่ยังพับ / เปิดดูได้
- * - ขั้น 4.6 ก: ปุ่ม "เขียนข้อความ · เพิ่มลิงก์" ท้ายหน่วยที่เปิด (กฐ1 — จอใหญ่เรียงแถว / มือถือ 2 คอลัมน์ตาม board)
- *   + ปุ่ม "แก้ไข" ในแถวเนื้อหา ; "อัปโหลดไฟล์" มาในขั้น 4.6 ข (แสดงเฉพาะปุ่มที่ทำงานได้)
+ * - ปุ่มท้ายหน่วยที่เปิด "อัปโหลดไฟล์ · เขียนข้อความ · เพิ่มลิงก์" (กฐ1 — ขั้น 4.6 ก / ข)
+ *   จอใหญ่เรียงแถว ; มือถือ "อัปโหลดไฟล์" เต็มความกว้างบรรทัดบน แล้วอีก 2 ปุ่มแบ่งครึ่ง (ตาม board)
+ *   + ปุ่ม "แก้ไข" ในแถวเนื้อหา (ขั้น 4.6 ก)
  */
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { Content, Module } from '../../../api/content'
 import { Button, Markdown, StatusBadge } from '../../../components/ui'
-import { EyeIcon, EyeOffIcon } from '../icons'
+import { EyeIcon, EyeOffIcon, UploadIcon } from '../icons'
 import { ContentKindIcon, ToggleIcon } from './contentIcons'
 import { ContentRow } from './ContentRow'
 import { LOCKED, RowControls } from './RowControls'
@@ -42,7 +43,8 @@ type ModuleCardProps = {
   onContentTogglePublish: (content: Content) => void
   onContentDelete: (content: Content) => void
   onContentEdit: (content: Content) => void
-  /** ปุ่มท้ายหน่วย: เขียนข้อความ / เพิ่มลิงก์ (ขั้น 4.6 ก) */
+  /** ปุ่มท้ายหน่วย: อัปโหลดไฟล์ (ขั้น 4.6 ข) / เขียนข้อความ / เพิ่มลิงก์ (ขั้น 4.6 ก) */
+  onAddFiles: () => void
   onAddText: () => void
   onAddLink: () => void
 }
@@ -64,6 +66,7 @@ export function ModuleCard({
   onContentTogglePublish,
   onContentDelete,
   onContentEdit,
+  onAddFiles,
   onAddText,
   onAddLink,
 }: ModuleCardProps) {
@@ -169,6 +172,18 @@ export function ModuleCard({
               aria-label={t('content.addGroupLabel', { name })}
               className="mt-2.5 grid grid-cols-2 gap-2 lg:flex lg:flex-wrap"
             >
+              <Button
+                variant="secondary"
+                className={`col-span-2 ${LOCKED}`}
+                aria-disabled={disabled || undefined}
+                onClick={() => {
+                  if (!disabled) onAddFiles()
+                }}
+                aria-label={t('content.addFileLabel', { name })}
+              >
+                <UploadIcon />
+                {t('content.addFile')}
+              </Button>
               <Button
                 variant="secondary"
                 className={LOCKED}
