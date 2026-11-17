@@ -10,6 +10,9 @@
  *     แลกไม่ได้ → แจ้ง "ถูกให้ออกจากระบบกลางคัน"
  *   - error ทุกกรณีเป็น ApiError รูปแบบเดียวกัน (ใช้ readResponse ตัวเดียวกับ apiFetch)
  * เพิ่มเติม: ยกเลิกกลางทางได้ด้วย AbortSignal → โยน UploadAbortedError
+ *          + onSent: บอกว่าส่งไฟล์ครบทุกไบต์แล้ว (แก้หลังตรวจขั้น 4.6 ก — กศ1)
+ *   ⚠ หลัง onSent แล้ว การยกเลิกหยุดเซิร์ฟเวอร์ไม่ได้ (เซิร์ฟเวอร์ได้ไฟล์ครบและกำลังเก็บ / บันทึกอยู่)
+ *     หน้าจอจึงต้องไม่ให้กดหยุดหลังจากนี้ — ถ้ายกเลิกไปแล้วผลจริงไม่แน่นอน ให้โหลดข้อมูลใหม่เสมอ
  *
  * ใช้ใน: เปลี่ยนไฟล์ในหน้าต่างแก้ไขเนื้อหา (ขั้น 4.6 ก) และอัปโหลดหลายไฟล์ (ขั้น 4.6 ข)
  */
@@ -24,6 +27,8 @@ export type UploadOptions = {
   onProgress?: (progress: UploadProgress) => void
   /** สั่งยกเลิกการส่ง (เช่น ผู้ใช้กด "หยุดอัปโหลด") */
   signal?: AbortSignal
+  /** ส่งไฟล์ครบทุกไบต์แล้ว — ต่อจากนี้รอเซิร์ฟเวอร์เก็บไฟล์และตอบกลับ (ยกเลิกไม่มีผลกับเซิร์ฟเวอร์แล้ว) */
+  onSent?: () => void
 }
 
 /** ผู้ใช้สั่งยกเลิกการส่งเอง — ไม่ใช่ข้อผิดพลาด หน้าจอไม่ต้องขึ้นข้อความแดง */
@@ -38,7 +43,11 @@ export class UploadAbortedError extends Error {
 type RawResult = { status: number; text: string }
 
 /** ส่ง FormData 1 ครั้งด้วย XHR (แนบ access token ล่าสุด) */
-function sendOnce(path: string, form: FormData, { onProgress, signal }: UploadOptions): Promise<RawResult> {
+function sendOnce(
+  path: string,
+  form: FormData,
+  { onProgress, signal, onSent }: UploadOptions,
+): Promise<RawResult> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
       reject(new UploadAbortedError())
@@ -56,6 +65,8 @@ function sendOnce(path: string, form: FormData, { onProgress, signal }: UploadOp
     xhr.upload.onprogress = (event) => {
       if (event.lengthComputable) onProgress?.({ loaded: event.loaded, total: event.total })
     }
+    // ส่งเนื้อคำขอครบแล้ว (ยังไม่ได้คำตอบ)
+    xhr.upload.onload = () => onSent?.()
     const stop = () => xhr.abort()
     signal?.addEventListener('abort', stop, { once: true })
     const cleanup = () => signal?.removeEventListener('abort', stop)

@@ -125,6 +125,10 @@ describe('เพิ่มลิงก์', () => {
 
     await user.type(url, 'https://docs.python.org/3/')
     expect(within(dialog).getByText('ลิงก์เว็บไซต์ · ผู้เรียนกดเปิดในแท็บใหม่')).toBeInTheDocument()
+    // ลิงก์ช่อง YouTube (ไม่มีรหัสวิดีโอ) → backend เก็บเป็นลิงก์เว็บ คำแนะนำต้องตรงกัน (กศ1)
+    await user.clear(url)
+    await user.type(url, 'https://www.youtube.com/@channel')
+    expect(within(dialog).getByText('ลิงก์เว็บไซต์ · ผู้เรียนกดเปิดในแท็บใหม่')).toBeInTheDocument()
     await user.clear(url)
     await user.type(url, 'https://youtu.be/Zp5MuPOtsSY')
     expect(within(dialog).getByText('วิดีโอจาก YouTube · ผู้เรียนดูได้ในหน้าบทเรียนเลย')).toBeInTheDocument()
@@ -260,12 +264,38 @@ describe('แก้ไขเนื้อหา', () => {
     await user.click(within(dialog).getByRole('button', { name: 'บันทึกเนื้อหา' }))
 
     expect(await within(dialog).findByRole('progressbar')).toHaveAttribute('aria-valuenow', '25')
-    expect(within(dialog).getByText('กำลังอัปโหลด 1.0 MB จาก 4.0 MB (25%)')).toBeInTheDocument()
+    expect(within(dialog).getByText('กำลังอัปโหลด 1.0 MB จาก 4.0 MB (25%)')).not.toHaveAttribute('aria-live')
+    expect(within(dialog).getByRole('status')).toHaveTextContent('กำลังอัปโหลดไฟล์…')
+    const loads = api.fetchModules.mock.calls.length
     await user.click(within(dialog).getByRole('button', { name: 'หยุดอัปโหลด' }))
 
     expect(await within(dialog).findByText(/หยุดอัปโหลดแล้ว ไฟล์เดิมยังอยู่/)).toBeInTheDocument()
+    // โหลดรายการใหม่เผื่อกดหยุดพร้อมกับที่ไฟล์ส่งครบพอดี (กศ1)
+    await waitFor(() => expect(api.fetchModules.mock.calls.length).toBeGreaterThan(loads))
     expect(api.updateContent).not.toHaveBeenCalled()
     expect(within(dialog).queryByRole('progressbar')).not.toBeInTheDocument()
+  })
+
+  it('ส่งไฟล์ครบแล้ว (รอเซิร์ฟเวอร์บันทึก) → ไม่มีปุ่มหยุด + บอกว่ากำลังบันทึก (กศ1)', async () => {
+    const { user } = renderTab()
+    await openModule(user, 'โครงสร้างควบคุมทิศทาง')
+    await user.click(screen.getByRole('button', { name: 'แก้ไข สไลด์: while และ for loop' }))
+    const dialog = await screen.findByRole('dialog', { name: 'แก้ไขเนื้อหา' })
+
+    chooseFile(dialog, new File(['%PDF'], 'สไลด์ใหม่.pdf'))
+    api.replaceContentFile.mockImplementation(
+      (_course, _content, _file, options) =>
+        new Promise(() => {
+          options?.onProgress?.({ loaded: 4, total: 4 })
+          options?.onSent?.()
+        }),
+    )
+    await user.click(within(dialog).getByRole('button', { name: 'บันทึกเนื้อหา' }))
+
+    expect(await within(dialog).findByRole('status')).toHaveTextContent('ส่งไฟล์ครบแล้ว กำลังบันทึก…')
+    expect(within(dialog).getAllByText('ส่งไฟล์ครบแล้ว กำลังบันทึก…')).toHaveLength(2)
+    expect(within(dialog).queryByRole('button', { name: 'หยุดอัปโหลด' })).not.toBeInTheDocument()
+    expect(within(dialog).getByRole('button', { name: 'ยกเลิก' })).toBeDisabled()
   })
 
   it('ลิงก์: แก้ที่อยู่ได้ ; ชนิดเปลี่ยน (content_kind_mismatch) → ข้อความเหนือปุ่ม', async () => {

@@ -12,7 +12,7 @@
  *   └─────────────────────────────────────────────────┘
  *
  * - ช่องเดียวรับทุกลิงก์ — backend ตัดสินเองว่าเป็นวิดีโอ YouTube หรือลิงก์เว็บ
- *   คำแนะนำใต้ช่องเป็นแค่ตัวช่วยให้เห็นก่อนกด (looksLikeYoutube ดูแค่ชื่อเว็บ)
+ *   คำแนะนำใต้ช่องเป็นแค่ตัวช่วยให้เห็นก่อนกด (youtubeVideoId — สำเนากติกาของ backend)
  * - ไม่กรอกหัวข้อ → ระบบตั้งเป็น "วิดีโอจาก YouTube" หรือชื่อเว็บไซต์
  * - ลิงก์ใหม่ต่อท้ายหน่วยและยังไม่เผยแพร่
  */
@@ -27,7 +27,7 @@ import { Button, Dialog, DialogBody, DialogFooter, DialogHeader, TextField } fro
 import { refreshModules } from '../courseCache'
 import { InfoIcon } from '../icons'
 import { useCoursePage } from '../useCoursePage'
-import { looksLikeYoutube } from './contentLabels'
+import { youtubeVideoId } from './contentLabels'
 import { DialogNote, FormError } from './contentForm'
 
 type LinkDialogProps = {
@@ -103,7 +103,7 @@ export function LinkDialog({ module, number, onClose, onSaved }: LinkDialogProps
     : undefined
   // คำแนะนำใต้ช่องลิงก์: บอกว่าผู้เรียนจะเห็นแบบไหน (เฉพาะเมื่อพิมพ์ลิงก์ที่อ่านได้แล้ว)
   const urlHint = isWebUrl(url)
-    ? looksLikeYoutube(url)
+    ? youtubeVideoId(url)
       ? t('content.linkYoutubeHint')
       : t('content.linkWebHint')
     : undefined

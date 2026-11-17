@@ -16,6 +16,7 @@
  *   - ตรวจชนิด / ขนาดในหน้าเว็บทันทีที่เลือก (fileRules — กย1) ไม่ผ่าน = ข้อความแดงใต้ส่วนไฟล์ ไม่เก็บไฟล์ไว้
  *   - กด "ยกเลิก" ก่อนบันทึก = ไฟล์เดิมไม่หาย ; "ไม่เปลี่ยน" = ทิ้งไฟล์ที่เลือก
  *   - บันทึก: ส่งไฟล์ก่อน (แถบความคืบหน้า + ปุ่ม "หยุดอัปโหลด") แล้วค่อยบันทึกช่องอื่น
+ *     ส่งครบแล้ว → ข้อความ "ส่งไฟล์ครบแล้ว กำลังบันทึก…" + ซ่อนปุ่มหยุด (หยุดเซิร์ฟเวอร์ไม่ได้แล้ว — กศ1)
  *     ไฟล์ไม่ผ่าน / หยุด → ช่องอื่นยังไม่ถูกบันทึก หน้าต่างยังเปิดอยู่ ;
  *     ไฟล์ผ่านแต่ช่องอื่นไม่ผ่าน → บอกว่าไฟล์เปลี่ยนแล้ว (ส่วนไฟล์แสดงไฟล์ใหม่)
  * สวิตช์ดาวน์โหลด (กฑ2): แสดงเฉพาะไฟล์ที่เบราว์เซอร์เปิดดูได้ (can_disable_download — กพ1)
@@ -106,6 +107,11 @@ export function ContentEditDialog({
   const [pendingFile, setPendingFile] = useState<File | null>(null)
   const [fileError, setFileError] = useState<string>()
   const [progress, setProgress] = useState<UploadProgress | null>(null)
+  /**
+   * ส่งไฟล์ครบทุกไบต์แล้ว รอเซิร์ฟเวอร์เก็บไฟล์ (แก้หลังตรวจขั้น 4.6 ก — กศ1)
+   * ช่วงนี้ซ่อนปุ่ม "หยุดอัปโหลด" เพราะหยุดเซิร์ฟเวอร์ไม่ได้แล้ว (เช่น กำลังส่งต่อไปที่ B2)
+   */
+  const [sent, setSent] = useState(false)
   const [allowDownload, setAllowDownload] = useState(content.allow_download)
   const [formError, setFormError] = useState<string>()
 
@@ -181,14 +187,21 @@ export function ContentEditDialog({
         latest = await replaceContentFile(course.id, current.id, pendingFile, {
           onProgress: setProgress,
           signal: controller.signal,
+          onSent: () => setSent(true),
         })
       } catch (caught) {
-        if (caught instanceof UploadAbortedError) setFormError(t('content.uploadStopped'))
-        else setFileError(apiMessage(caught))
+        if (caught instanceof UploadAbortedError) {
+          setFormError(t('content.uploadStopped'))
+          // เผื่อกดหยุดพร้อมกับที่ไฟล์ส่งครบพอดี — โหลดรายการใหม่ให้ตรงกับข้อมูลจริงเสมอ
+          await refreshModules(queryClient, course.id)
+        } else {
+          setFileError(apiMessage(caught))
+        }
         return
       } finally {
         abortRef.current = null
         setProgress(null)
+        setSent(false)
       }
       fileReplaced = true
       setCurrent(latest)
@@ -343,15 +356,22 @@ export function ContentEditDialog({
                   >
                     <div className="h-full rounded-full bg-brand" style={{ width: `${percent}%` }} />
                   </div>
-                  <span className="text-[13.5px] text-ink-muted" aria-live="polite">
-                    {t('content.uploadProgress', {
-                      loaded: formatFileSize(progress.loaded, t),
-                      total: formatFileSize(progress.total, t),
-                      percent,
-                    })}
+                  {/* ตัวเลขเปลี่ยนหลายครั้งต่อวินาที — ไม่ประกาศ (ผู้ใช้โปรแกรมอ่านหน้าจอถามค่าจาก progressbar ได้) */}
+                  <span className="text-[13.5px] text-ink-muted">
+                    {sent
+                      ? t('content.uploadSaving')
+                      : t('content.uploadProgress', {
+                          loaded: formatFileSize(progress.loaded, t),
+                          total: formatFileSize(progress.total, t),
+                          percent,
+                        })}
                   </span>
                 </div>
               )}
+              {/* ประกาศเฉพาะจุดเปลี่ยนสถานะ: เริ่มส่ง → ส่งครบแล้วกำลังบันทึก (กศ1) */}
+              <span role="status" className="sr-only">
+                {uploading ? (sent ? t('content.uploadSaving') : t('content.uploadStarted')) : ''}
+              </span>
               {fileError ? (
                 <p role="alert" className="m-0 text-[14.5px] leading-[1.55] text-danger">
                   {fileError}
@@ -388,8 +408,9 @@ export function ContentEditDialog({
           <FormError message={formError} />
         </DialogBody>
         <DialogFooter>
-          {uploading ? (
+          {uploading && !sent ? (
             // ระหว่างส่งไฟล์: ปุ่มซ้ายเปลี่ยนเป็น "หยุดอัปโหลด" (ไฟล์เดิมยังอยู่ ช่องอื่นยังไม่บันทึก)
+            // ส่งครบแล้ว (sent) → กลับเป็น "ยกเลิก" ที่กดไม่ได้ เพราะหยุดเซิร์ฟเวอร์ไม่ได้แล้ว
             <Button variant="secondary" onClick={() => abortRef.current?.abort()}>
               {t('content.stopUpload')}
             </Button>
