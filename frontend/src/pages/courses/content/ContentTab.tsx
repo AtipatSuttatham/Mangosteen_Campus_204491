@@ -139,10 +139,7 @@ export default function ContentTab() {
   const togglePreview = (content: Content, moduleId: number) =>
     setPreview((current) => (current?.contentId === content.id ? null : { contentId: content.id, moduleId }))
 
-  /**
-   * รหัสเนื้อหาที่แสดงตัวอย่างจริง — ต้องยังอยู่ในหน่วยเดิม
-   * (ถูกลบ / ย้ายไปหน่วยอื่น → ไม่แสดง ; ไม่ต้องล้างค่าเพราะรหัสนั้นไม่กลับมาในหน่วยเดิมเอง)
-   */
+  /** รหัสเนื้อหาที่แสดงตัวอย่างจริง — ต้องยังอยู่ในหน่วยเดิม (ถูกลบ / ย้ายไปหน่วยอื่น → ไม่แสดง) */
   const previewId =
     preview &&
     modules
@@ -150,6 +147,9 @@ export default function ContentTab() {
       ?.contents.some((content) => content.id === preview.contentId)
       ? preview.contentId
       : null
+  // ไม่อยู่ในหน่วยเดิมแล้ว → ล้างค่าที่จำไว้ด้วย ไม่งั้นย้ายกลับมาหน่วยเดิมทีหลัง ตัวอย่างจะเปิดขึ้นเองโดยไม่ได้กด
+  // (แก้หลังตรวจขั้น 4.7) — ตั้งค่าระหว่างวาดได้ตามแบบของ React (วาดซ้ำทันทีก่อนแสดงผล ไม่วนเพราะ preview เป็น null แล้ว)
+  if (preview && modules && previewId === null) setPreview(null)
 
   const askDelete = (target: DeleteTarget) => {
     setDeleteTarget(target)

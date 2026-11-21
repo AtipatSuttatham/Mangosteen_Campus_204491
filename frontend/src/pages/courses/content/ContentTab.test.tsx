@@ -422,8 +422,8 @@ describe('ตัวอย่างที่ผู้เรียนจะเห�
     await user.click(titleButton('ลิสต์เบื้องต้น'))
     const draftModule = previewOf('ลิสต์เบื้องต้น')!
     expect(draftModule).toHaveAccessibleName('ตัวอย่างที่ผู้เรียนจะเห็นเมื่อเผยแพร่')
-    // หัวข้อในข้อความเริ่มที่ h5 เหมือนหน้าบทเรียน
-    expect(within(draftModule).getByRole('heading', { name: 'ส่วนแรก' }).tagName).toBe('H5')
+    // แท็บนี้มีแค่ h2 "หน่วยการเรียน" → หัวข้อในข้อความเริ่มที่ h3 (หน้าบทเรียนเริ่ม h5 — แก้หลังตรวจขั้น 4.7)
+    expect(within(draftModule).getByRole('heading', { name: 'ส่วนแรก' }).tagName).toBe('H3')
   })
 
   it('พับหน่วย → ตัวอย่างปิด และเปิดหน่วยอีกครั้งไม่เด้งกลับมาเอง', async () => {
@@ -459,6 +459,40 @@ describe('ตัวอย่างที่ผู้เรียนจะเห�
     await user.click(screen.getByRole('button', { name: 'เผยแพร่ วิดีโอ: if, elif, else' }))
 
     await waitFor(() => expect(titleButton('สรุป')).toHaveAttribute('aria-expanded', 'false'))
+    expect(previewOf('สรุป')).toBeNull()
+  })
+
+  it('ย้ายออกแล้วย้ายกลับหน่วยเดิม → ตัวอย่างไม่เปิดขึ้นเอง (แก้หลังตรวจขั้น 4.7)', async () => {
+    const summary = makeContent(13, { title: 'สรุป' })
+    const layout = (summaryModule: 1 | 2) => [
+      makeModule(1, {
+        title: 'ก้าวแรกกับ Python',
+        contents: summaryModule === 1 ? [summary] : [],
+      }),
+      makeModule(2, {
+        title: 'โครงสร้างควบคุมทิศทาง',
+        contents: summaryModule === 2 ? [summary, YOUTUBE] : [YOUTUBE],
+      }),
+    ]
+    api.fetchModules.mockResolvedValue(layout(2))
+    api.runContentAction.mockResolvedValue(YOUTUBE)
+    const { user } = renderTab()
+    await user.click((await moduleCard('ก้าวแรกกับ Python')).toggle)
+    await user.click((await moduleCard('โครงสร้างควบคุมทิศทาง')).toggle)
+    await user.click(titleButton('สรุป'))
+
+    // ย้ายไปหน่วยที่ 1 → ตัวอย่างปิด
+    api.fetchModules.mockResolvedValue(layout(1))
+    await user.click(screen.getByRole('button', { name: 'เผยแพร่ วิดีโอ: if, elif, else' }))
+    await waitFor(() => expect(titleButton('สรุป')).toHaveAttribute('aria-expanded', 'false'))
+
+    // ย้ายกลับหน่วยที่ 2 → ยังปิดอยู่ (เดิมเปิดขึ้นเองเพราะจำรายการ + หน่วยค้างไว้)
+    api.fetchModules.mockResolvedValue(layout(2))
+    await user.click(screen.getByRole('button', { name: 'เผยแพร่ วิดีโอ: if, elif, else' }))
+    await waitFor(() => expect(api.fetchModules).toHaveBeenCalledTimes(3))
+    const { card } = await moduleCard('โครงสร้างควบคุมทิศทาง')
+    await waitFor(() => expect(within(card).getByText('สรุป')).toBeInTheDocument())
+    expect(titleButton('สรุป')).toHaveAttribute('aria-expanded', 'false')
     expect(previewOf('สรุป')).toBeNull()
   })
 
@@ -544,6 +578,46 @@ describe('ตัวอย่างที่ผู้เรียนจะเห�
 
     vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 51 * 60 * 1000)
     await user.click(within(previewOf('สไลด์')!).getByRole('link', { name: 'ดาวน์โหลด slides.pdf' }))
+
+    await waitFor(() => expect(clicked).toEqual(['/media/new.pdf?dl']))
+    expect(api.fetchModules).toHaveBeenCalledTimes(2)
+    vi.restoreAllMocks()
+  })
+
+  it('ลิงก์เก่าแต่กำลังโหลดรายการอยู่แล้ว (หลังกดเลื่อน) → กดดาวน์โหลดรอผลนั้น ไม่ส่งคำขอซ้ำ (แก้หลังตรวจขั้น 4.7)', async () => {
+    const clicked: string[] = []
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      clicked.push(this.getAttribute('href') ?? '')
+    })
+    const slides = (link: string) =>
+      makeContent(40, {
+        title: 'สไลด์',
+        content_type: 'file',
+        file_name: 'slides.pdf',
+        file_size: 2048,
+        mime_type: 'application/pdf',
+        file_link: link,
+        download_link: `${link}?dl`,
+      })
+    const layout = (link: string) => [
+      makeModule(2, { title: 'โครงสร้างควบคุมทิศทาง', contents: [slides(link), YOUTUBE] }),
+    ]
+    let resolveReload: (value: Module[]) => void = () => undefined
+    api.fetchModules
+      .mockResolvedValueOnce(layout('/media/old.pdf'))
+      .mockReturnValueOnce(new Promise((resolve) => (resolveReload = resolve)))
+      .mockResolvedValue(layout('/media/third.pdf'))
+    api.runContentAction.mockResolvedValue(YOUTUBE)
+    const { user } = renderTab()
+    await user.click((await moduleCard('โครงสร้างควบคุมทิศทาง')).toggle)
+    await user.click(titleButton('สไลด์'))
+
+    // กดเผยแพร่ → แท็บกำลังโหลดรายการใหม่ (ยังไม่ได้ผล) ; ระหว่างนั้นลิงก์เก่าเกิน 50 นาทีแล้วกดดาวน์โหลด
+    await user.click(screen.getByRole('button', { name: 'เผยแพร่ วิดีโอ: if, elif, else' }))
+    await waitFor(() => expect(api.fetchModules).toHaveBeenCalledTimes(2))
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 51 * 60 * 1000)
+    await user.click(within(previewOf('สไลด์')!).getByRole('link', { name: 'ดาวน์โหลด slides.pdf' }))
+    resolveReload(layout('/media/new.pdf'))
 
     await waitFor(() => expect(clicked).toEqual(['/media/new.pdf?dl']))
     expect(api.fetchModules).toHaveBeenCalledTimes(2)

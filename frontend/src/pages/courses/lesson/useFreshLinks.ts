@@ -9,6 +9,7 @@
  * - ปุ่ม เปิด / ดาวน์โหลด ถามก่อนว่าข้อมูลเก่ากว่า 50 นาทีไหม (`isStale`) ถ้าใช่ขอรายการใหม่ก่อน (`refresh`)
  * - ตัวเล่นวิดีโอ / เสียง / รูป โหลดไม่ได้ → ขอรายการใหม่ 1 ครั้งแล้วใช้ลิงก์ใหม่ (MediaBox / LessonMedia)
  * - ขอซ้อนกันหลายจุดพร้อมกัน (เช่น วิดีโอ 3 ตัว error พร้อมกัน) → ส่งคำขอจริงครั้งเดียว ทุกจุดรอผลเดียวกัน
+ * - ระหว่างหน้ากำลังโหลดรายการอยู่แล้ว → รอผลนั้น ไม่ยกเลิกแล้วส่งใหม่
  *
  * ส่วนแสดงผลรับค่าผ่าน context — หน้าผู้เรียนกับแท็บผู้สอน (ขั้น 4.7 ข) ต่อกับแคชของตัวเองได้โดยไม่แก้ส่วนแสดงผล
  * ไม่มี provider (เช่นใน test ที่ไม่สนใจเรื่องนี้) = ลิงก์ไม่หมดอายุ และขอใหม่ไม่ได้
@@ -43,7 +44,7 @@ type Source<T> = {
   /** เวลาที่ได้ข้อมูลชุดปัจจุบัน (ms — `dataUpdatedAt` ของ useQuery) */
   updatedAt: number
   /** ขอข้อมูลใหม่ (`refetch` ของ useQuery) */
-  refetch: () => Promise<{ data?: T; isError: boolean }>
+  refetch: (options?: { cancelRefetch?: boolean }) => Promise<{ data?: T; isError: boolean }>
   /** ดึงเนื้อหาทุกชิ้นออกจากข้อมูล (หน่วย → เนื้อหา) */
   contentsOf: (data: T) => StudentContent[]
 }
@@ -63,7 +64,10 @@ export function useFreshLinks<T>({ updatedAt, refetch, contentsOf }: Source<T>):
   const refresh = useCallback(() => {
     if (!pendingRef.current) {
       const { refetch: run, contentsOf: pick } = sourceRef.current
-      pendingRef.current = run()
+      // cancelRefetch: false — กำลังโหลดอยู่แล้ว (เช่น หลังกดเลื่อน / เผยแพร่) → รอผลนั้นแทนการยกเลิกแล้วส่งใหม่
+      // (ค่าเริ่มต้นของ TanStack ยกเลิกคำขอเดิม: ส่งคำขอเกิน และปุ่มที่รอผลคำขอเดิมกลับมากดได้ก่อนข้อมูลใหม่มาถึง
+      //  — แก้หลังตรวจขั้น 4.7) ; ข้อมูลที่ได้จากการโหลดที่ทำอยู่เป็นชุดใหม่ ลิงก์จึงใช้ได้เหมือนกัน
+      pendingRef.current = run({ cancelRefetch: false })
         .then((result): ContentLookup | null => {
           if (result.isError || !result.data) return null
           const byId = new Map(pick(result.data).map((content) => [content.id, content]))
