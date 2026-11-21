@@ -12,8 +12,10 @@
  * - ผู้ดูแลระบบ (กง1) และรายวิชาที่ปิดแล้ว: ดูอย่างเดียว (ไม่มีปุ่ม) + ข้อความบอกเหตุผล
  *   (backend ตรวจซ้ำเสมอ: ผู้ดูแลระบบ 403 content_read_only / วิชาที่ปิด 409 course_closed)
  * - ขั้น 4.6: อัปโหลดหลายไฟล์ (ข) / เขียนข้อความ / เพิ่มลิงก์ (ก) ด้วยปุ่มท้ายหน่วยที่เปิด
- *   + แก้ไขเนื้อหา (ปุ่มในแถว — ก) ; ดูตัวอย่างเนื้อหามาในขั้น 4.7 (ผู้ใช้เลือกแบบ กฟ1)
- *   — ยังไม่แสดงปุ่มที่ยังทำงานไม่ได้
+ *   + แก้ไขเนื้อหา (ปุ่มในแถว — ก)
+ * - ขั้น 4.7 ข: กดชื่อรายการ → ตัวอย่างที่ผู้เรียนจะเห็น (กฒ1) เปิดได้ทีละรายการทั้งแท็บ (ขค1)
+ *   ตัวอย่างปิดเองเมื่อหน่วยถูกพับ / รายการถูกลบ / ย้ายไปหน่วยอื่น ; ผู้ดูแลระบบ / วิชาที่ปิดก็ดูได้
+ *   ลิงก์ไฟล์ในตัวอย่างขอใหม่เมื่อหมดอายุผ่าน FreshLinksContext ที่ต่อกับรายการของแท็บนี้ (ขง1)
  * - ย้ายเนื้อหาไปหน่วยอื่น (ช่อง "อยู่ในหน่วย") → เปิดหน่วยปลายทางให้เห็น + โฟกัสหัวข้อ
  *   (ปุ่ม "แก้ไข" ที่เปิดหน้าต่างย้ายไปอยู่หน่วยอื่นแล้ว โฟกัสจึงกลับไปที่เดิมไม่ได้)
  * - หน่วยที่เปิดอยู่จำไว้เฉพาะระหว่างอยู่ในหน้า ; เริ่มต้นพับทุกหน่วย ; หน่วยที่เพิ่งสร้างเปิดให้ทันที
@@ -39,6 +41,7 @@ import { Button, Card, ConfirmDialog } from '../../../components/ui'
 import { StateMessage } from '../courseBits'
 import { modulesKey } from '../courseCache'
 import { InfoIcon, PlusIcon } from '../icons'
+import { FreshLinksContext, useFreshLinks } from '../lesson/useFreshLinks'
 import { useConfirmStep } from '../settings/useSettingsActions'
 import { useCoursePage } from '../useCoursePage'
 import { ContentEditDialog } from './ContentEditDialog'
@@ -60,6 +63,12 @@ type ContentDialogState =
   | { mode: 'link'; moduleId: number }
   | { mode: 'edit'; content: Content }
   | { mode: 'upload'; module: Module; number: number }
+/** ตัวอย่างที่เปิดอยู่: เนื้อหา + หน่วยที่อยู่ตอนเปิด (ย้ายไปหน่วยอื่น = ตัวอย่างปิด) */
+type PreviewState = { contentId: number; moduleId: number }
+
+/** เนื้อหาทุกชิ้นในรายการหน่วย (ให้ตัวขอลิงก์ใหม่หาเนื้อหาจากรหัส) */
+const contentsOf = (modules: Module[]) => modules.flatMap((module) => module.contents)
+
 /** สิ่งที่กำลังยืนยันลบ */
 type DeleteTarget = { kind: 'module'; module: Module } | { kind: 'content'; content: Content }
 
@@ -75,6 +84,7 @@ export default function ContentTab() {
   const [moduleDialog, setModuleDialog] = useState<ModuleDialogState | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null)
   const [contentDialog, setContentDialog] = useState<ContentDialogState | null>(null)
+  const [preview, setPreview] = useState<PreviewState | null>(null)
   /**
    * คำขอโฟกัสหัวข้อหลังย้ายเนื้อหาไปหน่วยอื่น (นับครั้ง) — ทำใน effect หลังหน้าต่างปิดแล้ว
    * เพราะตอนปิด หน้าต่างคืนโฟกัสให้ปุ่ม "แก้ไข" ที่เปิดมัน ซึ่งตอนนี้อยู่หน่วยอื่น (หรือหายไปแล้ว)
@@ -86,10 +96,12 @@ export default function ContentTab() {
     error,
     isPending,
     refetch,
+    dataUpdatedAt,
   } = useQuery({
     queryKey: modulesKey(course.id),
     queryFn: () => fetchModules(course.id),
   })
+  const links = useFreshLinks({ updatedAt: dataUpdatedAt, refetch, contentsOf })
 
   useEffect(() => {
     if (contentDialog || headingFocusRequest === handledFocusRef.current) return
@@ -112,13 +124,32 @@ export default function ContentTab() {
     }
   }
 
-  const toggle = (moduleId: number) =>
+  const toggle = (moduleId: number) => {
+    // พับหน่วยที่มีตัวอย่างเปิดอยู่ → ตัวอย่างปิดด้วย (เปิดหน่วยใหม่ไม่เด้งกลับมาเอง)
+    if (openIds.has(moduleId) && preview?.moduleId === moduleId) setPreview(null)
     setOpenIds((current) => {
       const next = new Set(current)
       if (next.has(moduleId)) next.delete(moduleId)
       else next.add(moduleId)
       return next
     })
+  }
+
+  /** กดชื่อรายการในหน่วยนี้: เปิดตัวอย่างรายการนี้ (รายการเดิมปิด — ขค1) / กดซ้ำ = ปิด */
+  const togglePreview = (content: Content, moduleId: number) =>
+    setPreview((current) => (current?.contentId === content.id ? null : { contentId: content.id, moduleId }))
+
+  /**
+   * รหัสเนื้อหาที่แสดงตัวอย่างจริง — ต้องยังอยู่ในหน่วยเดิม
+   * (ถูกลบ / ย้ายไปหน่วยอื่น → ไม่แสดง ; ไม่ต้องล้างค่าเพราะรหัสนั้นไม่กลับมาในหน่วยเดิมเอง)
+   */
+  const previewId =
+    preview &&
+    modules
+      ?.find((module) => module.id === preview.moduleId)
+      ?.contents.some((content) => content.id === preview.contentId)
+      ? preview.contentId
+      : null
 
   const askDelete = (target: DeleteTarget) => {
     setDeleteTarget(target)
@@ -223,42 +254,47 @@ export default function ContentTab() {
           </StateMessage>
         </Card>
       ) : (
-        <ol aria-label={t('content.heading')} className="m-0 flex list-none flex-col gap-2.5 p-0">
-          {modules.map((module, index) => (
-            <ModuleCard
-              key={module.id}
-              module={module}
-              number={index + 1}
-              first={index === 0}
-              last={index === modules.length - 1}
-              open={openIds.has(module.id)}
-              onToggle={() => toggle(module.id)}
-              readOnly={readOnly}
-              disabled={actions.running}
-              onMove={(direction) => void actions.runNow(() => moveModule(course.id, module.id, direction))}
-              onTogglePublish={() =>
-                void actions.runNow(() =>
-                  runModuleAction(course.id, module.id, module.is_published ? 'unpublish' : 'publish'),
-                )
-              }
-              onEdit={() => setModuleDialog({ mode: 'edit', module })}
-              onDelete={() => askDelete({ kind: 'module', module })}
-              onContentMove={(content, direction) =>
-                void actions.runNow(() => moveContent(course.id, content.id, direction))
-              }
-              onContentTogglePublish={(content) =>
-                void actions.runNow(() =>
-                  runContentAction(course.id, content.id, content.is_published ? 'unpublish' : 'publish'),
-                )
-              }
-              onContentDelete={(content) => askDelete({ kind: 'content', content })}
-              onContentEdit={(content) => setContentDialog({ mode: 'edit', content })}
-              onAddFiles={() => setContentDialog({ mode: 'upload', module, number: index + 1 })}
-              onAddText={() => setContentDialog({ mode: 'text', moduleId: module.id })}
-              onAddLink={() => setContentDialog({ mode: 'link', moduleId: module.id })}
-            />
-          ))}
-        </ol>
+        <FreshLinksContext value={links}>
+          <ol aria-label={t('content.heading')} className="m-0 flex list-none flex-col gap-2.5 p-0">
+            {modules.map((module, index) => (
+              <ModuleCard
+                key={module.id}
+                module={module}
+                number={index + 1}
+                first={index === 0}
+                last={index === modules.length - 1}
+                open={openIds.has(module.id)}
+                onToggle={() => toggle(module.id)}
+                readOnly={readOnly}
+                disabled={actions.running}
+                onMove={(direction) => void actions.runNow(() => moveModule(course.id, module.id, direction))}
+                onTogglePublish={() =>
+                  void actions.runNow(() =>
+                    runModuleAction(course.id, module.id, module.is_published ? 'unpublish' : 'publish'),
+                  )
+                }
+                onEdit={() => setModuleDialog({ mode: 'edit', module })}
+                onDelete={() => askDelete({ kind: 'module', module })}
+                onContentMove={(content, direction) =>
+                  void actions.runNow(() => moveContent(course.id, content.id, direction))
+                }
+                onContentTogglePublish={(content) =>
+                  void actions.runNow(() =>
+                    runContentAction(course.id, content.id, content.is_published ? 'unpublish' : 'publish'),
+                  )
+                }
+                onContentDelete={(content) => askDelete({ kind: 'content', content })}
+                onContentEdit={(content) => setContentDialog({ mode: 'edit', content })}
+                previewId={previewId}
+                courseDraft={!course.is_published}
+                onTogglePreview={(content) => togglePreview(content, module.id)}
+                onAddFiles={() => setContentDialog({ mode: 'upload', module, number: index + 1 })}
+                onAddText={() => setContentDialog({ mode: 'text', moduleId: module.id })}
+                onAddLink={() => setContentDialog({ mode: 'link', moduleId: module.id })}
+              />
+            ))}
+          </ol>
+        </FreshLinksContext>
       )}
 
       {moduleDialog && (

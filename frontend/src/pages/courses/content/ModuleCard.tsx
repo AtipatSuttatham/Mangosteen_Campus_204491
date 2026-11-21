@@ -13,7 +13,7 @@
  * - readOnly (ผู้ดูแลระบบ / วิชาที่ปิด): ไม่มีปุ่มจัดการ แต่ยังพับ / เปิดดูได้
  * - ปุ่มท้ายหน่วยที่เปิด "อัปโหลดไฟล์ · เขียนข้อความ · เพิ่มลิงก์" (กฐ1 — ขั้น 4.6 ก / ข)
  *   จอใหญ่เรียงแถว ; มือถือ "อัปโหลดไฟล์" เต็มความกว้างบรรทัดบน แล้วอีก 2 ปุ่มแบ่งครึ่ง (ตาม board)
- *   + ปุ่ม "แก้ไข" ในแถวเนื้อหา (ขั้น 4.6 ก)
+ *   + ปุ่ม "แก้ไข" ในแถวเนื้อหา (ขั้น 4.6 ก) + กดชื่อรายการดูตัวอย่าง (ขั้น 4.7 ข — ContentRow)
  */
 import { useId } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -43,6 +43,11 @@ type ModuleCardProps = {
   onContentTogglePublish: (content: Content) => void
   onContentDelete: (content: Content) => void
   onContentEdit: (content: Content) => void
+  /** รหัสเนื้อหาที่เปิดตัวอย่างอยู่ (ทั้งแท็บเปิดได้ทีละรายการ — ขค1) + กดชื่อรายการ (ขั้น 4.7 ข) */
+  previewId: number | null
+  /** รายวิชายังไม่เผยแพร่ — ผู้เรียนยังไม่เห็นเนื้อหาใด ๆ (หัวกล่องตัวอย่างบอก "… เมื่อเผยแพร่") */
+  courseDraft: boolean
+  onTogglePreview: (content: Content) => void
   /** ปุ่มท้ายหน่วย: อัปโหลดไฟล์ (ขั้น 4.6 ข) / เขียนข้อความ / เพิ่มลิงก์ (ขั้น 4.6 ก) */
   onAddFiles: () => void
   onAddText: () => void
@@ -66,6 +71,9 @@ export function ModuleCard({
   onContentTogglePublish,
   onContentDelete,
   onContentEdit,
+  previewId,
+  courseDraft,
+  onTogglePreview,
   onAddFiles,
   onAddText,
   onAddLink,
@@ -158,6 +166,9 @@ export function ModuleCard({
                   onTogglePublish={() => onContentTogglePublish(content)}
                   onDelete={() => onContentDelete(content)}
                   onEdit={() => onContentEdit(content)}
+                  previewOpen={previewId === content.id}
+                  onTogglePreview={() => onTogglePreview(content)}
+                  parentHidden={courseDraft || !module.is_published}
                 />
               ))}
             </ul>

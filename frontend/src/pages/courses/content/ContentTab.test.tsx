@@ -354,3 +354,209 @@ describe('ดูอย่างเดียว / ว่าง', () => {
     expect(await screen.findByText('3 หน่วย')).toBeInTheDocument()
   })
 })
+
+describe('ตัวอย่างที่ผู้เรียนจะเห็น (ขั้น 4.7 ข)', () => {
+  /** ปุ่มชื่อรายการ (ชื่อ + "ดูตัวอย่างที่ผู้เรียนจะเห็น" สำหรับโปรแกรมอ่านหน้าจอ) */
+  const titleButton = (title: string) =>
+    screen.getByRole('button', { name: `${title} ดูตัวอย่างที่ผู้เรียนจะเห็น` })
+  const previewOf = (title: string) =>
+    document.getElementById(titleButton(title).getAttribute('aria-controls')!) as HTMLElement | null
+
+  it('กดชื่อรายการ → ตัวอย่างใต้แถวแบบที่ผู้เรียนเห็น (ปิดดาวน์โหลด = ไม่มีปุ่ม) ; กดซ้ำปิด', async () => {
+    const { user } = renderTab()
+    await user.click((await moduleCard('โครงสร้างควบคุมทิศทาง')).toggle)
+    expect(titleButton('สไลด์: while และ for loop')).toHaveAttribute('aria-expanded', 'false')
+
+    await user.click(titleButton('สไลด์: while และ for loop'))
+
+    const preview = previewOf('สไลด์: while และ for loop')!
+    expect(titleButton('สไลด์: while และ for loop')).toHaveAttribute('aria-expanded', 'true')
+    expect(preview).toHaveAccessibleName('ตัวอย่างที่ผู้เรียนจะเห็น')
+    expect(within(preview).getByText('while-for-loop.pdf')).toBeInTheDocument()
+    expect(
+      within(preview).getByRole('link', { name: 'เปิด while-for-loop.pdf ในแท็บใหม่' }),
+    ).toBeInTheDocument()
+    // ข้อมูลของผู้สอนมีลิงก์ดาวน์โหลด แต่ผู้เรียนไม่ได้ (allow_download = false) → ตัวอย่างต้องไม่มีปุ่ม
+    expect(within(preview).queryByRole('link', { name: /ดาวน์โหลด/ })).not.toBeInTheDocument()
+    expect(within(preview).getByText('ผู้สอนปิดการดาวน์โหลดไฟล์นี้')).toBeInTheDocument()
+    // ไม่มีหัวข้อซ้ำในตัวอย่าง (ชื่ออยู่ในแถวแล้ว)
+    expect(within(preview).queryByRole('heading')).not.toBeInTheDocument()
+
+    await user.click(titleButton('สไลด์: while และ for loop'))
+    expect(previewOf('สไลด์: while และ for loop')).toBeNull()
+    expect(titleButton('สไลด์: while และ for loop')).toHaveFocus()
+  })
+
+  it('เปิดได้ทีละรายการทั้งแท็บ (ขค1) — ข้ามหน่วยก็เช่นกัน', async () => {
+    const { user } = renderTab()
+    await user.click((await moduleCard('ก้าวแรกกับ Python')).toggle)
+    await user.click((await moduleCard('โครงสร้างควบคุมทิศทาง')).toggle)
+
+    await user.click(titleButton('สรุปก่อนเรียน'))
+    expect(previewOf('สรุปก่อนเรียน')).not.toBeNull()
+    await user.click(titleButton('สไลด์: while และ for loop'))
+
+    expect(previewOf('สไลด์: while และ for loop')).not.toBeNull()
+    expect(previewOf('สรุปก่อนเรียน')).toBeNull()
+    expect(titleButton('สรุปก่อนเรียน')).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('ผู้เรียนยังไม่เห็น (รายการหรือหน่วยยังไม่เผยแพร่) → หัวกล่อง "… เมื่อเผยแพร่"', async () => {
+    api.fetchModules.mockResolvedValue([
+      ...MODULES.slice(0, 2),
+      makeModule(3, {
+        title: 'ลิสต์และดิกชันนารี',
+        is_published: false,
+        contents: [makeContent(20, { module: 3, title: 'ลิสต์เบื้องต้น', body: '# ส่วนแรก' })],
+      }),
+    ])
+    const { user } = renderTab()
+    await user.click((await moduleCard('โครงสร้างควบคุมทิศทาง')).toggle)
+    await user.click((await moduleCard('ลิสต์และดิกชันนารี')).toggle)
+
+    await user.click(titleButton('วิดีโอ: if, elif, else'))
+    const draftItem = previewOf('วิดีโอ: if, elif, else')!
+    expect(draftItem).toHaveAccessibleName('ตัวอย่างที่ผู้เรียนจะเห็นเมื่อเผยแพร่')
+    expect(within(draftItem).getByTitle('วิดีโอจาก YouTube: วิดีโอ: if, elif, else')).toBeInTheDocument()
+
+    await user.click(titleButton('ลิสต์เบื้องต้น'))
+    const draftModule = previewOf('ลิสต์เบื้องต้น')!
+    expect(draftModule).toHaveAccessibleName('ตัวอย่างที่ผู้เรียนจะเห็นเมื่อเผยแพร่')
+    // หัวข้อในข้อความเริ่มที่ h5 เหมือนหน้าบทเรียน
+    expect(within(draftModule).getByRole('heading', { name: 'ส่วนแรก' }).tagName).toBe('H5')
+  })
+
+  it('พับหน่วย → ตัวอย่างปิด และเปิดหน่วยอีกครั้งไม่เด้งกลับมาเอง', async () => {
+    const { user } = renderTab()
+    const { toggle } = await moduleCard('โครงสร้างควบคุมทิศทาง')
+    await user.click(toggle)
+    await user.click(titleButton('สรุป'))
+
+    await user.click(toggle)
+    await user.click(toggle)
+
+    expect(previewOf('สรุป')).toBeNull()
+    expect(titleButton('สรุป')).toHaveAttribute('aria-expanded', 'false')
+  })
+
+  it('รายการถูกย้ายไปหน่วยอื่น / ถูกลบ → ตัวอย่างปิด', async () => {
+    const moved = makeContent(13, { module: 1, title: 'สรุป' })
+    api.runContentAction.mockResolvedValue(YOUTUBE)
+    const { user } = renderTab()
+    await user.click((await moduleCard('ก้าวแรกกับ Python')).toggle)
+    await user.click((await moduleCard('โครงสร้างควบคุมทิศทาง')).toggle)
+    await user.click(titleButton('สรุป'))
+    expect(previewOf('สรุป')).not.toBeNull()
+
+    // โหลดรายการใหม่ (หลังกดเผยแพร่รายการอื่น) แล้ว "สรุป" อยู่หน่วยที่ 1
+    api.fetchModules.mockResolvedValue([
+      makeModule(1, {
+        title: 'ก้าวแรกกับ Python',
+        contents: [makeContent(10, { title: 'สรุปก่อนเรียน' }), moved],
+      }),
+      makeModule(2, { title: 'โครงสร้างควบคุมทิศทาง', contents: [PDF, YOUTUBE] }),
+    ])
+    await user.click(screen.getByRole('button', { name: 'เผยแพร่ วิดีโอ: if, elif, else' }))
+
+    await waitFor(() => expect(titleButton('สรุป')).toHaveAttribute('aria-expanded', 'false'))
+    expect(previewOf('สรุป')).toBeNull()
+  })
+
+  it('เปลี่ยนไฟล์แล้วตัวอย่างวาดตัวเล่นใหม่ ; เลื่อน / เผยแพร่รายการอื่นไม่ทำให้ตัวเล่นเปลี่ยนลิงก์', async () => {
+    const video = (fileName: string, link: string) =>
+      makeContent(30, {
+        title: 'if-elif-else',
+        content_type: 'video',
+        file_name: fileName,
+        file_size: 1000,
+        mime_type: 'video/mp4',
+        file_link: link,
+        download_link: link,
+      })
+    const withVideo = (content: ReturnType<typeof video>) => [
+      makeModule(2, { title: 'โครงสร้างควบคุมทิศทาง', contents: [content, YOUTUBE] }),
+    ]
+    api.fetchModules.mockResolvedValue(withVideo(video('a.mp4', '/media/a.mp4?sig=1')))
+    api.runContentAction.mockResolvedValue(YOUTUBE)
+    const { user } = renderTab()
+    await user.click((await moduleCard('โครงสร้างควบคุมทิศทาง')).toggle)
+    await user.click(titleButton('if-elif-else'))
+    const player = () => within(previewOf('if-elif-else')!).getByLabelText('วิดีโอ if-elif-else')
+    expect(player()).toHaveAttribute('src', '/media/a.mp4?sig=1')
+
+    // ไฟล์เดิม แต่ลิงก์ชั่วคราวเปลี่ยน (B2 ออกลิงก์ใหม่ทุกครั้งที่โหลดรายการ) → ตัวเล่นใช้ลิงก์เดิมต่อ ไม่เริ่มใหม่
+    api.fetchModules.mockResolvedValue(withVideo(video('a.mp4', '/media/a.mp4?sig=2')))
+    await user.click(screen.getByRole('button', { name: 'เผยแพร่ วิดีโอ: if, elif, else' }))
+    await waitFor(() => expect(api.fetchModules).toHaveBeenCalledTimes(2))
+    expect(player()).toHaveAttribute('src', '/media/a.mp4?sig=1')
+
+    // เปลี่ยนไฟล์ (ชื่อ / ขนาดใหม่) → วาดตัวเล่นใหม่ด้วยไฟล์ใหม่
+    api.fetchModules.mockResolvedValue(withVideo(video('b.mp4', '/media/b.mp4?sig=3')))
+    await user.click(screen.getByRole('button', { name: 'เผยแพร่ วิดีโอ: if, elif, else' }))
+    await waitFor(() => expect(player()).toHaveAttribute('src', '/media/b.mp4?sig=3'))
+  })
+
+  it('ระหว่างรอผลของปุ่มอื่น ชื่อรายการยังกดดูตัวอย่างได้', async () => {
+    api.moveContent.mockReturnValue(new Promise(() => undefined))
+    const { user } = renderTab()
+    await user.click((await moduleCard('โครงสร้างควบคุมทิศทาง')).toggle)
+    await user.click(screen.getByRole('button', { name: 'เลื่อน สไลด์: while และ for loop ขึ้น' }))
+
+    await user.click(titleButton('สรุป'))
+
+    expect(previewOf('สรุป')).not.toBeNull()
+  })
+
+  it('ผู้ดูแลระบบดูตัวอย่างได้ (อ่านอย่างเดียว)', async () => {
+    const { user } = renderTab(true)
+    await user.click((await moduleCard('โครงสร้างควบคุมทิศทาง')).toggle)
+
+    await user.click(titleButton('สไลด์: while และ for loop'))
+
+    expect(previewOf('สไลด์: while และ for loop')).not.toBeNull()
+  })
+
+  it('ข้อมูลเก่ากว่า 50 นาที: กดดาวน์โหลดในตัวอย่าง → โหลดรายการของแท็บใหม่แล้วใช้ลิงก์ใหม่ (ขง1)', async () => {
+    const clicked: string[] = []
+    vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (this: HTMLAnchorElement) {
+      clicked.push(this.getAttribute('href') ?? '')
+    })
+    const slides = (link: string) =>
+      makeContent(40, {
+        title: 'สไลด์',
+        content_type: 'file',
+        file_name: 'slides.pdf',
+        file_size: 2048,
+        mime_type: 'application/pdf',
+        file_link: link,
+        download_link: `${link}?dl`,
+      })
+    api.fetchModules
+      .mockResolvedValueOnce([
+        makeModule(2, { title: 'โครงสร้างควบคุมทิศทาง', contents: [slides('/media/old.pdf')] }),
+      ])
+      .mockResolvedValueOnce([
+        makeModule(2, { title: 'โครงสร้างควบคุมทิศทาง', contents: [slides('/media/new.pdf')] }),
+      ])
+    const { user } = renderTab()
+    await user.click((await moduleCard('โครงสร้างควบคุมทิศทาง')).toggle)
+    await user.click(titleButton('สไลด์'))
+
+    vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 51 * 60 * 1000)
+    await user.click(within(previewOf('สไลด์')!).getByRole('link', { name: 'ดาวน์โหลด slides.pdf' }))
+
+    await waitFor(() => expect(clicked).toEqual(['/media/new.pdf?dl']))
+    expect(api.fetchModules).toHaveBeenCalledTimes(2)
+    vi.restoreAllMocks()
+  })
+
+  it('รายวิชายังไม่เผยแพร่ → ทุกตัวอย่างบอก "… เมื่อเผยแพร่" (ผู้เรียนยังไม่เห็นอะไรเลย)', async () => {
+    fetchCourse.mockResolvedValue(makeCourse({ is_published: false }))
+    const { user } = renderTab()
+    await user.click((await moduleCard('ก้าวแรกกับ Python')).toggle)
+
+    await user.click(titleButton('สรุปก่อนเรียน'))
+
+    expect(previewOf('สรุปก่อนเรียน')).toHaveAccessibleName('ตัวอย่างที่ผู้เรียนจะเห็นเมื่อเผยแพร่')
+  })
+})

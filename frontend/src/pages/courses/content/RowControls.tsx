@@ -82,7 +82,9 @@ export function RowControls({
   }
 
   return (
-    <div className="flex shrink-0 flex-wrap items-center gap-0.5">
+    // มือถือ: หดตามความกว้างที่มีแล้วขึ้นบรรทัดใหม่ได้ ; จอใหญ่: ไม่หด (ปุ่มเรียงแถวเดียวท้ายแถว)
+    // (เดิม shrink-0 ทุกขนาด → จอแคบปุ่มล้นขอบการ์ดแล้วถูกตัด "ลบ" หายไป — พบตอนทดสอบขั้น 4.7 ข ; ผู้ใช้เลือกแบบ ขช1)
+    <div className="flex min-w-0 flex-wrap items-center gap-0.5 lg:shrink-0">
       <button
         ref={upRef}
         type="button"
