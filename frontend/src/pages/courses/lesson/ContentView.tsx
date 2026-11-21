@@ -14,6 +14,7 @@
  * - รับข้อมูลแบบ StudentContent — ข้อมูลของผู้สอน (Content) ส่งเข้ามาได้เลยเพราะมีช่องครบ
  * - ไม่จัดการสิทธิ์เอง: backend ส่งเฉพาะสิ่งที่ผู้ใช้คนนั้นเห็นได้
  */
+import type { ComponentProps } from 'react'
 import { useTranslation } from 'react-i18next'
 import type { StudentContent } from '../../../api/content'
 import { buttonClassName, Markdown } from '../../../components/ui'
@@ -26,10 +27,15 @@ type ContentViewProps = {
   content: StudentContent
   /** แสดงหัวข้อไหม — ตัวอย่างในแท็บผู้สอนมีชื่ออยู่ในแถวแล้ว (ขั้น 4.7 ข) */
   showTitle?: boolean
+  /**
+   * ระดับหัวข้อ (# / ##) ในข้อความของผู้สอน — ให้ต่ำกว่าหัวข้อที่ครอบอยู่ (ค่าเริ่มต้น 5: หน้าบทเรียนอยู่ใต้ h4 ชื่อเนื้อหา)
+   * แท็บผู้สอนมีแค่ h2 "หน่วยการเรียน" จึงใช้ 3 (แก้หลังตรวจขั้น 4.7 — ไม่ให้ลำดับหัวข้อกระโดด h2 → h5)
+   */
+  headingLevel?: ComponentProps<typeof Markdown>['headingLevel']
 }
 
 /** เนื้อหา 1 ชิ้นแบบที่ผู้เรียนเห็น */
-export function ContentView({ content, showTitle = true }: ContentViewProps) {
+export function ContentView({ content, showTitle = true, headingLevel = 5 }: ContentViewProps) {
   const isText = content.content_type === 'text'
   const description = isText ? '' : content.body.trim()
 
@@ -38,21 +44,33 @@ export function ContentView({ content, showTitle = true }: ContentViewProps) {
       {showTitle && (
         <h4 className="m-0 font-display text-lg leading-[1.4] font-semibold break-words">{content.title}</h4>
       )}
-      {/* หัวข้อในข้อความของผู้สอนเริ่มที่ h5 — อยู่ใต้หัวข้อเนื้อหา (h4) ไม่แทรกลำดับหัวข้อของหน้า */}
-      {description && <Markdown text={description} headingLevel={5} className="text-ink-muted" />}
-      <ContentBody content={content} />
+      {/* หัวข้อในข้อความของผู้สอนอยู่ใต้หัวข้อที่ครอบอยู่ (หน้าบทเรียน h4 → เริ่ม h5) ไม่แทรกลำดับหัวข้อของหน้า */}
+      {description && <Markdown text={description} headingLevel={headingLevel} className="text-ink-muted" />}
+      <ContentBody content={content} headingLevel={headingLevel} />
     </article>
   )
 }
 
 /** ส่วนเนื้อของแต่ละชนิด */
-function ContentBody({ content }: { content: StudentContent }) {
+function ContentBody({
+  content,
+  headingLevel,
+}: {
+  content: StudentContent
+  headingLevel: ContentViewProps['headingLevel']
+}) {
   const { t } = useTranslation()
   const allowDownload = content.allow_download && content.download_link != null
 
   switch (content.content_type) {
     case 'text':
-      return <Markdown text={content.body} headingLevel={5} className="lg:text-[15.5px] lg:leading-[1.75]" />
+      return (
+        <Markdown
+          text={content.body}
+          headingLevel={headingLevel}
+          className="lg:text-[15.5px] lg:leading-[1.75]"
+        />
+      )
 
     case 'video':
       if (content.youtube_id) {

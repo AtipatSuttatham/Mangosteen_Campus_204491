@@ -151,6 +151,8 @@ export function ContentRow({
             key={`${content.file_name}:${content.file_size ?? ''}`}
             content={content}
             showTitle={false}
+            // แท็บนี้มีหัวข้อแค่ h2 "หน่วยการเรียน" → หัวข้อในข้อความเริ่ม h3 (ลำดับหัวข้อไม่กระโดด)
+            headingLevel={3}
           />
         </section>
       )}
