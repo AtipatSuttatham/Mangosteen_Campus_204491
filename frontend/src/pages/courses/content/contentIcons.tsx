@@ -66,10 +66,10 @@ export function ArrowDownIcon() {
   )
 }
 
-/** ลูกศรพับ / เปิดหน่วย: เปิด = ชี้ลง, พับ = ชี้ขวา (ไม่หมุนแบบเคลื่อนไหว — เปลี่ยนรูปทันที) */
-export function ToggleIcon({ open }: { open: boolean }) {
+/** ลูกศรพับ / เปิดหน่วย + ตัวอย่างเนื้อหา (ขั้น 4.7 ข ขนาด 18): เปิด = ชี้ลง, พับ = ชี้ขวา (เปลี่ยนรูปทันที ไม่หมุน) */
+export function ToggleIcon({ open, size = 20 }: { open: boolean; size?: number }) {
   return (
-    <LineIcon size={20} strokeWidth={2}>
+    <LineIcon size={size} strokeWidth={2}>
       <path d={open ? 'M6 9l6 6 6-6' : 'M9 6l6 6-6 6'} />
     </LineIcon>
   )
