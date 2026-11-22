@@ -66,3 +66,5 @@ pnpm dev
 | [`docs/database-fields.md`](docs/database-fields.md) | คำอธิบายราย field |
 | [`docs/database-erd.md`](docs/database-erd.md) | แผนภาพความสัมพันธ์ระหว่างตาราง (ERD) |
 | [`docs/api.md`](docs/api.md) | มาตรฐาน API: ที่อยู่ รูปแบบ error และรหัส error |
+| [`docs/architecture.md`](docs/architecture.md) | โค้ดแต่ละส่วนทำงานร่วมกันอย่างไร (แผนภาพ) |
+| [`docs/report-notes.md`](docs/report-notes.md) | บันทึกสำหรับเขียนรายงานฉบับสมบูรณ์ รายก้อน |

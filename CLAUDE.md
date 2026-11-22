@@ -17,6 +17,8 @@
    - [`docs/database-guide.md`](docs/database-guide.md) — ใครเขียน/ใครอ่าน, state machine, workflow W1–W15, access pattern ตามหน้าจอ
    - [`docs/database-fields.md`](docs/database-fields.md) — quick reference ราย field
    - [`docs/database-erd.md`](docs/database-erd.md) — ERD (Mermaid)
+   - [`docs/architecture.md`](docs/architecture.md) — โค้ดแต่ละชั้นทำงานร่วมกันอย่างไร (อัปเดตเมื่อเพิ่ม app / ชั้นใหม่)
+   - [`docs/report-notes.md`](docs/report-notes.md) — วัตถุดิบสำหรับรายงานฉบับสมบูรณ์ — **เติมใน PR เก็บงานท้ายทุกก้อน**
    - [`docs/api.md`](docs/api.md) — **มาตรฐาน API**: ที่อยู่ `/api/v1/`, รูปแบบ error กลาง `{code, detail, fields}`, ตารางรหัส error, CORS — **อ่านก่อนสร้าง/เรียก API ทุกครั้ง**
 
 > **ใช้ลำดับนี้เมื่อข้อมูลขัดกัน:** เรื่องที่มีการตัดสินใจบันทึกไว้ (ข้อ 1) → ทำตามการตัดสินใจนั้น **ห้ามแก้ docs กลับไปตามรายงาน** ; เรื่องที่ไม่เคยตัดสิน → ยึดรายงาน (ข้อ 2) แล้วแก้ docs ส่วนอื่นให้ตรง
