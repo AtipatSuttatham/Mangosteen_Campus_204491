@@ -42,6 +42,29 @@ def test_seed_creates_one_account_per_role() -> None:
     assert teacher.created_by == admin and student.created_by == admin
 
 
+def test_seed_admin_is_superuser_and_others_are_not() -> None:
+    """ผู้ดูแลระบบทดลองเป็น superuser (ดูทุกตารางใน /admin/ ได้) ; ผู้สอน / ผู้เรียนไม่เป็น"""
+    run_seed()
+
+    admin = User.objects.get(email="admin@example.com")
+    assert admin.is_superuser is True
+    assert admin.has_perm("academics.view_course")
+    for email in ("teacher@example.com", "student@example.com"):
+        assert User.objects.get(email=email).is_superuser is False
+
+
+def test_seed_rerun_upgrades_old_admin_without_touching_password() -> None:
+    """บัญชีผู้ดูแลระบบทดลองแบบเก่า (มีแค่ is_staff) → รันซ้ำแล้วเป็น superuser ; รหัสผ่านเดิมยังใช้ได้"""
+    old_password = password_of(run_seed(), "admin@example.com")
+    User.objects.filter(email="admin@example.com").update(is_superuser=False)
+
+    run_seed()
+
+    admin = User.objects.get(email="admin@example.com")
+    assert admin.is_staff is True and admin.is_superuser is True
+    assert authenticate(username="admin@example.com", password=old_password) is not None
+
+
 def test_seed_uses_only_fake_example_domain() -> None:
     """บัญชีทดลองทุกบัญชีใช้โดเมน example.com (ข้อมูลสมมติ)"""
     run_seed()
