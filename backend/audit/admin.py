@@ -39,7 +39,7 @@ class AuditLogAdmin(admin.ModelAdmin):
     )
     readonly_fields = fields
 
-    @admin.display(description="สิ่งที่เปลี่ยน")
+    @admin.display(description="changes")
     def changes_pretty(self, obj: AuditLog) -> str:
         """แสดง changes เป็น JSON ที่จัดบรรทัดแล้ว (ภาษาไทยอ่านได้ ไม่เป็นรหัส \\uXXXX)"""
         if obj.changes is None:

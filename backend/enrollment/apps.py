@@ -12,5 +12,6 @@ class EnrollmentConfig(AppConfig):
     default_auto_field = "django.db.models.BigAutoField"
     # ชื่อ app ที่ใช้อ้างอิงใน INSTALLED_APPS
     name = "enrollment"
-    # ชื่อกลุ่มที่แสดงในหน้า Django admin
-    verbose_name = "การลงทะเบียน"
+    # ชื่อกลุ่มที่แสดงในหน้า Django admin = ชื่อ app (ตรงกับคำนำหน้าชื่อตาราง เช่น accounts_user)
+    # — กติกา docs/database.md §1 ; ตรวจโดย common/tests/test_admin_names.py
+    verbose_name = "enrollment"

@@ -27,20 +27,22 @@ class Module(TimeStampedModel):
 
     # รายวิชาที่หน่วยนี้อยู่ — ลบรายวิชา → ลบหน่วยทั้งหมดตาม (CASCADE)
     course = models.ForeignKey(
-        Course, verbose_name="รายวิชา", on_delete=models.CASCADE, related_name="modules"
+        Course, verbose_name="course", on_delete=models.CASCADE, related_name="modules"
     )
     # ชื่อหน่วยการเรียน
-    title = models.CharField("ชื่อหน่วยการเรียน", max_length=200)
+    title = models.CharField("title", max_length=200)
     # คำอธิบายหน่วย (Markdown) — ไม่บังคับ
-    description = models.TextField("คำอธิบาย", blank=True)
+    description = models.TextField("description", blank=True)
     # ลำดับในรายวิชา (ไม่ unique — จัดลำดับใหม่ทั้งรายการใน transaction เดียว ตาม §1)
-    order = models.PositiveIntegerField("ลำดับ", default=0)
+    order = models.PositiveIntegerField("order", default=0)
     # True = ผู้เรียนเห็น ; หน่วยใหม่เริ่มที่ยังไม่เผยแพร่
-    is_published = models.BooleanField("เผยแพร่แล้ว", default=False)
+    is_published = models.BooleanField("is_published", default=False)
 
     class Meta:
-        verbose_name = "หน่วยการเรียน"
-        verbose_name_plural = "หน่วยการเรียน"
+        # ชื่อในหน้า /admin/ = "ชื่อ model (ชื่อตารางจริง)" ให้เทียบกับ docs/database.md และ psql ได้
+        # (กติกา docs/database.md §1 — ตรวจโดย common/tests/test_admin_names.py)
+        verbose_name = "Module (content_module)"
+        verbose_name_plural = "Module (content_module)"
         # เรียงตามลำดับที่ผู้สอนจัด ; ลำดับเท่ากันใช้ลำดับที่สร้าง
         ordering = ("order", "id")
         # หน้ารายวิชาดึงหน่วยของวิชาเดียวเรียงตามลำดับเสมอ (§11 "Index ที่ต้องเพิ่ม")
@@ -66,34 +68,38 @@ class Content(TimeStampedModel):
 
     # หน่วยการเรียนที่เนื้อหานี้อยู่ — ลบหน่วย → ลบเนื้อหาตาม (CASCADE)
     module = models.ForeignKey(
-        Module, verbose_name="หน่วยการเรียน", on_delete=models.CASCADE, related_name="contents"
+        Module, verbose_name="module", on_delete=models.CASCADE, related_name="contents"
     )
     # ชื่อหัวข้อ (อัปโหลดไฟล์แล้วไม่กรอก → API ตั้งจากชื่อไฟล์)
-    title = models.CharField("ชื่อหัวข้อ", max_length=200)
+    title = models.CharField("title", max_length=200)
     # ชนิดเนื้อหา — ระบบตั้งเองจากไฟล์ / ลิงก์ และเปลี่ยนภายหลังไม่ได้ (ตรวจในชั้น API)
-    content_type = models.CharField("ชนิดเนื้อหา", max_length=10, choices=Kind.choices)
+    content_type = models.CharField("content_type", max_length=10, choices=Kind.choices)
     # ข้อความ (Markdown): เนื้อความของชนิดข้อความ หรือคำอธิบายเหนือไฟล์ / ลิงก์ (ไม่บังคับ)
-    body = models.TextField("เนื้อความ / คำอธิบาย", blank=True)
+    body = models.TextField("body", blank=True)
     # ลำดับในหน่วย (ไม่ unique — เหมือน Module.order)
-    order = models.PositiveIntegerField("ลำดับ", default=0)
+    order = models.PositiveIntegerField("order", default=0)
     # True = ผู้เรียนเห็น ; เนื้อหาใหม่เริ่มที่ยังไม่เผยแพร่
-    is_published = models.BooleanField("เผยแพร่แล้ว", default=False)
+    is_published = models.BooleanField("is_published", default=False)
     # ตำแหน่งไฟล์บนที่เก็บไฟล์ (ไม่เก็บลิงก์เต็ม — ระบบสร้างลิงก์ตอนเรียกใช้) ; ว่าง = ไม่มีไฟล์
-    file_url = models.FileField("ไฟล์", upload_to=content_upload_path, max_length=255, blank=True)
+    file_url = models.FileField(
+        "file_url", upload_to=content_upload_path, max_length=255, blank=True
+    )
     # ชื่อไฟล์เดิมที่อาจารย์อัปโหลด — ใช้ตั้งชื่อตอนดาวน์โหลด (ชื่อบนที่เก็บไฟล์เป็นชื่อสุ่ม)
-    file_name = models.CharField("ชื่อไฟล์เดิม", max_length=255, blank=True)
+    file_name = models.CharField("file_name", max_length=255, blank=True)
     # ขนาดไฟล์ (ไบต์) ; NULL = ไม่มีไฟล์
-    file_size = models.PositiveBigIntegerField("ขนาดไฟล์ (ไบต์)", null=True, blank=True)
+    file_size = models.PositiveBigIntegerField("file_size", null=True, blank=True)
     # ชนิดไฟล์ เช่น application/pdf (ตั้งจากเนื้อไฟล์จริงในขั้น 4.3)
-    mime_type = models.CharField("ชนิดไฟล์ (MIME)", max_length=100, blank=True)
+    mime_type = models.CharField("mime_type", max_length=100, blank=True)
     # ลิงก์ภายนอก: ชนิดลิงก์ หรือวิดีโอจาก YouTube
-    external_url = models.URLField("ลิงก์ภายนอก", max_length=500, blank=True)
+    external_url = models.URLField("external_url", max_length=500, blank=True)
     # ให้ผู้เรียนดาวน์โหลดไฟล์ได้ไหม (กฑ2) — ใช้กับเนื้อหาที่มีไฟล์ ; ปิด = ไม่ส่งลิงก์ดาวน์โหลดให้ผู้เรียน
-    allow_download = models.BooleanField("ให้ผู้เรียนดาวน์โหลดได้", default=True)
+    allow_download = models.BooleanField("allow_download", default=True)
 
     class Meta:
-        verbose_name = "เนื้อหา"
-        verbose_name_plural = "เนื้อหา"
+        # ชื่อในหน้า /admin/ = "ชื่อ model (ชื่อตารางจริง)" ให้เทียบกับ docs/database.md และ psql ได้
+        # (กติกา docs/database.md §1 — ตรวจโดย common/tests/test_admin_names.py)
+        verbose_name = "Content (content_content)"
+        verbose_name_plural = "Content (content_content)"
         ordering = ("order", "id")
         # หน่วยที่เปิดดึงเนื้อหาของหน่วยเดียวเรียงตามลำดับเสมอ (§11 "Index ที่ต้องเพิ่ม")
         indexes = [models.Index(fields=["module", "order"], name="content_content_module_order")]
