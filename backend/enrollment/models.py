@@ -27,37 +27,41 @@ class Enrollment(TimeStampedModel):
     # รายวิชา — CASCADE: ลบวิชาแล้วระเบียนหายตาม (ลบวิชาได้เฉพาะที่ไม่เคยมีผู้เรียน จึงไม่มีข้อมูลหาย)
     course = models.ForeignKey(
         "academics.Course",
-        verbose_name="รายวิชา",
+        verbose_name="course",
         on_delete=models.CASCADE,
         related_name="enrollments",
     )
     # ผู้เรียน — PROTECT: เป็นทางเชื่อมเข้าสู่คะแนน ลบบัญชีที่เคยลงทะเบียนไม่ได้ (ใช้การระงับแทน)
     student = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        verbose_name="ผู้เรียน",
+        verbose_name="student",
         on_delete=models.PROTECT,
         related_name="enrollments",
     )
     # สถานะ — ผู้เรียนที่ถูกถอนเข้าถึงรายวิชาไม่ได้ แต่คะแนนยังเก็บไว้
-    status = models.CharField("สถานะ", max_length=16, choices=Status.choices, default=Status.ACTIVE)
+    status = models.CharField(
+        "status", max_length=16, choices=Status.choices, default=Status.ACTIVE
+    )
     # ผู้ที่เพิ่มผู้เรียนเข้ารายวิชา — ว่าง = ผู้เรียนเข้าร่วมเองด้วยรหัสเข้าร่วม
     # ("+" = ไม่ต้องมีทางย้อนกลับจากบัญชีผู้เพิ่ม ; ใช้แสดงคอลัมน์ "วิธีเข้าร่วม" เท่านั้น)
     enrolled_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        verbose_name="เพิ่มโดย",
+        verbose_name="enrolled_by",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="+",
     )
     # เวลาที่เข้าร่วม (คอลัมน์ "เข้าร่วมเมื่อ" ในแท็บผู้เรียน)
-    enrolled_at = models.DateTimeField("เข้าร่วมเมื่อ", default=timezone.now)
+    enrolled_at = models.DateTimeField("enrolled_at", default=timezone.now)
     # เวลาที่ถูกถอน — มีค่าเฉพาะตอน status = dropped (ฐานข้อมูลบังคับ)
-    dropped_at = models.DateTimeField("ถอนเมื่อ", null=True, blank=True)
+    dropped_at = models.DateTimeField("dropped_at", null=True, blank=True)
 
     class Meta:
-        verbose_name = "การลงทะเบียน"
-        verbose_name_plural = "การลงทะเบียน"
+        # ชื่อในหน้า /admin/ = "ชื่อ model (ชื่อตารางจริง)" ให้เทียบกับ docs/database.md และ psql ได้
+        # (กติกา docs/database.md §1 — ตรวจโดย common/tests/test_admin_names.py)
+        verbose_name = "Enrollment (enrollment_enrollment)"
+        verbose_name_plural = "Enrollment (enrollment_enrollment)"
         ordering = ("course", "enrolled_at", "id")
         constraints = [
             # 1 ผู้เรียน 1 ระเบียนต่อวิชา

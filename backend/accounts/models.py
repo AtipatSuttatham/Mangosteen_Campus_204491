@@ -94,35 +94,35 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
         STUDENT = "student", "ผู้เรียน"
 
     # อีเมล — ใช้เข้าสู่ระบบได้ ; เก็บเป็นตัวพิมพ์เล็กเสมอ (จัดรูปใน save())
-    email = models.EmailField("อีเมล", unique=True)
+    email = models.EmailField("email", unique=True)
     # รหัสนักศึกษา/รหัสพนักงาน — ใช้เข้าสู่ระบบได้ ; ไม่มีรหัส = NULL
     student_or_staff_id = models.CharField(
-        "รหัสนักศึกษา/รหัสพนักงาน", max_length=20, unique=True, null=True, blank=True
+        "student_or_staff_id", max_length=20, unique=True, null=True, blank=True
     )
     # บทบาทระดับระบบ — จะใส่ไว้ใน token ตอนเข้าสู่ระบบด้วย (ขั้น 1.2)
-    role = models.CharField("บทบาท", max_length=10, choices=Role.choices)
+    role = models.CharField("role", max_length=10, choices=Role.choices)
     # ชื่อ-นามสกุล (ภาษาใดก็ได้)
-    first_name = models.CharField("ชื่อ", max_length=150)
-    last_name = models.CharField("นามสกุล", max_length=150)
+    first_name = models.CharField("first_name", max_length=150)
+    last_name = models.CharField("last_name", max_length=150)
     # False = ผู้ดูแลระบบระงับบัญชี → เข้าสู่ระบบไม่ได้ (ไม่ลบบัญชีจริง)
-    is_active = models.BooleanField("ใช้งานได้", default=True)
+    is_active = models.BooleanField("is_active", default=True)
     # สิทธิ์เข้าหน้า Django admin (สำหรับนักพัฒนา) — ไม่เกี่ยวกับ role
-    is_staff = models.BooleanField("เข้าหน้า Django admin ได้", default=False)
+    is_staff = models.BooleanField("is_staff", default=False)
     # รูปประจำตัว — เก็บ "ตำแหน่งไฟล์" (เช่น avatars/xxx.webp) ไม่เก็บลิงก์เต็ม ;
     # ระบบสร้างลิงก์ตอนเรียกใช้ ; การตรวจ/ย่อรูปทำตอนอัปโหลด (ขั้น 1.7)
-    avatar_url = models.FileField("รูปประจำตัว", upload_to="avatars/", max_length=255, blank=True)
+    avatar_url = models.FileField("avatar_url", upload_to="avatars/", max_length=255, blank=True)
     # ผู้ดูแลระบบที่สร้างบัญชีนี้ — ว่าง = บัญชีผู้ดูแลระบบเริ่มต้น ;
     # ถ้าผู้สร้างถูกลบ (ปกติไม่ลบ) ช่องนี้กลายเป็นว่าง ไม่ลบบัญชีตามไปด้วย
     created_by = models.ForeignKey(
         "self",
-        verbose_name="สร้างโดย",
+        verbose_name="created_by",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         related_name="created_users",
     )
     # วันที่สร้างบัญชี (ชื่อมาตรฐานของ Django ตามสเปก) — last_login มาจาก AbstractBaseUser
-    date_joined = models.DateTimeField("วันที่สร้างบัญชี", default=timezone.now)
+    date_joined = models.DateTimeField("date_joined", default=timezone.now)
 
     objects = UserManager()
 
@@ -133,8 +133,10 @@ class User(AbstractBaseUser, PermissionsMixin, TimeStampedModel):
     REQUIRED_FIELDS = ["first_name", "last_name"]
 
     class Meta:
-        verbose_name = "ผู้ใช้"
-        verbose_name_plural = "ผู้ใช้"
+        # ชื่อในหน้า /admin/ = "ชื่อ model (ชื่อตารางจริง)" ให้เทียบกับ docs/database.md และ psql ได้
+        # (กติกา docs/database.md §1 — ตรวจโดย common/tests/test_admin_names.py)
+        verbose_name = "User (accounts_user)"
+        verbose_name_plural = "User (accounts_user)"
         ordering = ["id"]
         constraints = [
             # ชั้นป้องกันที่ 2: กันอีเมลซ้ำแบบไม่สนตัวพิมพ์ใหญ่/เล็กในระดับฐานข้อมูล

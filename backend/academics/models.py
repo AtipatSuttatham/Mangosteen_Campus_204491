@@ -33,37 +33,37 @@ class Course(TimeStampedModel):
         SUMMER = 3, "ภาคฤดูร้อน"
 
     # ปีการศึกษาที่เปิดสอน (พ.ศ.) เช่น 2569
-    academic_year = models.PositiveSmallIntegerField("ปีการศึกษา")
+    academic_year = models.PositiveSmallIntegerField("academic_year")
     # ภาคเรียน 1 / 2 / 3
-    semester = models.PositiveSmallIntegerField("ภาคเรียน", choices=Semester.choices)
+    semester = models.PositiveSmallIntegerField("semester", choices=Semester.choices)
     # ผู้สอนที่รับผิดชอบ (1 วิชา 1 คน) — PROTECT: ลบบัญชีผู้สอนที่มีวิชาไม่ได้ (ระบบใช้การระงับแทน)
     teacher = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        verbose_name="ผู้สอน",
+        verbose_name="teacher",
         on_delete=models.PROTECT,
         related_name="taught_courses",
     )
     # รหัสวิชา เช่น "204111"
-    code = models.CharField("รหัสวิชา", max_length=20)
+    code = models.CharField("code", max_length=20)
     # ชื่อรายวิชา
-    name = models.CharField("ชื่อรายวิชา", max_length=200)
+    name = models.CharField("name", max_length=200)
     # คำอธิบายรายวิชา (Markdown) — ไม่บังคับ
-    description = models.TextField("คำอธิบายรายวิชา", blank=True)
+    description = models.TextField("description", blank=True)
     # เปิดให้ผู้เรียนเข้าร่วมเองด้วยรหัสเข้าร่วมหรือไม่
-    join_code_enabled = models.BooleanField("เปิดใช้รหัสเข้าร่วม", default=False)
+    join_code_enabled = models.BooleanField("join_code_enabled", default=False)
     # รหัสเข้าร่วม (สุ่มแยกจากรหัสวิชา — join_codes.py) ; NULL = ยังไม่เคยเปิดใช้
     # ใช้ NULL แทนข้อความว่าง เพราะ NULL ไม่นับว่า "ซ้ำกัน" จึงมีหลายวิชาที่ยังไม่มีรหัสได้
     join_code = models.CharField(  # noqa: DJ001
-        "รหัสเข้าร่วม", max_length=JOIN_CODE_LENGTH, unique=True, null=True, blank=True
+        "join_code", max_length=JOIN_CODE_LENGTH, unique=True, null=True, blank=True
     )
     # True = ผู้เรียนเห็นและเข้าใช้งานได้
-    is_published = models.BooleanField("เผยแพร่แล้ว", default=False)
+    is_published = models.BooleanField("is_published", default=False)
     # True = ปิดรายวิชาแล้ว ผู้เรียนดูย้อนหลังได้อย่างเดียว (เปิดคืนได้เฉพาะผู้ดูแลระบบ)
-    is_closed = models.BooleanField("ปิดรายวิชาแล้ว", default=False)
+    is_closed = models.BooleanField("is_closed", default=False)
     # ผู้สร้าง (ผู้สอนเอง หรือผู้ดูแลระบบที่สร้างแทน) — ถ้าบัญชีผู้สร้างถูกลบ ช่องนี้กลายเป็นว่าง
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
-        verbose_name="สร้างโดย",
+        verbose_name="created_by",
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
@@ -71,8 +71,10 @@ class Course(TimeStampedModel):
     )
 
     class Meta:
-        verbose_name = "รายวิชา"
-        verbose_name_plural = "รายวิชา"
+        # ชื่อในหน้า /admin/ = "ชื่อ model (ชื่อตารางจริง)" ให้เทียบกับ docs/database.md และ psql ได้
+        # (กติกา docs/database.md §1 — ตรวจโดย common/tests/test_admin_names.py)
+        verbose_name = "Course (academics_course)"
+        verbose_name_plural = "Course (academics_course)"
         # ภาคล่าสุดขึ้นก่อน แล้วเรียงตามรหัสวิชา (ตรงกับหน้า "รายวิชาของฉัน")
         ordering = ("-academic_year", "-semester", "code")
         constraints = [

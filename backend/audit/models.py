@@ -44,34 +44,36 @@ class AuditLog(models.Model):
         null=True,
         blank=True,
         related_name="audit_logs",
-        verbose_name="ผู้กระทำ",
+        verbose_name="actor",
     )
     # การกระทำ (9 ค่า)
-    action = models.CharField("การกระทำ", max_length=32, choices=AuditAction.choices)
+    action = models.CharField("action", max_length=32, choices=AuditAction.choices)
     # ชนิดตารางเป้าหมาย (ตารางระบบของ Django) — null = เหตุการณ์ที่ไม่ผูกกับข้อมูลใด
     content_type = models.ForeignKey(
         ContentType,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
-        verbose_name="ชนิดข้อมูล",
+        verbose_name="content_type",
     )
     # รหัสระเบียนเป้าหมาย (เก็บเป็นข้อความ รองรับ PK ทุกชนิด)
     # null = ไม่ผูกกับระเบียนใด (ตามสเปก) — แยกจาก "" ชัดเจน จึงยกเว้นกฎ DJ001 ของ ruff
     object_id = models.CharField(  # noqa: DJ001
-        "รหัสระเบียน", max_length=64, null=True, blank=True
+        "object_id", max_length=64, null=True, blank=True
     )
     # ข้อความแสดงระเบียน ณ เวลาที่บันทึก — ยังอ่านได้แม้ระเบียนถูกลบหรือเปลี่ยนชื่อภายหลัง
-    object_repr = models.CharField("ข้อมูลที่ถูกกระทำ", max_length=200)
+    object_repr = models.CharField("object_repr", max_length=200)
     # สิ่งที่เปลี่ยน {"field": [ค่าเดิม, ค่าใหม่]} ; null = ไม่มีการเปลี่ยนข้อมูล (เช่น จำลองมุมมอง)
     # ใช้ DjangoJSONEncoder เพื่อเก็บวันที่/ตัวเลขทศนิยมได้ ; รหัสผ่านถูกปิดเป็น "***" เสมอ (services.py)
-    changes = models.JSONField("สิ่งที่เปลี่ยน", null=True, blank=True, encoder=DjangoJSONEncoder)
+    changes = models.JSONField("changes", null=True, blank=True, encoder=DjangoJSONEncoder)
     # เวลาที่เกิดเหตุการณ์ (UTC) — มี index เพราะหน้าประวัติกรองตามช่วงวันที่ (UC-06)
-    created_at = models.DateTimeField("เวลา", auto_now_add=True, db_index=True)
+    created_at = models.DateTimeField("created_at", auto_now_add=True, db_index=True)
 
     class Meta:
-        verbose_name = "บันทึกการใช้งาน"
-        verbose_name_plural = "บันทึกการใช้งาน"
+        # ชื่อในหน้า /admin/ = "ชื่อ model (ชื่อตารางจริง)" ให้เทียบกับ docs/database.md และ psql ได้
+        # (กติกา docs/database.md §1 — ตรวจโดย common/tests/test_admin_names.py)
+        verbose_name = "AuditLog (audit_auditlog)"
+        verbose_name_plural = "AuditLog (audit_auditlog)"
         # ล่าสุดขึ้นก่อน (id ช่วยเรียงเหตุการณ์ที่เกิดในเวลาเดียวกัน)
         ordering = ("-created_at", "-id")
         indexes = [

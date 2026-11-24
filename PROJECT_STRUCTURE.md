@@ -155,6 +155,7 @@ Mangosteen_Campus_204491/
 │           ├── test_exceptions.py  test รูปแบบ error ทุกชนิด (กรอกผิด / ไม่พบ / ไม่มีสิทธิ์ / ApiError / บั๊ก 500)
 │           ├── test_api_routing.py test 404 แบบ JSON ของ /api/ และการตั้งค่า CORS
 │           ├── test_dev_media.py   test ตัวส่งไฟล์ตอนพัฒนา: ส่งไฟล์ได้ + ไม่มี Content-Disposition + ไฟล์ข้อความเป็น UTF-8
+│           ├── test_admin_names.py test ชื่อในหน้า /admin/ ของทุก model: กลุ่ม = ชื่อ app, ตาราง = "Model (ชื่อตารางจริง)", คอลัมน์ = ชื่อ field (docs/database.md §1)
 │           └── error_views.py      view ตัวอย่างที่ใช้ใน test เท่านั้น (ไม่อยู่ในระบบจริง)
 │
 ├── frontend/                 ส่วนหน้าบ้าน: React 19 + TypeScript + Vite 8 + Tailwind CSS v4 (จัดการแพ็กเกจด้วย pnpm)
