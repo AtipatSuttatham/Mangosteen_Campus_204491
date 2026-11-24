@@ -5,6 +5,8 @@
   อีเมลใช้โดเมน example.com (สงวนไว้สำหรับตัวอย่าง — ไม่ชนกับอีเมลของคนจริง)
 - สุ่มรหัสผ่านแล้วแสดงบนหน้าจอครั้งเดียว — ไม่บันทึกลงไฟล์ใด ๆ
 - รันซ้ำได้: บัญชีที่มีอยู่แล้วจะข้าม ; ใส่ --reset-passwords เพื่อสุ่มรหัสใหม่ให้บัญชีเดิม
+- ผู้ดูแลระบบทดลองเป็น superuser (is_staff + is_superuser) → เปิดดูทุกตารางในหน้า /admin/ ได้ ;
+  บัญชีเดิมที่ยังไม่เป็น superuser จะได้สิทธิ์ครบเมื่อรันคำสั่งซ้ำ
 - ทำงานเฉพาะโหมดพัฒนา (DEBUG=True) — กันเผลอสร้างบัญชีทดลองบนเว็บจริง
 """
 
@@ -73,11 +75,15 @@ class Command(BaseCommand):
             if user is None:
                 # ยังไม่มี → สร้างใหม่ (ผู้สอน/ผู้เรียน บันทึกว่าผู้ดูแลระบบทดลองเป็นผู้สร้าง)
                 password = generate_password()
+                is_admin = data["role"] == User.Role.ADMIN
                 user = User.objects.create_user(
                     password=password,
                     created_by=admin_user,
-                    # ผู้ดูแลระบบทดลองเข้าหน้า /admin/ ได้ (สะดวกตอนพัฒนา)
-                    is_staff=data["role"] == User.Role.ADMIN,
+                    # ผู้ดูแลระบบทดลองเข้าหน้า /admin/ ได้และดูได้ทุกตาราง (สะดวกตอนพัฒนา)
+                    # ต้องเป็น superuser ด้วย — is_staff อย่างเดียวเข้าหน้าได้แต่ไม่มีสิทธิ์ดูตารางใดเลย
+                    # (หน้าขึ้น "You don't have permission…" — พบ 2026-11-25 ; decisions/block-1.md)
+                    is_staff=is_admin,
+                    is_superuser=is_admin,
                     **data,
                 )
                 shown_password = password
@@ -93,6 +99,12 @@ class Command(BaseCommand):
 
             if user.role == User.Role.ADMIN:
                 admin_user = user
+                # บัญชีผู้ดูแลระบบทดลองที่สร้างก่อนแก้ข้อนี้มีแค่ is_staff → รันคำสั่งซ้ำแล้วได้สิทธิ์ครบ
+                # (ไม่ต้องล้างฐานข้อมูล ; ไม่แตะรหัสผ่าน) — ทำเฉพาะบัญชีทดลอง @example.com ในรายการนี้
+                if not (user.is_staff and user.is_superuser):
+                    user.is_staff = True
+                    user.is_superuser = True
+                    user.save(update_fields=["is_staff", "is_superuser", "updated_at"])
             rows.append((user.email, user.student_or_staff_id or "-", user.role, shown_password))
 
         # บน Windows ถ้าส่งผลลัพธ์ต่อ (pipe) Python ใช้ชุดอักษร cp1252 ที่พิมพ์ภาษาไทยไม่ได้
